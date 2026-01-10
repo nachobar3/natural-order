@@ -20,15 +20,23 @@ html {
 }
 
 /* Radio card selection styles */
-.radio-card input:checked + div {
+.radio-card input:checked + div,
+.checkbox-card input:checked + div {
     border-color: #16a34a;
     background-color: rgba(22, 163, 74, 0.1);
     box-shadow: 0 0 0 1px #16a34a;
 }
 
-.radio-card input:focus + div {
+.radio-card input:focus + div,
+.checkbox-card input:focus + div {
     outline: 2px solid #22c55e;
     outline-offset: 2px;
+}
+
+/* Checkbox card disabled state (max selections reached) */
+.checkbox-card.disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 /* Form input focus states */

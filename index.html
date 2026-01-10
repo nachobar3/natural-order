@@ -190,19 +190,18 @@
                 <div class="mb-8">
                     <div class="flex justify-between text-sm text-gray-400 mb-2">
                         <span>Progreso</span>
-                        <span id="progress-text">Paso 1 de 5</span>
+                        <span id="progress-text">Paso 1 de 6</span>
                     </div>
                     <div class="h-2 bg-mtg-green-900/30 rounded-full overflow-hidden">
                         <div id="progress-bar" class="h-full bg-mtg-green-600 rounded-full transition-all duration-300" style="width: 20%"></div>
                     </div>
                 </div>
 
-                <!-- Step 1: Email -->
+                <!-- Step 1: Email + País/Ciudad -->
                 <div class="form-step" data-step="1">
-                    <h3 class="text-xl font-semibold mb-6">¿Cuál es tu email?</h3>
-                    <div class="space-y-4">
+                    <div class="space-y-6">
                         <div>
-                            <label for="email" class="block text-sm text-gray-400 mb-2">Email</label>
+                            <label for="email" class="block text-lg text-gray-200 mb-3">¿Cuál es tu email?</label>
                             <input
                                 type="email"
                                 id="email"
@@ -212,71 +211,137 @@
                                 class="w-full bg-mtg-dark border border-mtg-green-900/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-mtg-green-600 focus:ring-1 focus:ring-mtg-green-600 transition-colors"
                             >
                         </div>
+                        <div>
+                            <label for="country_city" class="block text-lg text-gray-200 mb-3">¿En qué país y ciudad residís?</label>
+                            <input
+                                type="text"
+                                id="country_city"
+                                name="country_city"
+                                required
+                                placeholder="Ej: Argentina - Buenos Aires"
+                                class="w-full bg-mtg-dark border border-mtg-green-900/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-mtg-green-600 focus:ring-1 focus:ring-mtg-green-600 transition-colors"
+                            >
+                        </div>
                     </div>
                 </div>
 
-                <!-- Step 2: Bloque A -->
+                <!-- Step 2: Métodos de búsqueda -->
                 <div class="form-step hidden" data-step="2">
-                    <h3 class="text-xl font-semibold mb-2">Tu comportamiento actual</h3>
-                    <p class="text-gray-400 text-sm mb-6">Queremos entender cómo tradeás hoy.</p>
-
                     <div class="space-y-6">
                         <div>
-                            <label class="block text-sm text-gray-300 mb-3">¿Cuántas veces al mes intercambias o compras cartas de forma presencial?</label>
-                            <div class="grid grid-cols-3 gap-3">
+                            <label class="block text-lg text-gray-200 mb-4">¿Cuáles son tus métodos principales para encontrar y adquirir cartas? <span class="text-sm text-gray-400">(Elegí hasta 2)</span></label>
+                            <div class="space-y-3">
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="search_methods" value="facebook" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">📘</span>
+                                        <span>Grupos de Facebook</span>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="search_methods" value="tiendas_fisicas" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">🏪</span>
+                                        <span>Tiendas físicas locales</span>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="search_methods" value="chats" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">💬</span>
+                                        <span>Chats (WhatsApp / Telegram / Discord)</span>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="search_methods" value="tiendas_online" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">🛒</span>
+                                        <span>Tiendas online (TCGPlayer, Cardmarket)</span>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="search_methods" value="otro" class="sr-only" id="search_methods_otro">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">✏️</span>
+                                        <span>Otro</span>
+                                    </div>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="search_methods_other"
+                                    name="search_methods_other"
+                                    placeholder="Especificá cuál..."
+                                    class="hidden w-full bg-mtg-dark border border-mtg-green-900/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-mtg-green-600 focus:ring-1 focus:ring-mtg-green-600 transition-colors mt-2"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Frecuencia + Tamaño wishlist -->
+                <div class="form-step hidden" data-step="3">
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-lg text-gray-200 mb-4">¿Cuántos trades o compras presenciales de cartas realizás por mes en promedio?</label>
+                            <div class="grid grid-cols-5 gap-2">
                                 <label class="radio-card">
-                                    <input type="radio" name="trades_frequency" value="menos_1" required class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">📉</div>
-                                        <div class="text-sm">Menos de 1</div>
+                                    <input type="radio" name="trades_frequency" value="0" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">0</div>
                                     </div>
                                 </label>
                                 <label class="radio-card">
                                     <input type="radio" name="trades_frequency" value="1_3" class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">📊</div>
-                                        <div class="text-sm">1-3 veces</div>
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">1-3</div>
                                     </div>
                                 </label>
                                 <label class="radio-card">
-                                    <input type="radio" name="trades_frequency" value="4_mas" class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">📈</div>
-                                        <div class="text-sm">4 o más</div>
+                                    <input type="radio" name="trades_frequency" value="4_6" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">4-6</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="trades_frequency" value="7_10" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">7-10</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="trades_frequency" value="10_plus" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">+10</div>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm text-gray-300 mb-3">¿Cuál es tu método principal para encontrar cartas específicas?</label>
-                            <div class="grid grid-cols-2 gap-3">
+                            <label class="block text-lg text-gray-200 mb-4">¿Cuántas cartas aproximadas tenés en tu wishlist actual?</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <label class="radio-card">
-                                    <input type="radio" name="search_method" value="facebook" required class="sr-only">
+                                    <input type="radio" name="wishlist_size" value="less_10" required class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">📘</div>
-                                        <div class="text-sm">Facebook</div>
+                                        <div class="font-medium">&lt;10</div>
                                     </div>
                                 </label>
                                 <label class="radio-card">
-                                    <input type="radio" name="search_method" value="whatsapp" class="sr-only">
+                                    <input type="radio" name="wishlist_size" value="10_50" class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">💬</div>
-                                        <div class="text-sm">WhatsApp</div>
+                                        <div class="font-medium">10-50</div>
                                     </div>
                                 </label>
                                 <label class="radio-card">
-                                    <input type="radio" name="search_method" value="marketplace" class="sr-only">
+                                    <input type="radio" name="wishlist_size" value="51_200" class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">🛒</div>
-                                        <div class="text-sm">Marketplace</div>
+                                        <div class="font-medium">51-200</div>
                                     </div>
                                 </label>
                                 <label class="radio-card">
-                                    <input type="radio" name="search_method" value="tiendas" class="sr-only">
+                                    <input type="radio" name="wishlist_size" value="more_200" class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">🏪</div>
-                                        <div class="text-sm">Tiendas físicas</div>
+                                        <div class="font-medium">+200</div>
                                     </div>
                                 </label>
                             </div>
@@ -284,16 +349,13 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Bloque B -->
-                <div class="form-step hidden" data-step="3">
-                    <h3 class="text-xl font-semibold mb-2">Identificando la fricción</h3>
-                    <p class="text-gray-400 text-sm mb-6">Queremos entender qué te molesta del proceso actual.</p>
-
-                    <div class="space-y-6">
+                <!-- Step 4: Dolor coordinación + Fricción -->
+                <div class="form-step hidden" data-step="4">
+                    <div class="space-y-8">
                         <div>
-                            <label class="block text-sm text-gray-300 mb-3">¿Qué tanto te molesta tener que coordinar múltiples encuentros para completar tu wishlist?</label>
+                            <label class="block text-lg text-gray-200 mb-4">¿Cuánto te frustra tener que coordinar múltiples encuentros para completar tu wishlist?</label>
                             <div class="flex justify-between items-center gap-2">
-                                <span class="text-xs text-gray-500 w-20">No me molesta</span>
+                                <span class="text-xs text-gray-500 w-16">Nada</span>
                                 <div class="flex gap-2 flex-1 justify-center">
                                     <label class="radio-card flex-1 max-w-[60px]">
                                         <input type="radio" name="coordination_pain" value="1" required class="sr-only">
@@ -316,132 +378,163 @@
                                         <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">5</div>
                                     </label>
                                 </div>
-                                <span class="text-xs text-gray-500 w-20 text-right">No tradeo por esto</span>
+                                <span class="text-xs text-gray-500 w-16 text-right">Mucho</span>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm text-gray-300 mb-3">¿Alguna vez dejaste de comprar/tradear una carta porque el vendedor te quedaba lejos o solo tenía una de las cinco que buscabas?</label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <label class="radio-card">
-                                    <input type="radio" name="abandoned_trade" value="true" required class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">😔</div>
-                                        <div class="text-sm">Sí, me pasó</div>
-                                    </div>
-                                </label>
-                                <label class="radio-card">
-                                    <input type="radio" name="abandoned_trade" value="false" class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">🤷</div>
-                                        <div class="text-sm">No, nunca</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 4: Bloque C -->
-                <div class="form-step hidden" data-step="4">
-                    <h3 class="text-xl font-semibold mb-2">Validando nuestra propuesta</h3>
-                    <p class="text-gray-400 text-sm mb-6">Queremos saber si lo que estamos construyendo te serviría.</p>
-
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-sm text-gray-300 mb-3">Si existiera una app donde cargás tu lista de deseos y te dice: "Juan tiene el 80% de lo que buscás y vive a 10 minutos", ¿la usarías?</label>
-                            <div class="grid grid-cols-3 gap-3">
-                                <label class="radio-card">
-                                    <input type="radio" name="would_use_app" value="definitivamente" required class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">🔥</div>
-                                        <div class="text-sm">Definitivamente</div>
-                                    </div>
-                                </label>
-                                <label class="radio-card">
-                                    <input type="radio" name="would_use_app" value="tal_vez" class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">🤔</div>
-                                        <div class="text-sm">Tal vez</div>
-                                    </div>
-                                </label>
-                                <label class="radio-card">
-                                    <input type="radio" name="would_use_app" value="no_creo" class="sr-only">
-                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
-                                        <div class="text-2xl mb-1">😐</div>
-                                        <div class="text-sm">No creo</div>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm text-gray-300 mb-3">¿Cuál de estos beneficios te parece más valioso?</label>
+                            <label class="block text-lg text-gray-200 mb-4">¿Cuál es la razón principal por la que un trade coordinado por redes sociales suele fallar? <span class="text-sm text-gray-400">(Elegí hasta 2)</span></label>
                             <div class="space-y-3">
-                                <label class="radio-card block">
-                                    <input type="radio" name="most_valuable_benefit" value="ahorro_viajes" required class="sr-only">
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="friction_reasons" value="horarios" class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
-                                        <span class="text-2xl">🚗</span>
-                                        <span class="text-sm">Encontrar todo en un solo lugar (ahorro de viajes)</span>
+                                        <span class="text-2xl">🕐</span>
+                                        <span>Horarios incompatibles</span>
                                     </div>
                                 </label>
-                                <label class="radio-card block">
-                                    <input type="radio" name="most_valuable_benefit" value="cercania" class="sr-only">
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="friction_reasons" value="distancia" class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
                                         <span class="text-2xl">📍</span>
-                                        <span class="text-sm">Saber quién tiene lo que busco cerca de mi casa/trabajo</span>
+                                        <span>Distancia demasiado grande</span>
                                     </div>
                                 </label>
-                                <label class="radio-card block">
-                                    <input type="radio" name="most_valuable_benefit" value="colección_digital" class="sr-only">
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="friction_reasons" value="desinteres" class="sr-only">
                                     <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
-                                        <span class="text-2xl">📱</span>
-                                        <span class="text-sm">Poder ver la colección digital de otros antes de encontrarnos</span>
+                                        <span class="text-2xl">🤷</span>
+                                        <span>Falta de interés o cambio de opinión</span>
                                     </div>
                                 </label>
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="friction_reasons" value="confianza" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">🔒</span>
+                                        <span>Problemas de confianza/seguridad</span>
+                                    </div>
+                                </label>
+                                <label class="checkbox-card block">
+                                    <input type="checkbox" name="friction_reasons" value="otro" class="sr-only" id="friction_reasons_otro">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">✏️</span>
+                                        <span>Otro</span>
+                                    </div>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="friction_reasons_other"
+                                    name="friction_reasons_other"
+                                    placeholder="Especificá cuál..."
+                                    class="hidden w-full bg-mtg-dark border border-mtg-green-900/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-mtg-green-600 focus:ring-1 focus:ring-mtg-green-600 transition-colors mt-2"
+                                >
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Step 5: Bloque D -->
+                <!-- Step 5: Interés en la app -->
                 <div class="form-step hidden" data-step="5">
-                    <h3 class="text-xl font-semibold mb-2">Última pregunta</h3>
-                    <p class="text-gray-400 text-sm mb-6">Sobre cómo preferirías que funcione el modelo de negocio.</p>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-lg text-gray-200 mb-4">Si existiera una app donde cargás tu wishlist y te dice: "Juan tiene el 80% de lo que buscás y vive a 10 minutos", ¿la usarías?</label>
+                            <div class="space-y-3">
+                                <label class="radio-card block">
+                                    <input type="radio" name="would_use_app" value="yes_frequently" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">🔥</span>
+                                        <span>Sí, frecuentemente</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card block">
+                                    <input type="radio" name="would_use_app" value="yes_occasionally" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">👍</span>
+                                        <span>Sí, ocasionalmente</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card block">
+                                    <input type="radio" name="would_use_app" value="no" class="sr-only" id="would_use_app_no">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">😐</span>
+                                        <span>No</span>
+                                    </div>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="would_use_app_no_reason"
+                                    name="would_use_app_no_reason"
+                                    placeholder="¿Por qué no?"
+                                    class="hidden w-full bg-mtg-dark border border-mtg-green-900/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-mtg-green-600 focus:ring-1 focus:ring-mtg-green-600 transition-colors mt-2"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                    <div>
-                        <label class="block text-sm text-gray-300 mb-3">Imaginá que la app es gratis para trades pequeños. Para trades de mucho volumen o valor, ¿qué modelo preferirías?</label>
-                        <div class="space-y-3">
-                            <label class="radio-card block">
-                                <input type="radio" name="monetization_preference" value="pago_match" required class="sr-only">
-                                <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
-                                    <span class="text-2xl">💰</span>
-                                    <div>
-                                        <div class="text-sm font-medium">Pago por match exitoso</div>
-                                        <div class="text-xs text-gray-500">Un pago pequeño por cada match (ej. el costo de un sobre)</div>
+                <!-- Step 6: Monetización + Gasto anual -->
+                <div class="form-step hidden" data-step="6">
+                    <div class="space-y-8">
+                        <div>
+                            <label class="block text-lg text-gray-200 mb-4">Ante un "Match Perfecto" (4+ cartas de tu wishlist), ¿qué modelo preferirías?</label>
+                            <div class="space-y-3">
+                                <label class="radio-card block">
+                                    <input type="radio" name="monetization_preference" value="pay_per_match" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">💰</span>
+                                        <div>
+                                            <div class="font-medium">Pagar por match exitoso</div>
+                                            <div class="text-xs text-gray-500">~$1-5 USD por match</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </label>
-                            <label class="radio-card block">
-                                <input type="radio" name="monetization_preference" value="suscripcion" class="sr-only">
-                                <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
-                                    <span class="text-2xl">📅</span>
-                                    <div>
-                                        <div class="text-sm font-medium">Suscripción mensual</div>
-                                        <div class="text-xs text-gray-500">Un pago fijo mensual para trades ilimitados</div>
+                                </label>
+                                <label class="radio-card block">
+                                    <input type="radio" name="monetization_preference" value="subscription" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">📅</span>
+                                        <div>
+                                            <div class="font-medium">Suscripción mensual</div>
+                                            <div class="text-xs text-gray-500">~$5-10 USD para trades ilimitados</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </label>
-                            <label class="radio-card block">
-                                <input type="radio" name="monetization_preference" value="publicidad" class="sr-only">
-                                <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
-                                    <span class="text-2xl">📺</span>
-                                    <div>
-                                        <div class="text-sm font-medium">Publicidad</div>
-                                        <div class="text-xs text-gray-500">Prefiero ver publicidad a cambio de que sea gratis</div>
+                                </label>
+                                <label class="radio-card block">
+                                    <input type="radio" name="monetization_preference" value="none" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">🚫</span>
+                                        <span class="font-medium">Ninguno / No pagaría</span>
                                     </div>
-                                </div>
-                            </label>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-lg text-gray-200 mb-4">¿Cuánto gastás aproximadamente por año en trades presenciales?</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="radio-card">
+                                    <input type="radio" name="annual_spending" value="less_100" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">&lt;$100</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="annual_spending" value="100_500" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">$100-500</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="annual_spending" value="501_1000" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">$501-1,000</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="annual_spending" value="more_1000" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="font-medium">+$1,000</div>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
