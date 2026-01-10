@@ -6,11 +6,12 @@
 }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
-.font-cinzel {
-    font-family: 'Cinzel', serif;
+.font-display {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
 }
 
 /* Smooth scrolling */
@@ -108,7 +109,7 @@ header::before {
 
 /* Mobile-first responsive adjustments */
 @media (max-width: 640px) {
-    .font-cinzel {
+    .font-display {
         letter-spacing: -0.02em;
     }
 
