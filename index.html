@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Order - Trading de MTG con gente cerca tuyo</title>
+    <meta name="description" content="Encontrá quien tiene las cartas que buscás, cerca de tu casa. Sumate a la waitlist.">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'mtg-green': {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                            950: '#052e16',
+                        },
+                        'mtg-gold': '#D4AF37',
+                        'mtg-dark': '#0d0d0d',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-mtg-dark text-gray-100 min-h-screen font-sans">
+
+    <!-- Hero Section -->
+    <header class="relative overflow-hidden">
+        <!-- Background gradient -->
+        <div class="absolute inset-0 bg-gradient-to-br from-mtg-green-950 via-mtg-dark to-mtg-dark opacity-90"></div>
+        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnM1LjM3MyAxMiAxMiAxMiAxMi01LjM3MyAxMi0xMi01LjM3My0xMi0xMi0xMnptMCAxOGMtMy4zMTQgMC02LTIuNjg2LTYtNnMyLjY4Ni02IDYtNiA2IDIuNjg2IDYgNi0yLjY4NiA2LTYgNnoiIGZpbGw9IiMxNjUzNGQiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9nPjwvc3ZnPg==')] opacity-30"></div>
+
+        <div class="relative max-w-6xl mx-auto px-4 py-16 sm:py-24">
+            <nav class="flex justify-between items-center mb-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-mtg-green-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <span class="font-cinzel text-2xl font-bold text-mtg-gold">Natural Order</span>
+                </div>
+            </nav>
+
+            <div class="max-w-3xl">
+                <h1 class="font-cinzel text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                    Encontrá las cartas que buscás
+                    <span class="text-mtg-green-400">cerca tuyo</span>
+                </h1>
+                <p class="text-xl sm:text-2xl text-gray-300 mb-8 leading-relaxed">
+                    Dejá de coordinar con 5 personas para conseguir 5 cartas.
+                    <span class="text-mtg-green-400 font-medium">Natural Order</span> te muestra quién tiene lo que necesitás y a qué distancia está.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-12">
+                    <a href="#waitlist" class="inline-flex items-center justify-center px-8 py-4 bg-mtg-green-600 hover:bg-mtg-green-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-mtg-green-600/30">
+                        Sumarme a la waitlist
+                        <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
+                </div>
+                <div class="flex items-center gap-2 text-mtg-gold">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    <span class="text-sm">Acceso gratis + trades ilimitados por 6 meses para early adopters</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Pain Points Section -->
+    <section class="py-16 sm:py-24 bg-gradient-to-b from-mtg-dark to-mtg-green-950/20">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="font-cinzel text-3xl sm:text-4xl font-bold text-center mb-4">
+                El trading presencial está roto
+            </h2>
+            <p class="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
+                Sabemos lo frustrante que es. Por eso estamos construyendo algo mejor.
+            </p>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-mtg-dark/50 border border-mtg-green-900/30 rounded-xl p-6 hover:border-mtg-green-600/50 transition-colors">
+                    <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Coordinación infinita</h3>
+                    <p class="text-gray-400">Necesitás 5 cartas y tenés que hablar con 5 personas distintas, coordinar 5 encuentros diferentes.</p>
+                </div>
+
+                <div class="bg-mtg-dark/50 border border-mtg-green-900/30 rounded-xl p-6 hover:border-mtg-green-600/50 transition-colors">
+                    <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Distancias largas</h3>
+                    <p class="text-gray-400">El único que tiene tu carta vive en la otra punta de la ciudad. ¿Vale la pena el viaje por una sola carta?</p>
+                </div>
+
+                <div class="bg-mtg-dark/50 border border-mtg-green-900/30 rounded-xl p-6 hover:border-mtg-green-600/50 transition-colors">
+                    <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">Carpetas invisibles</h3>
+                    <p class="text-gray-400">No sabés qué tiene cada persona hasta que te encontrás. Podrías haber conseguido más en el mismo viaje.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="py-16 sm:py-24 bg-mtg-dark">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="font-cinzel text-3xl sm:text-4xl font-bold text-center mb-4">
+                <span class="text-mtg-green-400">Natural Order</span> te simplifica todo
+            </h2>
+            <p class="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
+                Cargás tu wishlist, cargás tu carpeta, y la app hace el resto.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="space-y-6">
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-green-600 rounded-full flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Cargá tu wishlist</h3>
+                            <p class="text-gray-400">Decinos qué cartas estás buscando y cuánto estás dispuesto a pagar.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-green-600 rounded-full flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Subí tu carpeta</h3>
+                            <p class="text-gray-400">Mostrá qué tenés para tradear o vender. Otros usuarios van a poder verla.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-green-600 rounded-full flex items-center justify-center font-bold">3</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Recibí matches</h3>
+                            <p class="text-gray-400">"Juan tiene el 80% de lo que buscás y vive a 10 minutos de tu casa."</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-gold rounded-full flex items-center justify-center font-bold text-mtg-dark">4</div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-1">Encontrate y tradeá</h3>
+                            <p class="text-gray-400">Coordiná el encuentro y resolvé todo en persona. Simple.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <div class="bg-gradient-to-br from-mtg-green-900/30 to-mtg-dark border border-mtg-green-800/30 rounded-2xl p-6 shadow-2xl">
+                        <div class="flex items-center gap-3 mb-4 pb-4 border-b border-mtg-green-800/30">
+                            <div class="w-12 h-12 bg-mtg-green-600 rounded-full flex items-center justify-center text-xl">👤</div>
+                            <div>
+                                <div class="font-semibold">Juan M.</div>
+                                <div class="text-sm text-mtg-green-400">A 10 min de tu ubicación</div>
+                            </div>
+                            <div class="ml-auto bg-mtg-green-600/20 text-mtg-green-400 px-3 py-1 rounded-full text-sm font-medium">
+                                80% match
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-center py-2 border-b border-mtg-green-900/30">
+                                <span>Ragavan, Nimble Pilferer</span>
+                                <span class="text-mtg-green-400">$45.000</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-mtg-green-900/30">
+                                <span>Wrenn and Six</span>
+                                <span class="text-mtg-green-400">$38.000</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2 border-b border-mtg-green-900/30">
+                                <span>Force of Negation</span>
+                                <span class="text-mtg-green-400">$22.000</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <span>Subtotal (3 de 4 cartas)</span>
+                                <span class="text-mtg-gold font-semibold">$105.000</span>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 bg-mtg-green-600 hover:bg-mtg-green-500 text-white font-semibold py-3 rounded-lg transition-colors">
+                            Contactar a Juan
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Waitlist Form Section -->
+    <section id="waitlist" class="py-16 sm:py-24 bg-gradient-to-b from-mtg-dark via-mtg-green-950/30 to-mtg-dark">
+        <div class="max-w-2xl mx-auto px-4">
+            <div class="text-center mb-10">
+                <span class="inline-block bg-mtg-gold/20 text-mtg-gold px-4 py-1 rounded-full text-sm font-medium mb-4">
+                    Acceso anticipado
+                </span>
+                <h2 class="font-cinzel text-3xl sm:text-4xl font-bold mb-4">
+                    Sumate a la waitlist
+                </h2>
+                <p class="text-gray-400">
+                    Contestá algunas preguntas y asegurate <span class="text-mtg-green-400 font-medium">6 meses gratis</span> con trades ilimitados.
+                </p>
+            </div>
+
+            <form id="waitlist-form" class="bg-mtg-dark/80 border border-mtg-green-900/30 rounded-2xl p-6 sm:p-8 shadow-2xl">
+
+                <!-- Progress bar -->
+                <div class="mb-8">
+                    <div class="flex justify-between text-sm text-gray-400 mb-2">
+                        <span>Progreso</span>
+                        <span id="progress-text">Paso 1 de 5</span>
+                    </div>
+                    <div class="h-2 bg-mtg-green-900/30 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-mtg-green-600 rounded-full transition-all duration-300" style="width: 20%"></div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Email -->
+                <div class="form-step" data-step="1">
+                    <h3 class="text-xl font-semibold mb-6">¿Cuál es tu email?</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="email" class="block text-sm text-gray-400 mb-2">Email</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                required
+                                placeholder="tu@email.com"
+                                class="w-full bg-mtg-dark border border-mtg-green-900/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-mtg-green-600 focus:ring-1 focus:ring-mtg-green-600 transition-colors"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Bloque A -->
+                <div class="form-step hidden" data-step="2">
+                    <h3 class="text-xl font-semibold mb-2">Tu comportamiento actual</h3>
+                    <p class="text-gray-400 text-sm mb-6">Queremos entender cómo tradeás hoy.</p>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-3">¿Cuántas veces al mes intercambias o compras cartas de forma presencial?</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="radio-card">
+                                    <input type="radio" name="trades_frequency" value="menos_1" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">📉</div>
+                                        <div class="text-sm">Menos de 1</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="trades_frequency" value="1_3" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">📊</div>
+                                        <div class="text-sm">1-3 veces</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="trades_frequency" value="4_mas" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">📈</div>
+                                        <div class="text-sm">4 o más</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-3">¿Cuál es tu método principal para encontrar cartas específicas?</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="radio-card">
+                                    <input type="radio" name="search_method" value="facebook" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">📘</div>
+                                        <div class="text-sm">Facebook</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="search_method" value="whatsapp" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">💬</div>
+                                        <div class="text-sm">WhatsApp</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="search_method" value="marketplace" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">🛒</div>
+                                        <div class="text-sm">Marketplace</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="search_method" value="tiendas" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">🏪</div>
+                                        <div class="text-sm">Tiendas físicas</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Bloque B -->
+                <div class="form-step hidden" data-step="3">
+                    <h3 class="text-xl font-semibold mb-2">Identificando la fricción</h3>
+                    <p class="text-gray-400 text-sm mb-6">Queremos entender qué te molesta del proceso actual.</p>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-3">¿Qué tanto te molesta tener que coordinar con 3 personas distintas para conseguir 3 cartas diferentes?</label>
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="text-xs text-gray-500 w-20">No me molesta</span>
+                                <div class="flex gap-2 flex-1 justify-center">
+                                    <label class="radio-card flex-1 max-w-[60px]">
+                                        <input type="radio" name="coordination_pain" value="1" required class="sr-only">
+                                        <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">1</div>
+                                    </label>
+                                    <label class="radio-card flex-1 max-w-[60px]">
+                                        <input type="radio" name="coordination_pain" value="2" class="sr-only">
+                                        <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">2</div>
+                                    </label>
+                                    <label class="radio-card flex-1 max-w-[60px]">
+                                        <input type="radio" name="coordination_pain" value="3" class="sr-only">
+                                        <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">3</div>
+                                    </label>
+                                    <label class="radio-card flex-1 max-w-[60px]">
+                                        <input type="radio" name="coordination_pain" value="4" class="sr-only">
+                                        <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">4</div>
+                                    </label>
+                                    <label class="radio-card flex-1 max-w-[60px]">
+                                        <input type="radio" name="coordination_pain" value="5" class="sr-only">
+                                        <div class="border border-mtg-green-900/50 rounded-lg p-3 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">5</div>
+                                    </label>
+                                </div>
+                                <span class="text-xs text-gray-500 w-20 text-right">No tradeo por esto</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-3">¿Alguna vez dejaste de comprar/tradear una carta porque el vendedor te quedaba lejos o solo tenía una de las cinco que buscabas?</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="radio-card">
+                                    <input type="radio" name="abandoned_trade" value="true" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">😔</div>
+                                        <div class="text-sm">Sí, me pasó</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="abandoned_trade" value="false" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">🤷</div>
+                                        <div class="text-sm">No, nunca</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Bloque C -->
+                <div class="form-step hidden" data-step="4">
+                    <h3 class="text-xl font-semibold mb-2">Validando nuestra propuesta</h3>
+                    <p class="text-gray-400 text-sm mb-6">Queremos saber si lo que estamos construyendo te serviría.</p>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-3">Si existiera una app donde cargás tu lista de deseos y te dice: "Juan tiene el 80% de lo que buscás y vive a 10 minutos", ¿la usarías?</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <label class="radio-card">
+                                    <input type="radio" name="would_use_app" value="definitivamente" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">🔥</div>
+                                        <div class="text-sm">Definitivamente</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="would_use_app" value="tal_vez" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">🤔</div>
+                                        <div class="text-sm">Tal vez</div>
+                                    </div>
+                                </label>
+                                <label class="radio-card">
+                                    <input type="radio" name="would_use_app" value="no_creo" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 text-center cursor-pointer hover:border-mtg-green-600 transition-colors">
+                                        <div class="text-2xl mb-1">😐</div>
+                                        <div class="text-sm">No creo</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-3">¿Cuál de estos beneficios te parece más valioso?</label>
+                            <div class="space-y-3">
+                                <label class="radio-card block">
+                                    <input type="radio" name="most_valuable_benefit" value="ahorro_viajes" required class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">🚗</span>
+                                        <span class="text-sm">Encontrar todo en un solo lugar (ahorro de viajes)</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card block">
+                                    <input type="radio" name="most_valuable_benefit" value="cercania" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">📍</span>
+                                        <span class="text-sm">Saber quién tiene lo que busco cerca de mi casa/trabajo</span>
+                                    </div>
+                                </label>
+                                <label class="radio-card block">
+                                    <input type="radio" name="most_valuable_benefit" value="carpeta_digital" class="sr-only">
+                                    <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                        <span class="text-2xl">📱</span>
+                                        <span class="text-sm">Poder ver la carpeta digital de otros antes de encontrarnos</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Bloque D -->
+                <div class="form-step hidden" data-step="5">
+                    <h3 class="text-xl font-semibold mb-2">Última pregunta</h3>
+                    <p class="text-gray-400 text-sm mb-6">Sobre cómo preferirías que funcione el modelo de negocio.</p>
+
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-3">Imaginá que la app es gratis para trades pequeños. Para trades de mucho volumen o valor, ¿qué modelo preferirías?</label>
+                        <div class="space-y-3">
+                            <label class="radio-card block">
+                                <input type="radio" name="monetization_preference" value="pago_match" required class="sr-only">
+                                <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                    <span class="text-2xl">💰</span>
+                                    <div>
+                                        <div class="text-sm font-medium">Pago por match exitoso</div>
+                                        <div class="text-xs text-gray-500">Un pago pequeño por cada match (ej. el costo de un sobre)</div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="radio-card block">
+                                <input type="radio" name="monetization_preference" value="suscripcion" class="sr-only">
+                                <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                    <span class="text-2xl">📅</span>
+                                    <div>
+                                        <div class="text-sm font-medium">Suscripción mensual</div>
+                                        <div class="text-xs text-gray-500">Un pago fijo mensual para trades ilimitados</div>
+                                    </div>
+                                </div>
+                            </label>
+                            <label class="radio-card block">
+                                <input type="radio" name="monetization_preference" value="publicidad" class="sr-only">
+                                <div class="border border-mtg-green-900/50 rounded-lg p-4 cursor-pointer hover:border-mtg-green-600 transition-colors flex items-center gap-3">
+                                    <span class="text-2xl">📺</span>
+                                    <div>
+                                        <div class="text-sm font-medium">Publicidad</div>
+                                        <div class="text-xs text-gray-500">Prefiero ver publicidad a cambio de que sea gratis</div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success message -->
+                <div id="success-message" class="hidden text-center py-8">
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h3 class="text-2xl font-semibold mb-2 text-mtg-green-400">¡Estás en la lista!</h3>
+                    <p class="text-gray-400">Te vamos a avisar cuando lancemos. Preparate para 6 meses de trades gratis.</p>
+                </div>
+
+                <!-- Navigation buttons -->
+                <div id="form-navigation" class="flex justify-between mt-8 pt-6 border-t border-mtg-green-900/30">
+                    <button type="button" id="prev-btn" class="px-6 py-3 border border-mtg-green-900/50 rounded-lg text-gray-400 hover:text-white hover:border-mtg-green-600 transition-colors hidden">
+                        ← Anterior
+                    </button>
+                    <button type="button" id="next-btn" class="ml-auto px-8 py-3 bg-mtg-green-600 hover:bg-mtg-green-500 text-white font-semibold rounded-lg transition-colors">
+                        Siguiente →
+                    </button>
+                    <button type="submit" id="submit-btn" class="ml-auto px-8 py-3 bg-mtg-gold hover:bg-yellow-500 text-mtg-dark font-semibold rounded-lg transition-colors hidden">
+                        Unirme a la waitlist
+                    </button>
+                </div>
+
+                <!-- Error message -->
+                <div id="error-message" class="hidden mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm text-center"></div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 border-t border-mtg-green-900/30">
+        <div class="max-w-6xl mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>Natural Order © 2026 — Hecho con ❤️ para la comunidad de MTG</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
