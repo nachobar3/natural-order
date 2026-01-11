@@ -6,6 +6,9 @@
     <title>Natural Order - Trading de MTG con gente cerca tuyo</title>
     <meta name="description" content="Encontrá quien tiene las cartas que buscás, cerca de tu casa. Sumate a la waitlist.">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo-removebg-preview.png" sizes="96x96">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,7 +29,7 @@
                             900: '#14532d',
                             950: '#052e16',
                         },
-                        'mtg-gold': '#D4AF37',
+                        'mtg-gold': '#E8C547',
                         'mtg-dark': '#0d0d0d',
                     }
                 }
@@ -37,37 +40,27 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-mtg-dark text-gray-100 min-h-screen font-sans">
+<body class="text-gray-100 min-h-screen font-sans">
+    <!-- Global gradient background -->
+    <div class="fixed inset-0 bg-gradient-to-b from-mtg-dark from-0% via-mtg-dark via-40% to-emerald-900 to-100% -z-10"></div>
 
     <!-- Hero Section -->
-    <header class="relative overflow-hidden">
-        <!-- Background gradient -->
-        <div class="absolute inset-0 bg-gradient-to-br from-mtg-green-950 via-mtg-dark to-mtg-dark opacity-90"></div>
-        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnM1LjM3MyAxMiAxMiAxMiAxMi01LjM3MyAxMi0xMi01LjM3My0xMi0xMi0xMnptMCAxOGMtMy4zMTQgMC02LTIuNjg2LTYtNnMyLjY4Ni02IDYtNiA2IDIuNjg2IDYgNi0yLjY4NiA2LTYgNnoiIGZpbGw9IiMxNjUzNGQiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9nPjwvc3ZnPg==')] opacity-30"></div>
-
-        <div class="relative max-w-6xl mx-auto px-4 py-16 sm:py-24">
-            <nav class="flex justify-between items-center mb-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-mtg-green-600 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                        </svg>
-                    </div>
-                    <span class="font-display text-2xl font-bold text-mtg-gold">Natural Order</span>
-                </div>
+    <header class="relative">
+        <div class="max-w-6xl mx-auto px-4 py-16 sm:py-24">
+            <nav class="flex flex-col items-start mb-8">
+                <img src="logo-removebg-preview.png" alt="Natural Order" class="w-32 h-32 object-contain mb-3">
+                <h1 class="logo-text text-4xl sm:text-5xl">
+                    <span class="logo-order">Natural Order</span>
+                </h1>
             </nav>
 
             <div class="max-w-3xl">
-                <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                    Encontrá las cartas que buscás
-                    <span class="text-mtg-green-400">cerca tuyo</span>
-                </h1>
-                <p class="text-xl sm:text-2xl text-gray-300 mb-8 leading-relaxed">
-                    Comprá y vendé cartas de forma eficiente. Compará precios, encontrá vendedores cerca tuyo y cerrá trades en un solo lugar.
+                <p class="font-display text-2xl sm:text-3xl text-gray-200 mb-8 leading-relaxed font-normal">
+                    La forma más eficiente de comprar, vender y tradear tus cartas.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 mb-12">
                     <a href="#waitlist" class="inline-flex items-center justify-center px-8 py-4 bg-mtg-green-600 hover:bg-mtg-green-500 text-white font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-mtg-green-600/30">
@@ -89,13 +82,13 @@
 
 
     <!-- Solution Section -->
-    <section class="py-16 sm:py-24 bg-mtg-dark">
+    <section class="py-16 sm:py-24">
         <div class="max-w-6xl mx-auto px-4">
-            <h2 class="font-display text-3xl sm:text-4xl font-bold text-center mb-4">
-                <span class="text-mtg-green-400">Natural Order</span> te simplifica todo
+            <h2 class="font-display text-3xl sm:text-4xl font-semibold text-center mb-4">
+                Encontrá el <span class="text-mtg-green-400">trade perfecto</span> al instante
             </h2>
             <p class="text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-                Cargás tu wishlist, subís tu colección con precios referenciados a mercados conocidos, y la app hace el resto.
+                Cargás las cartas que tenés y que buscás, rangos de precios y preferencias para encontrarte con tu contraparte, y Natural Order encuentra el match ideal.
             </p>
 
             <div class="grid md:grid-cols-2 gap-8 items-center">
@@ -117,12 +110,19 @@
                     <div class="flex gap-4">
                         <div class="flex-shrink-0 w-10 h-10 bg-mtg-green-600 rounded-full flex items-center justify-center font-bold">3</div>
                         <div>
+                            <h3 class="font-semibold text-lg mb-1">Cargá tus preferencias de encuentro</h3>
+                            <p class="text-gray-400">Configurá tu ubicación y horarios disponibles para coordinar trades.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-green-600 rounded-full flex items-center justify-center font-bold">4</div>
+                        <div>
                             <h3 class="font-semibold text-lg mb-1">Recibí matches</h3>
                             <p class="text-gray-400">Te mostramos quién tiene lo que buscás, a qué precio y qué tan cerca está.</p>
                         </div>
                     </div>
                     <div class="flex gap-4">
-                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-gold rounded-full flex items-center justify-center font-bold text-mtg-dark">4</div>
+                        <div class="flex-shrink-0 w-10 h-10 bg-mtg-gold rounded-full flex items-center justify-center font-bold text-mtg-dark">5</div>
                         <div>
                             <h3 class="font-semibold text-lg mb-1">Encontrate y tradeá</h3>
                             <p class="text-gray-400">Coordiná el encuentro y resolvé todo en persona. Simple.</p>
@@ -170,13 +170,13 @@
     </section>
 
     <!-- Waitlist Form Section -->
-    <section id="waitlist" class="py-16 sm:py-24 bg-gradient-to-b from-mtg-dark via-mtg-green-950/30 to-mtg-dark">
+    <section id="waitlist" class="py-16 sm:py-24">
         <div class="max-w-2xl mx-auto px-4">
             <div class="text-center mb-10">
                 <span class="inline-block bg-mtg-gold/20 text-mtg-gold px-4 py-1 rounded-full text-sm font-medium mb-4">
                     Acceso anticipado
                 </span>
-                <h2 class="font-display text-3xl sm:text-4xl font-bold mb-4">
+                <h2 class="font-display text-3xl sm:text-4xl font-semibold mb-4">
                     Sumate a la waitlist
                 </h2>
                 <p class="text-gray-400">
