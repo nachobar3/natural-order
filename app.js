@@ -4,6 +4,115 @@
  */
 
 // ============================================
+// CONFIGURACIÓN DE i18next
+// ============================================
+
+function detectUserLanguage() {
+    // Check localStorage first
+    const saved = localStorage.getItem('naturalorder_lang');
+    if (saved && ['es', 'en'].includes(saved)) {
+        return saved;
+    }
+    // Detect from browser
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('en')) {
+        return 'en';
+    }
+    return 'es'; // Default to Spanish
+}
+
+function initI18n() {
+    const userLang = detectUserLanguage();
+
+    i18next.init({
+        lng: userLang,
+        fallbackLng: 'es',
+        resources: translations,
+        interpolation: {
+            escapeValue: false
+        }
+    }, function(err, t) {
+        if (err) {
+            console.error('i18next init error:', err);
+            return;
+        }
+        applyTranslations();
+        updateLangSelector();
+    });
+}
+
+function applyTranslations() {
+    // Translate elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const translation = i18next.t(key);
+        if (translation && translation !== key) {
+            el.textContent = translation;
+        }
+    });
+
+    // Translate placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        const translation = i18next.t(key);
+        if (translation && translation !== key) {
+            el.placeholder = translation;
+        }
+    });
+
+    // Update progress text
+    updateProgressText();
+
+    // Update document title and meta
+    document.title = i18next.t('meta_title');
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+        metaDesc.setAttribute('content', i18next.t('meta_description'));
+    }
+}
+
+function updateProgressText() {
+    const progressTextEl = document.getElementById('progress-text');
+    if (progressTextEl) {
+        const template = i18next.t('progress_step');
+        progressTextEl.textContent = template
+            .replace('{{current}}', currentStep)
+            .replace('{{total}}', totalSteps);
+    }
+}
+
+function updateLangSelector() {
+    const currentLang = i18next.language;
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        const btnLang = btn.getAttribute('data-lang');
+        if (btnLang === currentLang) {
+            btn.classList.add('bg-mtg-green-600', 'text-white');
+            btn.classList.remove('text-gray-400', 'hover:text-white');
+        } else {
+            btn.classList.remove('bg-mtg-green-600', 'text-white');
+            btn.classList.add('text-gray-400', 'hover:text-white');
+        }
+    });
+}
+
+function changeLanguage(lang) {
+    localStorage.setItem('naturalorder_lang', lang);
+    i18next.changeLanguage(lang, () => {
+        applyTranslations();
+        updateLangSelector();
+    });
+}
+
+function setupLangSelector() {
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const lang = btn.getAttribute('data-lang');
+            changeLanguage(lang);
+        });
+    });
+}
+
+// ============================================
 // CONFIGURACIÓN DE SUPABASE
 // ============================================
 const SUPABASE_URL = 'https://yytguwptqcdnmglinbvw.supabase.co';
@@ -50,7 +159,7 @@ function showStep(step) {
 function updateProgress() {
     const progress = (currentStep / totalSteps) * 100;
     progressBar.style.width = `${progress}%`;
-    progressText.textContent = `Paso ${currentStep} de ${totalSteps}`;
+    updateProgressText();
 }
 
 function updateButtons() {
@@ -76,12 +185,12 @@ function validateCurrentStep() {
     const textInputs = currentStepEl.querySelectorAll('input[type="text"][required], input[type="email"][required]');
     for (const input of textInputs) {
         if (!input.value.trim()) {
-            showError('Por favor, completá todos los campos.');
+            showError(i18next.t('error_fill_fields'));
             input.focus();
             return false;
         }
         if (input.type === 'email' && !isValidEmail(input.value)) {
-            showError('Por favor, ingresá un email válido.');
+            showError(i18next.t('error_valid_email'));
             input.focus();
             return false;
         }
@@ -94,7 +203,7 @@ function validateCurrentStep() {
     for (const groupName of radioGroups) {
         const isChecked = currentStepEl.querySelector(`input[name="${groupName}"]:checked`);
         if (!isChecked) {
-            showError('Por favor, seleccioná una opción para continuar.');
+            showError(i18next.t('error_select_option'));
             return false;
         }
     }
@@ -103,7 +212,7 @@ function validateCurrentStep() {
     if (currentStep === 2) {
         const searchMethods = currentStepEl.querySelectorAll('input[name="search_methods"]:checked');
         if (searchMethods.length === 0) {
-            showError('Por favor, seleccioná al menos un método de búsqueda.');
+            showError(i18next.t('error_select_search_method'));
             return false;
         }
     }
@@ -111,7 +220,7 @@ function validateCurrentStep() {
     if (currentStep === 4) {
         const frictionReasons = currentStepEl.querySelectorAll('input[name="friction_reasons"]:checked');
         if (frictionReasons.length === 0) {
-            showError('Por favor, seleccioná al menos una razón de fricción.');
+            showError(i18next.t('error_select_friction'));
             return false;
         }
     }
@@ -159,11 +268,11 @@ function setLoading(isLoading) {
     if (isLoading) {
         submitBtn.disabled = true;
         submitBtn.classList.add('loading');
-        submitBtn.textContent = 'Enviando...';
+        submitBtn.textContent = i18next.t('btn_submitting');
     } else {
         submitBtn.disabled = false;
         submitBtn.classList.remove('loading');
-        submitBtn.textContent = 'Unirme a la waitlist';
+        submitBtn.textContent = i18next.t('btn_submit');
     }
 }
 
@@ -338,9 +447,9 @@ form.addEventListener('submit', async (e) => {
         console.error('Error:', error);
 
         if (error.message.includes('duplicate') || error.message.includes('unique')) {
-            showError('Este email ya está registrado en la waitlist.');
+            showError(i18next.t('error_duplicate_email'));
         } else {
-            showError('Hubo un error al procesar tu solicitud. Por favor, intentá de nuevo.');
+            showError(i18next.t('error_generic'));
         }
     } finally {
         setLoading(false);
@@ -366,6 +475,10 @@ document.querySelectorAll('.radio-card input, .checkbox-card input').forEach(inp
 // INICIALIZACIÓN
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize i18n first
+    initI18n();
+    setupLangSelector();
+
     showStep(1);
 
     // Setup checkbox limits (max 2 selections)
