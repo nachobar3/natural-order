@@ -11,7 +11,7 @@ const translations = {
             meta_description: "Encontrá quien tiene las cartas que buscás, cerca de tu casa. Sumate a la waitlist.",
 
             // Header / Hero
-            hero_subtitle: "La forma más eficiente de comprar, vender y tradear tus cartas.",
+            hero_subtitle: "La forma más eficiente de comprar, vender y tradear tus cartas de MTG.",
             join_waitlist_btn: "Sumarme a la waitlist",
             early_adopter_benefit: "Acceso gratis + trades ilimitados por 6 meses para early adopters",
 
@@ -34,6 +34,7 @@ const translations = {
             step5_desc: "Coordiná el encuentro y resolvé todo en persona. Simple.",
 
             // Match Card Demo
+            match_user_name: "Juan M.",
             match_distance: "A 10 min de tu ubicación",
             match_percentage: "80% match",
             match_subtotal: "Subtotal (3 de 4 cartas)",
@@ -131,7 +132,7 @@ const translations = {
             meta_description: "Find who has the cards you're looking for, close to home. Join the waitlist.",
 
             // Header / Hero
-            hero_subtitle: "The most efficient way to buy, sell and trade your cards.",
+            hero_subtitle: "The most efficient way to buy, sell and trade your MTG cards.",
             join_waitlist_btn: "Join the waitlist",
             early_adopter_benefit: "Free access + unlimited trades for 6 months for early adopters",
 
@@ -154,10 +155,11 @@ const translations = {
             step5_desc: "Coordinate the meeting and settle everything in person. Simple.",
 
             // Match Card Demo
+            match_user_name: "John M.",
             match_distance: "10 min from your location",
             match_percentage: "80% match",
             match_subtotal: "Subtotal (3 of 4 cards)",
-            match_contact_btn: "Contact Juan",
+            match_contact_btn: "Contact John",
 
             // Waitlist Section
             waitlist_badge: "Early access",
