@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { AddCardModal } from '@/components/cards/add-card-modal'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { Package, Loader2, Trash2, Edit2, Plus, LayoutGrid, List, Upload } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -47,6 +48,9 @@ export default function CollectionPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<CollectionWithCard | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('binder')
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<CollectionWithCard | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const supabase = createClient()
 
@@ -85,20 +89,30 @@ export default function CollectionPage() {
     setIsModalOpen(true)
   }
 
-  const handleDeleteItem = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta carta de tu colección?')) return
+  const handleDeleteItem = (item: CollectionWithCard) => {
+    setItemToDelete(item)
+    setDeleteModalOpen(true)
+  }
 
+  const confirmDelete = async () => {
+    if (!itemToDelete) return
+
+    setDeleting(true)
     const { error } = await supabase
       .from('collections')
       .delete()
-      .eq('id', id)
+      .eq('id', itemToDelete.id)
 
     if (error) {
       console.error('Error deleting item:', error)
+      setDeleting(false)
       return
     }
 
-    setCollection((prev) => prev.filter((item) => item.id !== id))
+    setCollection((prev) => prev.filter((item) => item.id !== itemToDelete.id))
+    setDeleting(false)
+    setDeleteModalOpen(false)
+    setItemToDelete(null)
   }
 
   const handleModalClose = () => {
@@ -259,7 +273,7 @@ export default function CollectionPage() {
                       <Edit2 className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDeleteItem(item.id)}
+                      onClick={() => handleDeleteItem(item)}
                       className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors"
                       title="Eliminar"
                     >
@@ -368,7 +382,7 @@ export default function CollectionPage() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteItem(item.id)}
+                    onClick={() => handleDeleteItem(item)}
                     className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                     title="Eliminar"
                   >
@@ -389,6 +403,22 @@ export default function CollectionPage() {
         card={selectedCard}
         editItem={editingItem}
         mode="collection"
+      />
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false)
+          setItemToDelete(null)
+        }}
+        onConfirm={confirmDelete}
+        title="Eliminar carta"
+        message={`¿Estás seguro de eliminar "${itemToDelete?.cards?.name || 'esta carta'}" de tu colección?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={deleting}
       />
     </div>
   )

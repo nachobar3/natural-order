@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MTG Trade Matches Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0B0B0C",
+                        "card-dark": "#192233",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Plus Jakarta Sans", sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #324467;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-white min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-[#324467]/30">
+<div class="flex items-center p-4 justify-between max-w-md mx-auto">
+<div class="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined">menu</span>
+</div>
+<h1 class="text-white text-lg font-bold tracking-tight">Trade Matches</h1>
+<div class="flex items-center gap-2">
+<button class="flex size-10 items-center justify-center rounded-full bg-[#192233] text-white">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 max-w-md mx-auto w-full pb-24">
+<!-- Profile Completion Checklist Widget -->
+<section class="p-4">
+<div class="bg-card-dark rounded-xl p-4 shadow-xl border border-[#324467]/50">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="relative flex items-center justify-center">
+<svg class="size-12 transform -rotate-90">
+<circle cx="24" cy="24" fill="transparent" r="20" stroke="#324467" stroke-width="4"></circle>
+<circle cx="24" cy="24" fill="transparent" r="20" stroke="#135bec" stroke-dasharray="125.6" stroke-dashoffset="50.24" stroke-width="4"></circle>
+</svg>
+<span class="absolute text-xs font-bold">60%</span>
+</div>
+<div>
+<h3 class="text-white font-bold leading-tight">Profile Setup</h3>
+<p class="text-[#92a4c9] text-xs">3 of 5 steps completed</p>
+</div>
+</div>
+<button class="text-primary text-sm font-semibold">Collapse</button>
+</div>
+<div class="space-y-1">
+<label class="flex items-center gap-3 py-2 border-b border-[#324467]/20">
+<input checked="" class="h-5 w-5 rounded border-[#324467] border-2 bg-transparent text-primary checked:bg-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="text-white text-sm font-medium">Personal Data</span>
+<span class="material-symbols-outlined text-green-500 text-sm ml-auto">check_circle</span>
+</label>
+<label class="flex items-center gap-3 py-2 border-b border-[#324467]/20">
+<input checked="" class="h-5 w-5 rounded border-[#324467] border-2 bg-transparent text-primary checked:bg-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="text-white text-sm font-medium">Location</span>
+<span class="material-symbols-outlined text-green-500 text-sm ml-auto">check_circle</span>
+</label>
+<label class="flex items-center gap-3 py-2 border-b border-[#324467]/20">
+<input checked="" class="h-5 w-5 rounded border-[#324467] border-2 bg-transparent text-primary checked:bg-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="text-white text-sm font-medium">Preferences</span>
+<span class="material-symbols-outlined text-green-500 text-sm ml-auto">check_circle</span>
+</label>
+<label class="flex items-center gap-3 py-2 border-b border-[#324467]/20">
+<input class="h-5 w-5 rounded border-[#324467] border-2 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="text-[#92a4c9] text-sm font-medium">Load Collection</span>
+<span class="text-xs text-primary font-bold ml-auto">Start</span>
+</label>
+<label class="flex items-center gap-3 py-2">
+<input class="h-5 w-5 rounded border-[#324467] border-2 bg-transparent text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="text-[#92a4c9] text-sm font-medium">Load Wishlist</span>
+</label>
+</div>
+</div>
+</section>
+<!-- Matching Trades Header -->
+<div class="px-4 pt-4 flex items-center justify-between">
+<h2 class="text-white text-xl font-bold tracking-tight">Matching Trades</h2>
+<button class="flex items-center gap-1 text-primary text-sm font-semibold">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                Filter
+            </button>
+</div>
+<!-- Trade Cards List -->
+<div class="p-4 space-y-6">
+<!-- Card 1 -->
+<div class="bg-card-dark rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-[#324467]/30">
+<!-- User Header -->
+<div class="p-4 flex items-center gap-3 bg-[#242f45]">
+<div class="size-10 rounded-full bg-cover bg-center border-2 border-primary" data-alt="Avatar of trader JaceBeleren" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBNVY-FaYqN8BERw8tvaHiTgI9f6dSBMHT-AShWtnZ_6-mcbHlUC_D1DzA_2_kSD2j0DlGv7ZZwCg8ng9YjY6e8aSj4fuJjcNPahyU-16IpFm830gxSW-ACpPh_FtyvuzZ4bqVsJOcQzS8k9sz9cG2eAUAY0biKsUDz0jnLgNg5XvYLrRqZeiZhDcACzYmbnXoW8go1gapbUOTz5VgjieCek533mfmsmeocBRRIb5S1R5-55X8YhSIgnrUNLZ-_x0ULdKqRuYNKiyvv");'></div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<p class="text-white font-bold leading-tight">JaceBeleren</p>
+<span class="bg-primary/20 text-primary text-[10px] px-1.5 py-0.5 rounded font-bold">98% Match</span>
+</div>
+<p class="text-[#92a4c9] text-xs">Seattle, WA • 2 miles away</p>
+</div>
+<span class="text-[#92a4c9] text-[10px] font-medium uppercase tracking-wider">Active 2h ago</span>
+</div>
+<!-- Matching Grid -->
+<div class="grid grid-cols-2 gap-px bg-[#324467]/30 border-t border-[#324467]/30">
+<!-- They Have -->
+<div class="p-3 bg-card-dark">
+<p class="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">download</span> They Have
+                        </p>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<div class="size-8 rounded bg-cover bg-center" data-alt="Magic Card: Sheoldred the Apocalypse" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDy5y5bO0t9uZaR-oSKKH1b15VQAp7SCvfyIFgLZ-zph0SpiKpG_ou83Jx2ZjZTnlR8Q9fWTnK_m9y2Bzfl8dqGVt5N29GrQMV_Th-MmUqv2iLa9o9w3oZodqr2SqCrKT2QExmaw8EHKB0rg3QyW-WldbqQT65tLL68ZOxjScrp-v9e9yI0L26yviSSNP3T8tMc0nAIt-6eBFGeaazfUp5Lp6FZRkr-A93btctvpozfOe_ips0hHDmX0NVdpygRsTk4x5MZwOS-NIO9");'></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-xs text-white font-medium truncate">Sheoldred, the Apocalypse</p>
+<p class="text-[10px] text-[#92a4c9]">Mythic • Black</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-8 rounded bg-cover bg-center" data-alt="Magic Card: Orcish Bowmasters" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBVl_edpuOGllFmwKQDcVQLTsiZ81Qoq6C1BGToA4Qpmo-lBBMvdVxvcGx8Ll0dimNqBu6GpKjr-2VpbRdEQUxrDOp6tfA66t0nxHofMsdQGWMzsFKXR5cAkacDOQ746-Dw3DrpklNKr1ZvY9PGyP7JcKblFPKSgxYjrtNlyU5yXQn9WLGuasTiEjx1WVNZ1zQsuAmanmK-rJOhKhd9Tt8iHZ-z8yCdWmtQ0y9cR-E-gkFXpxyJy1I4iDpLSRR9Y91oNgmyfy5qtfdp");'></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-xs text-white font-medium truncate">Orcish Bowmasters</p>
+<p class="text-[10px] text-[#92a4c9]">Rare • Black</p>
+</div>
+</div>
+</div>
+</div>
+<!-- They Want -->
+<div class="p-3 bg-card-dark border-l border-[#324467]/30">
+<p class="text-xs font-bold text-orange-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">upload</span> They Want
+                        </p>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<div class="size-8 rounded bg-cover bg-center" data-alt="Magic Card: Sol Ring" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBu-GzeVCqUc2LkuU_Ac0mdNyV9AvIU20eVpl84wRZo_uP_ggTBujGimzuh3057OnyNVDCJFKt_h9L-6zR9rrKHTn5z4Iixrl0Bmk0R9iyluLtRtPHdWWnuVCb_sMCgE-r2rE2QXgL0kJrLkP2z2KCs_gncMKgNKioYRByptstM9Wo70o_F4q0TvzjMivnzWRCeguFTuHe5Pn14PzsM1xlmxQ9h3jr33e62QNLuTYYI5A_hH0J3gv_7QSDJuoIJWV6mBPmesipmRV9R");'></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-xs text-white font-medium truncate">Sol Ring (Foil)</p>
+<p class="text-[10px] text-[#92a4c9]">Uncommon • Artifact</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="size-8 rounded bg-cover bg-center" data-alt="Magic Card: Rhystic Study" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAxezpfItRbqD0F9oPzx0W0NB_0BjJnNB8l0MivssLLPw7yC13l53-U_xTnoixwVRoAI-iFu-dMNp8v4G-CgTt_ECiPNqUYl0HOmznvzpo7w48yu-Ybx5s__LFOW8mNMR2FosRMpACUFvaF2xTToBZkcI0l9D6zLhGB4GuOqxA8s3e5jWbs8g4Z6W0kJEr2o4G8KUs3HrL8isVB1Gw--haSS09J2BzpFYT99B0xZkGUJXdW2RiYhy49Tes4zf_ksQPEXBgKIvimxePH");'></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-xs text-white font-medium truncate">Rhystic Study</p>
+<p class="text-[10px] text-[#92a4c9]">Rare • Blue</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="p-3 flex items-center justify-between border-t border-[#324467]/30">
+<div class="flex items-center gap-1">
+<span class="bg-green-500/10 text-green-500 text-[10px] px-2 py-0.5 rounded font-bold">Fair Trade</span>
+<p class="text-[10px] text-[#92a4c9]">+$1.24 Value</p>
+</div>
+<button class="bg-primary hover:bg-primary/90 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors">
+                        View Details
+                    </button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-card-dark rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-[#324467]/30 opacity-90">
+<!-- User Header -->
+<div class="p-4 flex items-center gap-3 bg-[#242f45]">
+<div class="size-10 rounded-full bg-cover bg-center border-2 border-[#92a4c9]" data-alt="Avatar of trader LilianaVess" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCuDI14-k_jteU8MRRtJmjhyJvs6WBF8MDjEkW4d4vzee1Ssa1SuMZZHSoFjITaCcNG42VDejnWZghWe0OnRkzg3KiMYZ5OwF_t32tP5anSGrPbF8tmbr3XQl2GBisgpWLN6w6kxvNxUO48kf9MTfI61aOpwkfhc-Xs8edVmTZqItVtHK65QtPo3_zi-_5DmsbaJJDcAwBab8mv2oZe1mgIJzRpyqYRbT2xLkznYDTl13XJ7qNNLRJlSjLvkctDXRLxPUJUDVSEJB2b");'></div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<p class="text-white font-bold leading-tight">LilianaVess</p>
+<span class="bg-primary/20 text-primary text-[10px] px-1.5 py-0.5 rounded font-bold">85% Match</span>
+</div>
+<p class="text-[#92a4c9] text-xs">New York, NY • 1,200 miles away</p>
+</div>
+<span class="text-[#92a4c9] text-[10px] font-medium uppercase tracking-wider">Active 1d ago</span>
+</div>
+<!-- Matching Grid -->
+<div class="grid grid-cols-2 gap-px bg-[#324467]/30 border-t border-[#324467]/30">
+<div class="p-3 bg-card-dark">
+<p class="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1">
+                             They Have
+                        </p>
+<div class="flex items-center gap-2">
+<div class="size-8 rounded bg-cover bg-center" data-alt="Magic Card: Tishana's Tidebinder" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBBpPrHRLg3Lhj5Hp_yWxoSDXzf29Vk2ttIIF2s-aBpiZFbe_FXNQKsRB7KP3LMhmjihjIRDI1r_Qzw01PPhUNn6xST35a9Hs26vkf9QPlX3Vypx8WbF1tQVTvF60opc8_KWQ6fys-MNJw7gkYOJjpZed5FdQ0-ZSUZrs_-XDt7gPBJ1pWaqHRQ47GgsCaR9nZ35s6OE7eYU29rWrUciPtVLI9bg8t-4f0srpJjokA1M67fN6zR3GY21i9V0YpUPhZBsh1UGXIf2NTl");'></div>
+<div class="flex-1 overflow-hidden text-ellipsis">
+<p class="text-xs text-white font-medium truncate">Tishana's Tidebinder</p>
+<p class="text-[10px] text-[#92a4c9]">Rare • Blue</p>
+</div>
+</div>
+</div>
+<div class="p-3 bg-card-dark border-l border-[#324467]/30">
+<p class="text-xs font-bold text-orange-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                             They Want
+                        </p>
+<div class="flex items-center gap-2">
+<div class="size-8 rounded bg-cover bg-center" data-alt="Magic Card: Esper Sentinel" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCgqcIAd5gC2g1FwC0TKBfk75TVYmSpCgOFs4LmWjKlZ4EKS-aVbgQSkQGTf4jUZpi9e8GYZifSMKGYX-QrzHeWFt_7KCEPh9pySSxTobIlLsC8jbY4hvYEyCgayTHluiMAsP7dHDDh5Xx-UGzxLxeOXShyJbSgQcDW5AulDLCzjtwa9rVdWGh5lroEibCFKfrUxZtcz9TdjpiFS3jMajWHwOOeCdSr5-Gn2qrX8o9GMNJ255InXqEzRmbX_Lr3dhpDIzUeqBUW4P41");'></div>
+<div class="flex-1 overflow-hidden">
+<p class="text-xs text-white font-medium truncate">Esper Sentinel</p>
+<p class="text-[10px] text-[#92a4c9]">Rare • White</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="p-3 flex items-center justify-between border-t border-[#324467]/30">
+<div class="flex items-center gap-1">
+<span class="bg-yellow-500/10 text-yellow-500 text-[10px] px-2 py-0.5 rounded font-bold">-$4.10 Difference</span>
+</div>
+<button class="bg-[#192233] text-white text-xs font-bold px-4 py-2 rounded-lg border border-[#324467]">
+                        View Details
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-background-dark/95 backdrop-blur-xl border-t border-[#324467]/30 pb-6 pt-2">
+<div class="max-w-md mx-auto flex justify-around items-center">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#92a4c9]">
+<span class="material-symbols-outlined">collections_bookmark</span>
+<span class="text-[10px] font-bold">Collection</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#92a4c9] relative">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="text-[10px] font-bold">Trades</span>
+<div class="absolute top-0 right-1 size-2 bg-red-500 rounded-full"></div>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#92a4c9]">
+<span class="material-symbols-outlined">forum</span>
+<span class="text-[10px] font-bold">Messages</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#92a4c9]">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</button>
+</div>
+</nav>
+</body></html>

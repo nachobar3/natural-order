@@ -1,166 +1,715 @@
-import { createClient } from '@/lib/supabase/server'
-import { MapPin, RefreshCcw, Package, Bell } from 'lucide-react'
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import {
+  User,
+  MapPin,
+  Settings,
+  Package,
+  Heart,
+  Check,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Loader2,
+  RefreshCw,
+  ArrowRightLeft,
+  ShoppingCart,
+  Tag,
+  AlertTriangle,
+  XCircle,
+  RotateCcw,
+  Archive,
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { Match, MatchType } from '@/types/database'
 
-export default async function DashboardPage() {
-  const supabase = await createClient()
+const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRightLeft; color: string }> = {
+  two_way: { label: 'Intercambio', icon: ArrowRightLeft, color: 'text-green-400 bg-green-500/20' },
+  one_way_buy: { label: 'Compra', icon: ShoppingCart, color: 'text-blue-400 bg-blue-500/20' },
+  one_way_sell: { label: 'Venta', icon: Tag, color: 'text-purple-400 bg-purple-500/20' },
+}
 
-  const { data: { user } } = await supabase.auth.getUser()
+interface SetupStatus {
+  profile: boolean
+  location: boolean
+  preferences: boolean
+  collection: boolean
+  wishlist: boolean
+}
 
-  if (!user) {
-    return null
+interface Metrics {
+  locationName: string | null
+  collectionCount: number
+  wishlistCount: number
+  matchesCount: number
+}
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const supabase = createClient()
+
+  const [loading, setLoading] = useState(true)
+  const [displayName, setDisplayName] = useState('')
+  const [setupExpanded, setSetupExpanded] = useState(true)
+  const [setupStatus, setSetupStatus] = useState<SetupStatus>({
+    profile: false,
+    location: false,
+    preferences: false,
+    collection: false,
+    wishlist: false,
+  })
+  const [metrics, setMetrics] = useState<Metrics>({
+    locationName: null,
+    collectionCount: 0,
+    wishlistCount: 0,
+    matchesCount: 0,
+  })
+
+  // Matches state
+  const [matches, setMatches] = useState<Match[]>([])
+  const [matchesLoading, setMatchesLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [matchError, setMatchError] = useState<string | null>(null)
+  const [matchFilter, setMatchFilter] = useState<'active' | 'dismissed'>('active')
+
+  const completedSteps = Object.values(setupStatus).filter(Boolean).length
+  const totalSteps = Object.keys(setupStatus).length
+  const isFullySetup = completedSteps === totalSteps
+  const progressPercent = Math.round((completedSteps / totalSteps) * 100)
+
+  useEffect(() => {
+    async function loadSetupStatus() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Load profile
+      const { data: profile } = await supabase
+        .from('users')
+        .select('display_name')
+        .eq('id', user.id)
+        .single()
+
+      setDisplayName(profile?.display_name || 'Usuario')
+
+      // Load location
+      const { data: location } = await supabase
+        .from('locations')
+        .select('id, name, address')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single()
+
+      // Load preferences
+      const { data: preferences } = await supabase
+        .from('preferences')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      // Load collection count
+      const { count: collectionCount } = await supabase
+        .from('collections')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+      // Load wishlist count
+      const { count: wishlistCount } = await supabase
+        .from('wishlist')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+
+      setSetupStatus({
+        profile: !!profile?.display_name,
+        location: !!location,
+        preferences: !!preferences,
+        collection: (collectionCount || 0) > 0,
+        wishlist: (wishlistCount || 0) > 0,
+      })
+
+      setMetrics({
+        locationName: location?.address || location?.name || null,
+        collectionCount: collectionCount || 0,
+        wishlistCount: wishlistCount || 0,
+        matchesCount: 0, // Will be updated when matches load
+      })
+
+      setLoading(false)
+    }
+
+    loadSetupStatus()
+  }, [supabase])
+
+  const loadMatches = useCallback(async (status: 'active' | 'dismissed' = 'active') => {
+    try {
+      setMatchesLoading(true)
+      const res = await fetch(`/api/matches?status=${status}`)
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Error al cargar trades')
+      }
+      const data = await res.json()
+      setMatches(data.matches || [])
+      if (status === 'active') {
+        setMetrics(prev => ({ ...prev, matchesCount: data.matches?.length || 0 }))
+      }
+      setMatchError(null)
+    } catch (err) {
+      setMatchError(err instanceof Error ? err.message : 'Error desconocido')
+    } finally {
+      setMatchesLoading(false)
+    }
+  }, [])
+
+  const refreshMatches = async () => {
+    setRefreshing(true)
+    setMatchError(null)
+    try {
+      const res = await fetch('/api/matches/compute', { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Error al calcular trades')
+      }
+      await loadMatches()
+    } catch (err) {
+      setMatchError(err instanceof Error ? err.message : 'Error al refrescar')
+    } finally {
+      setRefreshing(false)
+    }
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const dismissMatch = async (matchId: string) => {
+    try {
+      await fetch('/api/matches', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, status: 'dismissed' }),
+      })
+      setMatches(prev => prev.filter(m => m.id !== matchId))
+      setMetrics(prev => ({ ...prev, matchesCount: prev.matchesCount - 1 }))
+    } catch (err) {
+      console.error('Error dismissing match:', err)
+    }
+  }
 
-  const { data: locations } = await supabase
-    .from('locations')
-    .select('*')
-    .eq('user_id', user.id)
+  const restoreMatch = async (matchId: string) => {
+    try {
+      await fetch('/api/matches', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, status: 'active' }),
+      })
+      setMatches(prev => prev.filter(m => m.id !== matchId))
+    } catch (err) {
+      console.error('Error restoring match:', err)
+    }
+  }
 
-  const activeLocation = locations?.find((loc: { is_active: boolean }) => loc.is_active)
+  // Auto-compute trades on page load when viewing active trades
+  useEffect(() => {
+    if (matchFilter === 'active' && isFullySetup) {
+      refreshMatches()
+    } else {
+      loadMatches(matchFilter)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchFilter, isFullySetup])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-mtg-green-500" />
+      </div>
+    )
+  }
+
+  const setupSteps = [
+    { key: 'profile', label: 'Datos', icon: User, href: '/dashboard/profile', completed: setupStatus.profile },
+    { key: 'location', label: 'Ubicación', icon: MapPin, href: '/dashboard/profile?tab=ubicacion', completed: setupStatus.location },
+    { key: 'preferences', label: 'Preferencias', icon: Settings, href: '/dashboard/profile?tab=preferencias', completed: setupStatus.preferences },
+    { key: 'collection', label: 'Colección', icon: Package, href: '/dashboard/collection', completed: setupStatus.collection },
+    { key: 'wishlist', label: 'Wishlist', icon: Heart, href: '/dashboard/wishlist', completed: setupStatus.wishlist },
+  ]
 
   return (
-    <div className="space-y-8">
-      {/* Welcome section */}
+    <div className="space-y-6">
+      {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold text-gray-100">
-          ¡Hola, {(profile as { display_name?: string })?.display_name || 'Usuario'}!
+          ¡Hola, {displayName}!
         </h1>
         <p className="text-gray-400 mt-1">
-          Bienvenido a tu panel de Natural Order
+          {isFullySetup
+            ? 'Tu perfil está completo. ¡Buscá trades!'
+            : 'Completá tu perfil para empezar a encontrar trades'}
         </p>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-mtg-green-600/20">
-              <MapPin className="w-6 h-6 text-mtg-green-400" />
+      {/* Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Link href="/dashboard/profile?tab=ubicacion" className="card hover:border-mtg-green-500/30 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-mtg-green-600/20">
+              <MapPin className="w-5 h-5 text-mtg-green-400" />
             </div>
-            <div>
-              <p className="text-sm text-gray-400">Ubicación activa</p>
-              <p className="font-semibold text-gray-100">
-                {(activeLocation as { name?: string })?.name || 'Sin configurar'}
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500">Ubicación</p>
+              <p className="font-medium text-gray-200 truncate text-sm">
+                {metrics.locationName || 'Sin configurar'}
               </p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-blue-500/20">
-              <Package className="w-6 h-6 text-blue-400" />
+        <Link href="/dashboard/collection" className="card hover:border-mtg-green-500/30 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/20">
+              <Package className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-400">Mis cartas</p>
-              <p className="font-semibold text-gray-100">0</p>
+              <p className="text-xs text-gray-500">Colección</p>
+              <p className="font-medium text-gray-200 text-sm">{metrics.collectionCount} cartas</p>
             </div>
           </div>
-        </div>
+        </Link>
 
-        <div className="card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-mtg-gold/20">
-              <RefreshCcw className="w-6 h-6 text-mtg-gold" />
+        <Link href="/dashboard/wishlist" className="card hover:border-mtg-green-500/30 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-500/20">
+              <Heart className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-400">Trades</p>
-              <p className="font-semibold text-gray-100">0</p>
+              <p className="text-xs text-gray-500">Wishlist</p>
+              <p className="font-medium text-gray-200 text-sm">{metrics.wishlistCount} cartas</p>
             </div>
           </div>
-        </div>
+        </Link>
 
         <div className="card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-purple-500/20">
-              <Bell className="w-6 h-6 text-purple-400" />
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-mtg-gold/20">
+              <Users className="w-5 h-5 text-mtg-gold" />
             </div>
             <div>
-              <p className="text-sm text-gray-400">Notificaciones</p>
-              <p className="font-semibold text-gray-100">0</p>
+              <p className="text-xs text-gray-500">Trades</p>
+              <p className="font-medium text-gray-200 text-sm">{metrics.matchesCount} activos</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Setup checklist for new users */}
-      {!activeLocation && (
-        <div className="card border-l-4 border-l-mtg-green-500">
-          <h2 className="text-lg font-semibold text-gray-100 mb-4">
-            Completá tu perfil
-          </h2>
-          <div className="space-y-3">
-            <SetupItem
-              completed={!!(profile as { display_name?: string })?.display_name && !!activeLocation}
-              label="Completar perfil y ubicación"
-              href="/dashboard/profile"
-            />
-            <SetupItem
-              completed={false}
-              label="Subir tus cartas"
-              href="#"
-              disabled
-            />
-          </div>
+      {/* Setup checklist - Only show if not complete */}
+      {!isFullySetup && (
+        <div className="card">
+          <button
+            onClick={() => setSetupExpanded(!setupExpanded)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              {/* Circular progress */}
+              <div className="relative flex items-center justify-center">
+                <svg className="w-12 h-12 transform -rotate-90">
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    className="text-mtg-green-900/30"
+                  />
+                  <circle
+                    cx="24"
+                    cy="24"
+                    r="20"
+                    fill="transparent"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeDasharray={125.6}
+                    strokeDashoffset={125.6 - (125.6 * progressPercent) / 100}
+                    className="text-mtg-green-500"
+                  />
+                </svg>
+                <span className="absolute text-xs font-bold text-gray-200">{progressPercent}%</span>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-gray-100">Configuración inicial</h3>
+                <p className="text-xs text-gray-500">{completedSteps} de {totalSteps} pasos completados</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-mtg-green-400 text-sm font-medium">
+              {setupExpanded ? (
+                <>
+                  <span>Colapsar</span>
+                  <ChevronUp className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <span>Expandir</span>
+                  <ChevronDown className="w-4 h-4" />
+                </>
+              )}
+            </div>
+          </button>
+
+          {setupExpanded && (
+            <div className="mt-4 pt-4 border-t border-mtg-green-900/30">
+              {/* Horizontal steps for desktop */}
+              <div className="hidden sm:flex items-center justify-between gap-2">
+                {setupSteps.map((step, index) => {
+                  const Icon = step.icon
+                  return (
+                    <div key={step.key} className="flex items-center flex-1">
+                      <Link
+                        href={step.href}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-lg flex-1 transition-colors ${
+                          step.completed
+                            ? 'text-mtg-green-400'
+                            : 'text-gray-400 hover:text-gray-200 hover:bg-mtg-green-900/20'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          step.completed
+                            ? 'bg-mtg-green-500 text-white'
+                            : 'border-2 border-gray-600'
+                        }`}>
+                          {step.completed ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <Icon className="w-4 h-4" />
+                          )}
+                        </div>
+                        <span className="text-xs font-medium">{step.label}</span>
+                      </Link>
+                      {index < setupSteps.length - 1 && (
+                        <div className={`h-0.5 w-full max-w-[40px] ${
+                          step.completed ? 'bg-mtg-green-500' : 'bg-gray-700'
+                        }`} />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Vertical steps for mobile */}
+              <div className="sm:hidden space-y-1">
+                {setupSteps.map((step) => {
+                  const Icon = step.icon
+                  return (
+                    <Link
+                      key={step.key}
+                      href={step.href}
+                      className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                        step.completed
+                          ? 'text-mtg-green-400'
+                          : 'text-gray-400 hover:bg-mtg-green-900/20'
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        step.completed
+                          ? 'bg-mtg-green-500 text-white'
+                          : 'border-2 border-gray-600'
+                      }`}>
+                        {step.completed ? (
+                          <Check className="w-3 h-3" />
+                        ) : (
+                          <Icon className="w-3 h-3" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium flex-1">{step.label}</span>
+                      {!step.completed && (
+                        <span className="text-xs text-mtg-green-400 font-medium">Completar</span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Recent activity placeholder */}
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-100 mb-4">
-          Actividad reciente
-        </h2>
-        <div className="text-center py-8 text-gray-400">
-          <RefreshCcw className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-          <p>No hay actividad reciente</p>
-          <p className="text-sm mt-1">
-            Cuando realices trades, aparecerán aquí
-          </p>
+      {/* Trades section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-bold text-gray-100">Tus Trades</h2>
+            {/* Filter toggle */}
+            <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-1">
+              <button
+                onClick={() => setMatchFilter('active')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                  matchFilter === 'active'
+                    ? 'bg-mtg-green-600 text-white'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                Activos
+              </button>
+              <button
+                onClick={() => setMatchFilter('dismissed')}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+                  matchFilter === 'dismissed'
+                    ? 'bg-mtg-green-600 text-white'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <Archive className="w-3 h-3" />
+                Descartados
+              </button>
+            </div>
+          </div>
+          {/* Subtle refresh button */}
+          {matchFilter === 'active' && isFullySetup && (
+            <button
+              onClick={refreshMatches}
+              disabled={refreshing}
+              className="p-2 text-gray-500 hover:text-gray-300 rounded-lg transition-colors"
+              title="Actualizar trades"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
         </div>
-      </div>
-    </div>
-  )
-}
 
-function SetupItem({
-  completed,
-  label,
-  href,
-  disabled = false,
-}: {
-  completed: boolean
-  label: string
-  href: string
-  disabled?: boolean
-}) {
-  const content = (
-    <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-      disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-mtg-green-900/20'
-    }`}>
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-        completed ? 'bg-mtg-green-500 text-white' : 'border-2 border-gray-600'
-      }`}>
-        {completed && (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+        {/* Match error */}
+        {matchError && (
+          <div className="card bg-red-500/10 border-red-500/30">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <div>
+                <h3 className="font-medium text-red-400">Error</h3>
+                <p className="text-sm text-red-300 mt-1">{matchError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Matches loading */}
+        {matchesLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-mtg-green-500" />
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!matchesLoading && !matchError && matches.length === 0 && (
+          <div className="card text-center py-12">
+            {matchFilter === 'active' ? (
+              <>
+                <Users className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                <h3 className="text-lg font-medium text-gray-300 mb-2">
+                  No hay trades todavía
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  {isFullySetup
+                    ? 'No encontramos usuarios cercanos con cartas que coincidan. Agregá más cartas a tu colección o wishlist.'
+                    : 'Completá los pasos de configuración arriba para empezar a encontrar trades.'}
+                </p>
+              </>
+            ) : (
+              <>
+                <Archive className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                <h3 className="text-lg font-medium text-gray-300 mb-2">
+                  No hay trades descartados
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  Los trades que descartes aparecerán aquí. Podés restaurarlos en cualquier momento.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Match list */}
+        {!matchesLoading && matches.length > 0 && (
+          <div className="space-y-4">
+            {matches.map((match) => {
+              const typeInfo = matchTypeLabels[match.matchType]
+              const TypeIcon = typeInfo.icon
+              const valueDiff = (match.valueIWant || 0) - (match.valueTheyWant || 0)
+
+              return (
+                <div
+                  key={match.id}
+                  className="card hover:border-mtg-green-500/30 transition-colors"
+                >
+                  {/* Header */}
+                  <div className="flex items-center gap-3 pb-3 border-b border-mtg-green-900/30">
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
+                      {match.otherUser.avatarUrl ? (
+                        <img
+                          src={match.otherUser.avatarUrl}
+                          alt={match.otherUser.displayName}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg font-bold text-mtg-green-400">
+                          {match.otherUser.displayName.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* User info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-100">
+                          {match.otherUser.displayName}
+                        </h3>
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${typeInfo.color}`}>
+                          <TypeIcon className="w-3 h-3" />
+                          {typeInfo.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                        {match.distanceKm !== null && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {match.distanceKm < 1 ? '<1' : Math.round(match.distanceKm)} km
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dismiss/Restore button */}
+                    {matchFilter === 'active' ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          dismissMatch(match.id)
+                        }}
+                        className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Descartar"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          restoreMatch(match.id)
+                        }}
+                        className="p-1.5 text-gray-500 hover:text-mtg-green-400 hover:bg-mtg-green-500/10 rounded-lg transition-colors"
+                        title="Restaurar"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Cards table */}
+                  <div className="grid grid-cols-2 gap-4 py-3">
+                    {/* Cards they have (that I want) */}
+                    <div>
+                      <h4 className="text-xs font-semibold text-green-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <Heart className="w-3 h-3" />
+                        Tiene ({match.cardsIWant})
+                      </h4>
+                      <div className="space-y-1.5">
+                        {match.cardsIWantList.length > 0 ? (
+                          match.cardsIWantList.map((card, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="text-gray-300 truncate">{card.name}</span>
+                              <span className="text-xs text-gray-500 flex-shrink-0">
+                                {card.setCode.toUpperCase()}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-600">-</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cards I have (that they want) */}
+                    <div>
+                      <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <Package className="w-3 h-3" />
+                        Busca ({match.cardsTheyWant})
+                      </h4>
+                      <div className="space-y-1.5">
+                        {match.cardsTheyWantList.length > 0 ? (
+                          match.cardsTheyWantList.map((card, idx) => (
+                            <div key={idx} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="text-gray-300 truncate">{card.name}</span>
+                              <span className="text-xs text-gray-500 flex-shrink-0">
+                                {card.setCode.toUpperCase()}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-600">-</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between pt-3 border-t border-mtg-green-900/30">
+                    <div className="flex items-center gap-3">
+                      {match.hasPriceWarnings && (
+                        <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Precio excedido
+                        </span>
+                      )}
+                      {match.matchType === 'two_way' && (
+                        <span className={`text-xs font-medium ${
+                          Math.abs(valueDiff) < 1
+                            ? 'text-green-400'
+                            : valueDiff > 0
+                              ? 'text-green-400'
+                              : 'text-red-400'
+                        }`}>
+                          {Math.abs(valueDiff) < 1
+                            ? 'Trade justo'
+                            : valueDiff > 0
+                              ? `+$${valueDiff.toFixed(2)} a favor`
+                              : `-$${Math.abs(valueDiff).toFixed(2)} diferencia`}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => router.push(`/dashboard/matches/${match.id}`)}
+                      className="btn-primary text-sm py-1.5 px-4"
+                    >
+                      Ver detalles
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Legend */}
+        {!matchesLoading && matches.length > 0 && (
+          <div className="card bg-gray-900/50">
+            <h4 className="text-sm font-medium text-gray-400 mb-2">Tipos de match:</h4>
+            <div className="flex flex-wrap gap-4 text-xs">
+              <span className="flex items-center gap-1">
+                <ArrowRightLeft className="w-4 h-4 text-green-400" />
+                <span className="text-gray-300">Intercambio:</span>
+                <span className="text-gray-500">Ambos tienen cartas que el otro busca</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <ShoppingCart className="w-4 h-4 text-blue-400" />
+                <span className="text-gray-300">Compra:</span>
+                <span className="text-gray-500">Ellos tienen cartas que vos buscás</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Tag className="w-4 h-4 text-purple-400" />
+                <span className="text-gray-300">Venta:</span>
+                <span className="text-gray-500">Vos tenés cartas que ellos buscan</span>
+              </span>
+            </div>
+          </div>
         )}
       </div>
-      <span className={completed ? 'line-through text-gray-500' : 'text-gray-300'}>
-        {label}
-      </span>
     </div>
   )
-
-  if (disabled) {
-    return content
-  }
-
-  return <Link href={href}>{content}</Link>
 }

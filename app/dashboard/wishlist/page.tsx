@@ -4,9 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { AddCardModal } from '@/components/cards/add-card-modal'
-import { Heart, Loader2, Trash2, Edit2, Plus } from 'lucide-react'
+import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { Heart, Loader2, Trash2, Edit2, Plus, Upload, LayoutGrid, List } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import type { WishlistWithCard, CardCondition } from '@/types/database'
+
+type ViewMode = 'list' | 'binder'
 
 interface CardSearchResult {
   scryfall_id: string
@@ -49,6 +53,10 @@ export default function WishlistPage() {
   const [selectedCard, setSelectedCard] = useState<CardSearchResult | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<WishlistWithCard | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('binder')
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<WishlistWithCard | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const supabase = createClient()
 
@@ -87,20 +95,30 @@ export default function WishlistPage() {
     setIsModalOpen(true)
   }
 
-  const handleDeleteItem = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta carta de tu wishlist?')) return
+  const handleDeleteItem = (item: WishlistWithCard) => {
+    setItemToDelete(item)
+    setDeleteModalOpen(true)
+  }
 
+  const confirmDelete = async () => {
+    if (!itemToDelete) return
+
+    setDeleting(true)
     const { error } = await supabase
       .from('wishlist')
       .delete()
-      .eq('id', id)
+      .eq('id', itemToDelete.id)
 
     if (error) {
       console.error('Error deleting item:', error)
+      setDeleting(false)
       return
     }
 
-    setWishlist((prev) => prev.filter((item) => item.id !== id))
+    setWishlist((prev) => prev.filter((item) => item.id !== itemToDelete.id))
+    setDeleting(false)
+    setDeleteModalOpen(false)
+    setItemToDelete(null)
   }
 
   const handleModalClose = () => {
@@ -132,6 +150,42 @@ export default function WishlistPage() {
             {wishlist.length} carta{wishlist.length !== 1 ? 's' : ''} que estás buscando
           </p>
         </div>
+        <div className="flex items-center gap-3">
+          {/* Import button */}
+          <Link
+            href="/dashboard/wishlist/import"
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">Importar CSV</span>
+          </Link>
+
+          {/* View toggle */}
+          <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('binder')}
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'binder'
+                  ? 'bg-mtg-green-600 text-white'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+              title="Vista binder"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-mtg-green-600 text-white'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+              title="Vista lista"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Search */}
@@ -148,7 +202,7 @@ export default function WishlistPage() {
         <CardSearch onSelect={handleCardSelect} placeholder="Buscar carta para agregar..." />
       </div>
 
-      {/* Wishlist list */}
+      {/* Wishlist display */}
       {wishlist.length === 0 ? (
         <div className="card text-center py-12">
           <Heart className="w-16 h-16 mx-auto mb-4 text-gray-600" />
@@ -159,7 +213,98 @@ export default function WishlistPage() {
             Usá el buscador de arriba para agregar las cartas que buscás
           </p>
         </div>
+      ) : viewMode === 'binder' ? (
+        /* Binder View - Grid of cards */
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 relative z-10">
+          {wishlist.map((item) => (
+            <div
+              key={item.id}
+              className="group relative bg-gray-900/50 rounded-lg overflow-hidden border border-gray-800 hover:border-mtg-green-500/50 transition-all hover:shadow-lg hover:shadow-mtg-green-500/10"
+            >
+              {/* Card image */}
+              <div className="relative aspect-[5/7]">
+                {item.cards?.image_uri ? (
+                  <Image
+                    src={item.cards.image_uri}
+                    alt={item.cards.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-500">
+                    ?
+                  </div>
+                )}
+                {/* Quantity badge */}
+                {item.quantity > 1 && (
+                  <div className="absolute top-2 right-2 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded">
+                    x{item.quantity}
+                  </div>
+                )}
+                {/* Priority indicator */}
+                {item.priority >= 8 && (
+                  <div className="absolute top-2 left-2 bg-red-500/90 text-white text-xs font-bold px-2 py-1 rounded">
+                    ★
+                  </div>
+                )}
+                {/* Foil preference indicator */}
+                {item.foil_preference === 'foil_only' && (
+                  <div className="absolute bottom-2 left-2 bg-purple-500/90 text-white text-xs font-bold px-2 py-1 rounded">
+                    Foil
+                  </div>
+                )}
+                {/* Hover overlay with actions */}
+                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handleEditItem(item)}
+                    className="p-2 bg-mtg-green-600 text-white rounded-lg hover:bg-mtg-green-500 transition-colors"
+                    title="Editar"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteItem(item)}
+                    className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              {/* Card details */}
+              <div className="p-2">
+                <h3 className="text-sm font-medium text-gray-100 truncate">
+                  {item.cards?.name || 'Carta desconocida'}
+                </h3>
+                <p className="text-xs text-gray-500 truncate">
+                  {item.edition_preference === 'any'
+                    ? 'Cualquier edición'
+                    : item.cards?.set_code?.toUpperCase() || '?'
+                  } • Min: {item.min_condition}
+                </p>
+                <div className="flex items-center justify-between mt-1">
+                  {item.max_price ? (
+                    <span className="text-sm font-medium text-mtg-green-400">
+                      Máx ${item.max_price.toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Sin límite</span>
+                  )}
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                    item.priority >= 8 ? 'bg-red-500/20 text-red-300' :
+                    item.priority >= 5 ? 'bg-yellow-500/20 text-yellow-300' :
+                    'bg-gray-700 text-gray-400'
+                  }`}>
+                    P{item.priority}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        /* List View */
         <div className="grid gap-4 relative z-10">
           {wishlist.map((item) => (
             <div
@@ -247,7 +392,7 @@ export default function WishlistPage() {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDeleteItem(item.id)}
+                  onClick={() => handleDeleteItem(item)}
                   className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                   title="Eliminar"
                 >
@@ -267,6 +412,22 @@ export default function WishlistPage() {
         card={selectedCard}
         editItem={editingItem}
         mode="wishlist"
+      />
+
+      {/* Delete confirmation modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false)
+          setItemToDelete(null)
+        }}
+        onConfirm={confirmDelete}
+        title="Eliminar carta"
+        message={`¿Estás seguro de eliminar "${itemToDelete?.cards?.name || 'esta carta'}" de tu wishlist?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={deleting}
       />
     </div>
   )

@@ -7,7 +7,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Home,
-  Settings,
   User,
   LogOut,
   Menu,
@@ -22,7 +21,6 @@ const navItems = [
   { href: '/dashboard/collection', label: 'Colección', icon: Package },
   { href: '/dashboard/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/dashboard/profile', label: 'Perfil', icon: User },
-  { href: '/dashboard/settings', label: 'Configuración', icon: Settings },
 ]
 
 export function DashboardNav({ user }: { user: UserType | null }) {

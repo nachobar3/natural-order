@@ -301,6 +301,70 @@ export type WishlistWithCard = Wishlist & {
 // Card condition type
 export type CardCondition = 'NM' | 'LP' | 'MP' | 'HP' | 'DMG'
 
+// Match types
+export type MatchType = 'two_way' | 'one_way_buy' | 'one_way_sell'
+export type MatchStatus = 'active' | 'dismissed' | 'contacted'
+
+export interface MatchCardPreview {
+  name: string
+  setCode: string
+  price: number | null
+}
+
+export interface Match {
+  id: string
+  otherUser: {
+    id: string
+    displayName: string
+    avatarUrl: string | null
+  }
+  matchType: MatchType
+  distanceKm: number | null
+  cardsIWant: number
+  cardsTheyWant: number
+  cardsIWantList: MatchCardPreview[]
+  cardsTheyWantList: MatchCardPreview[]
+  valueIWant: number
+  valueTheyWant: number
+  matchScore: number
+  hasPriceWarnings: boolean
+  status: MatchStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MatchCard {
+  id: string
+  cardId: string
+  cardName: string
+  cardSetCode: string
+  cardImageUri: string | null
+  askingPrice: number | null
+  maxPrice: number | null
+  priceExceedsMax: boolean
+  condition: CardCondition
+  minCondition: CardCondition
+  isFoil: boolean
+  quantityAvailable: number
+  quantityWanted: number
+}
+
+export interface MatchDetail extends Omit<Match, 'cardsIWant' | 'cardsTheyWant' | 'valueIWant' | 'valueTheyWant' | 'updatedAt' | 'otherUser'> {
+  otherUser: {
+    id: string
+    displayName: string
+    avatarUrl: string | null
+    location: {
+      latitude: number
+      longitude: number
+    } | null
+  }
+  cardsIWant: MatchCard[]
+  cardsTheyWant: MatchCard[]
+  totalValueIWant: number
+  totalValueTheyWant: number
+}
+
 // Scryfall API types
 export interface ScryfallCard {
   id: string
