@@ -236,6 +236,17 @@ export async function POST(request: NextRequest) {
     console.log(`[bulk-import-wishlist] Import complete. Summary:`, summary)
     console.log(`[bulk-import-wishlist] Results:`, results)
 
+    // Trigger match recalculation if any cards were imported
+    if (summary.inserted > 0 || summary.updated > 0) {
+      // Fire and forget - don't wait for matches to compute
+      fetch(new URL('/api/matches/compute', request.url).toString(), {
+        method: 'POST',
+        headers: {
+          cookie: request.headers.get('cookie') || '',
+        },
+      }).catch(err => console.error('Error triggering match recalculation:', err))
+    }
+
     return NextResponse.json({ results, summary })
   } catch (error) {
     console.error('Bulk import wishlist error:', error)

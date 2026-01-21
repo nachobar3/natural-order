@@ -252,16 +252,60 @@ export async function POST(request: NextRequest) {
       collectionByUser.get(c.user_id)!.push(c)
     })
 
-    // Delete existing matches for this user
-    await supabase.from('matches').delete().or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+    // Get existing matches that should be preserved (user-modified or in progress)
+    const { data: existingMatches } = await supabase
+      .from('matches')
+      .select('id, user_a_id, user_b_id, is_user_modified, status')
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+
+    // Track which user pairs have preserved matches
+    const preservedPairs = new Set<string>()
+    const matchesToDelete: string[] = []
+
+    existingMatches?.forEach(m => {
+      // Preserve matches that are user-modified or have active trade flow
+      const shouldPreserve = m.is_user_modified ||
+        ['requested', 'confirmed', 'completed', 'cancelled'].includes(m.status)
+
+      if (shouldPreserve) {
+        // Create a consistent key for the pair
+        const pairKey = [m.user_a_id, m.user_b_id].sort().join('-')
+        preservedPairs.add(pairKey)
+      } else {
+        matchesToDelete.push(m.id)
+      }
+    })
+
+    // Delete only non-preserved matches
+    if (matchesToDelete.length > 0) {
+      await supabase.from('matches').delete().in('id', matchesToDelete)
+    }
+
+    // Get collection IDs that are in escrow (confirmed matches)
+    const { data: escrowedCards } = await supabase
+      .from('match_cards')
+      .select('collection_id, match_id, matches!inner(status)')
+      .eq('is_excluded', false)
+      .eq('matches.status', 'confirmed')
+
+    const escrowedCollectionIds = new Set(escrowedCards?.map(c => c.collection_id) || [])
 
     // Compute matches for each nearby user
     const newMatches = []
 
     for (const otherUser of nearbyUsers) {
       const otherUserId = otherUser.user_id
+
+      // Skip if we already have a preserved match with this user
+      const pairKey = [user.id, otherUserId].sort().join('-')
+      if (preservedPairs.has(pairKey)) {
+        continue
+      }
+
       const theirWishlist = wishlistByUser.get(otherUserId) || []
-      const theirCollection = collectionByUser.get(otherUserId) || []
+      // Filter out escrowed collection items
+      const theirCollection = (collectionByUser.get(otherUserId) || [])
+        .filter(c => !escrowedCollectionIds.has(c.id))
 
       // Cards I want that they have
       const cardsIWant: {
@@ -338,10 +382,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Check what they want from my collection
-      if (myCollection && theirWishlist.length > 0) {
+      // Check what they want from my collection (excluding escrowed items)
+      const myAvailableCollection = myCollection?.filter(c => !escrowedCollectionIds.has(c.id)) || []
+      if (myAvailableCollection.length > 0 && theirWishlist.length > 0) {
         for (const wishItem of theirWishlist) {
-          for (const collItem of myCollection) {
+          for (const collItem of myAvailableCollection) {
             const wishOracleId = wishItem.cards?.oracle_id
             const collOracleId = collItem.cards?.oracle_id
 

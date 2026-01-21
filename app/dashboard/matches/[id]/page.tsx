@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,15 +12,27 @@ import {
   ShoppingCart,
   Tag,
   AlertTriangle,
-  MessageCircle,
   CheckCircle,
   XCircle,
   TrendingUp,
   TrendingDown,
   Minus,
+  RotateCcw,
+  RefreshCw,
+  Save,
+  X,
+  Check,
+  Send,
+  Clock,
+  Ban,
+  Handshake,
+  ThumbsUp,
+  ThumbsDown,
+  MessageCircle,
+  Edit2,
 } from 'lucide-react'
 import { LocationMap } from '@/components/ui/location-map'
-import type { MatchDetail, MatchCard, MatchType } from '@/types/database'
+import type { MatchDetail, MatchCard, MatchType, MatchStatus } from '@/types/database'
 
 const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRightLeft; color: string }> = {
   two_way: { label: 'Intercambio mutuo', icon: ArrowRightLeft, color: 'text-green-400 bg-green-500/20' },
@@ -28,13 +40,67 @@ const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRigh
   one_way_sell: { label: 'Oportunidad de venta', icon: Tag, color: 'text-purple-400 bg-purple-500/20' },
 }
 
-function CardItem({ card, isMyCard }: { card: MatchCard; isMyCard: boolean }) {
+const statusLabels: Record<MatchStatus, { label: string; color: string }> = {
+  active: { label: 'Activo', color: 'bg-gray-500/20 text-gray-400' },
+  dismissed: { label: 'Descartado', color: 'bg-gray-500/20 text-gray-400' },
+  contacted: { label: 'Contactado', color: 'bg-blue-500/20 text-blue-400' },
+  requested: { label: 'Solicitado', color: 'bg-yellow-500/20 text-yellow-400' },
+  confirmed: { label: 'Confirmado', color: 'bg-purple-500/20 text-purple-400' },
+  completed: { label: 'Completado', color: 'bg-green-500/20 text-green-400' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400' },
+}
+
+interface Comment {
+  id: string
+  userId: string
+  content: string
+  createdAt: string
+  updatedAt: string
+  isEdited: boolean
+  isMine: boolean
+  user: {
+    id: string
+    displayName: string
+    avatarUrl: string | null
+  }
+}
+
+interface CardItemProps {
+  card: MatchCard
+  isExcluded: boolean
+  onToggleExclude: (cardId: string) => void
+  disabled?: boolean
+}
+
+function CardItem({ card, isExcluded, onToggleExclude, disabled }: CardItemProps) {
   return (
     <div
-      className={`flex items-center gap-3 p-2 rounded-lg bg-gray-900/30 ${
-        card.priceExceedsMax ? 'border border-yellow-500/30' : ''
+      className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+        isExcluded
+          ? 'bg-gray-900/20 opacity-50'
+          : card.priceExceedsMax
+            ? 'bg-gray-900/30 border border-yellow-500/30'
+            : 'bg-gray-900/30'
       }`}
     >
+      {/* Exclude/Include button */}
+      <button
+        onClick={() => onToggleExclude(card.id)}
+        disabled={disabled}
+        className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
+          isExcluded
+            ? 'bg-gray-700 hover:bg-gray-600 text-gray-400'
+            : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+        title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
+      >
+        {isExcluded ? (
+          <Check className="w-3.5 h-3.5" />
+        ) : (
+          <X className="w-3.5 h-3.5" />
+        )}
+      </button>
+
       {/* Card image */}
       {card.cardImageUri ? (
         <Image
@@ -42,7 +108,7 @@ function CardItem({ card, isMyCard }: { card: MatchCard; isMyCard: boolean }) {
           alt={card.cardName}
           width={40}
           height={56}
-          className="rounded object-cover flex-shrink-0"
+          className={`rounded object-cover flex-shrink-0 ${isExcluded ? 'grayscale' : ''}`}
         />
       ) : (
         <div className="w-[40px] h-[56px] bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
@@ -52,7 +118,9 @@ function CardItem({ card, isMyCard }: { card: MatchCard; isMyCard: boolean }) {
 
       {/* Card info */}
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-gray-100 truncate">{card.cardName}</h4>
+        <h4 className={`text-sm font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+          {card.cardName}
+        </h4>
         <p className="text-xs text-gray-500">
           {card.cardSetCode.toUpperCase()} • {card.condition}
           {card.isFoil && <span className="text-purple-400 ml-1">✨</span>}
@@ -62,12 +130,161 @@ function CardItem({ card, isMyCard }: { card: MatchCard; isMyCard: boolean }) {
       {/* Price */}
       <div className="text-right flex-shrink-0">
         {card.askingPrice !== null ? (
-          <p className={`text-sm font-medium ${card.priceExceedsMax ? 'text-yellow-400' : 'text-gray-200'}`}>
+          <p className={`text-sm font-medium ${
+            isExcluded
+              ? 'text-gray-500 line-through'
+              : card.priceExceedsMax
+                ? 'text-yellow-400'
+                : 'text-gray-200'
+          }`}>
             ${card.askingPrice.toFixed(2)}
           </p>
         ) : (
           <p className="text-xs text-gray-500">-</p>
         )}
+      </div>
+    </div>
+  )
+}
+
+function EscrowCountdown({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState('')
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date()
+      const expires = new Date(expiresAt)
+      const diff = expires.getTime() - now.getTime()
+
+      if (diff <= 0) {
+        setTimeLeft('Expirado')
+        return
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+
+      if (days > 0) {
+        setTimeLeft(`${days} día${days !== 1 ? 's' : ''} ${hours}h`)
+      } else {
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        setTimeLeft(`${hours}h ${minutes}m`)
+      }
+    }
+
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 60000) // Update every minute
+    return () => clearInterval(interval)
+  }, [expiresAt])
+
+  return (
+    <span className="flex items-center gap-1 text-sm text-purple-400">
+      <Clock className="w-4 h-4" />
+      {timeLeft}
+    </span>
+  )
+}
+
+function formatCommentDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Ahora'
+  if (diffMins < 60) return `Hace ${diffMins}m`
+  if (diffHours < 24) return `Hace ${diffHours}h`
+  if (diffDays < 7) return `Hace ${diffDays}d`
+  return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
+}
+
+interface CommentItemProps {
+  comment: Comment
+  onEdit: (id: string, content: string) => void
+}
+
+function CommentItem({ comment, onEdit }: CommentItemProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState(comment.content)
+  const [saving, setSaving] = useState(false)
+
+  const handleSaveEdit = async () => {
+    if (editContent.trim() === comment.content) {
+      setIsEditing(false)
+      return
+    }
+    setSaving(true)
+    await onEdit(comment.id, editContent.trim())
+    setSaving(false)
+    setIsEditing(false)
+  }
+
+  return (
+    <div className={`flex gap-3 ${comment.isMine ? 'flex-row-reverse' : ''}`}>
+      {/* Avatar */}
+      <div className="w-8 h-8 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
+        {comment.user.avatarUrl ? (
+          <img src={comment.user.avatarUrl} alt={comment.user.displayName} className="w-8 h-8 rounded-full object-cover" />
+        ) : (
+          <span className="text-xs font-bold text-mtg-green-400">
+            {comment.user.displayName.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
+
+      {/* Comment bubble */}
+      <div className={`flex-1 max-w-[80%] ${comment.isMine ? 'text-right' : ''}`}>
+        <div
+          className={`inline-block rounded-lg px-3 py-2 ${
+            comment.isMine
+              ? 'bg-mtg-green-600/20 text-gray-100'
+              : 'bg-gray-800 text-gray-200'
+          }`}
+        >
+          {isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                maxLength={300}
+                className="w-full bg-gray-900 rounded px-2 py-1 text-sm text-gray-200 resize-none"
+                rows={2}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => { setIsEditing(false); setEditContent(comment.content) }}
+                  className="text-xs text-gray-400 hover:text-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={saving || editContent.trim().length === 0}
+                  className="text-xs text-mtg-green-400 hover:text-mtg-green-300 disabled:opacity-50"
+                >
+                  {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm whitespace-pre-wrap break-words">{comment.content}</p>
+          )}
+        </div>
+        <div className={`flex items-center gap-2 mt-1 text-xs text-gray-500 ${comment.isMine ? 'justify-end' : ''}`}>
+          <span>{formatCommentDate(comment.createdAt)}</span>
+          {comment.isEdited && <span>(editado)</span>}
+          {comment.isMine && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="hover:text-gray-300 flex items-center gap-1"
+            >
+              <Edit2 className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -79,7 +296,20 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   const [match, setMatch] = useState<MatchDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  // Track local exclusions (card IDs that are excluded)
+  const [localExclusions, setLocalExclusions] = useState<Set<string>>(new Set())
+  const [hasLocalChanges, setHasLocalChanges] = useState(false)
+
+  // Comments state
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [newComment, setNewComment] = useState('')
+  const [sendingComment, setSendingComment] = useState(false)
+  const [myCommentCount, setMyCommentCount] = useState(0)
+  const [maxComments, setMaxComments] = useState(10)
+  const commentsEndRef = useRef<HTMLDivElement>(null)
 
   const loadMatch = useCallback(async () => {
     try {
@@ -94,6 +324,17 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       const data = await res.json()
       setMatch(data)
       setError(null)
+
+      // Initialize local exclusions from server state
+      const excludedIds = new Set<string>()
+      data.cardsIWant?.forEach((c: MatchCard) => {
+        if (c.isExcluded) excludedIds.add(c.id)
+      })
+      data.cardsTheyWant?.forEach((c: MatchCard) => {
+        if (c.isExcluded) excludedIds.add(c.id)
+      })
+      setLocalExclusions(excludedIds)
+      setHasLocalChanges(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -101,31 +342,220 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     }
   }, [id])
 
-  const updateStatus = async (status: 'contacted' | 'dismissed') => {
-    setUpdatingStatus(true)
+  const loadComments = useCallback(async () => {
+    setCommentsLoading(true)
+    try {
+      const res = await fetch(`/api/matches/${id}/comments`)
+      if (res.ok) {
+        const data = await res.json()
+        setComments(data.comments || [])
+        setMyCommentCount(data.myCommentCountThisMonth || 0)
+        setMaxComments(data.maxCommentsPerMonth || 10)
+      }
+    } catch (err) {
+      console.error('Error loading comments:', err)
+    } finally {
+      setCommentsLoading(false)
+    }
+  }, [id])
+
+  const toggleCardExclusion = (cardId: string) => {
+    setLocalExclusions(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(cardId)) {
+        newSet.delete(cardId)
+      } else {
+        newSet.add(cardId)
+      }
+      return newSet
+    })
+    setHasLocalChanges(true)
+  }
+
+  const saveChanges = async () => {
+    setActionLoading('save')
+    try {
+      const res = await fetch(`/api/matches/${id}/cards`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excludedCardIds: Array.from(localExclusions) }),
+      })
+      if (res.ok) {
+        setHasLocalChanges(false)
+        await loadMatch()
+      }
+    } catch (err) {
+      console.error('Error saving changes:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const restoreMatch = async () => {
+    setActionLoading('restore')
+    try {
+      const res = await fetch(`/api/matches/${id}/restore`, { method: 'POST' })
+      if (res.ok) await loadMatch()
+    } catch (err) {
+      console.error('Error restoring match:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const recalculateMatch = async () => {
+    setActionLoading('recalculate')
+    try {
+      const res = await fetch(`/api/matches/${id}/recalculate`, { method: 'POST' })
+      if (res.ok) await loadMatch()
+    } catch (err) {
+      console.error('Error recalculating match:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const discardChanges = () => {
+    const excludedIds = new Set<string>()
+    match?.cardsIWant?.forEach(c => { if (c.isExcluded) excludedIds.add(c.id) })
+    match?.cardsTheyWant?.forEach(c => { if (c.isExcluded) excludedIds.add(c.id) })
+    setLocalExclusions(excludedIds)
+    setHasLocalChanges(false)
+  }
+
+  // Trade flow actions
+  const requestTrade = async () => {
+    setActionLoading('request')
+    try {
+      const res = await fetch(`/api/matches/${id}/request`, { method: 'POST' })
+      if (res.ok) await loadMatch()
+    } catch (err) {
+      console.error('Error requesting trade:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const cancelRequest = async () => {
+    setActionLoading('cancel')
+    try {
+      const res = await fetch(`/api/matches/${id}/request`, { method: 'DELETE' })
+      if (res.ok) await loadMatch()
+    } catch (err) {
+      console.error('Error canceling request:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const confirmTrade = async () => {
+    setActionLoading('confirm')
+    try {
+      const res = await fetch(`/api/matches/${id}/confirm`, { method: 'POST' })
+      if (res.ok) await loadMatch()
+    } catch (err) {
+      console.error('Error confirming trade:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const markCompleted = async (completed: boolean) => {
+    setActionLoading(completed ? 'complete-yes' : 'complete-no')
+    try {
+      const res = await fetch(`/api/matches/${id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed }),
+      })
+      if (res.ok) await loadMatch()
+    } catch (err) {
+      console.error('Error marking trade:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const dismissMatch = async () => {
+    setActionLoading('dismiss')
     try {
       const res = await fetch('/api/matches', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: id, status }),
+        body: JSON.stringify({ matchId: id, status: 'dismissed' }),
+      })
+      if (res.ok) router.push('/dashboard')
+    } catch (err) {
+      console.error('Error dismissing match:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // Comment actions
+  const sendComment = async () => {
+    if (!newComment.trim() || sendingComment) return
+    setSendingComment(true)
+    try {
+      const res = await fetch(`/api/matches/${id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newComment.trim() }),
       })
       if (res.ok) {
-        if (status === 'dismissed') {
-          router.push('/dashboard')
-        } else {
-          setMatch(prev => prev ? { ...prev, status } : null)
-        }
+        setNewComment('')
+        await loadComments()
+        // Scroll to bottom
+        setTimeout(() => {
+          commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
       }
     } catch (err) {
-      console.error('Error updating status:', err)
+      console.error('Error sending comment:', err)
     } finally {
-      setUpdatingStatus(false)
+      setSendingComment(false)
+    }
+  }
+
+  const editComment = async (commentId: string, content: string) => {
+    try {
+      const res = await fetch(`/api/matches/${id}/comments`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId, content }),
+      })
+      if (res.ok) {
+        await loadComments()
+      }
+    } catch (err) {
+      console.error('Error editing comment:', err)
     }
   }
 
   useEffect(() => {
     loadMatch()
-  }, [loadMatch])
+    loadComments()
+  }, [loadMatch, loadComments])
+
+  // Calculate totals based on local exclusions
+  const { activeCardsIWant, activeCardsTheyWant, totalValueIWant, totalValueTheyWant } = useMemo(() => {
+    if (!match) return { activeCardsIWant: [], activeCardsTheyWant: [], totalValueIWant: 0, totalValueTheyWant: 0 }
+
+    const activeIWant = match.cardsIWant.filter(c => !localExclusions.has(c.id))
+    const activeTheyWant = match.cardsTheyWant.filter(c => !localExclusions.has(c.id))
+
+    return {
+      activeCardsIWant: activeIWant,
+      activeCardsTheyWant: activeTheyWant,
+      totalValueIWant: activeIWant.reduce((sum, c) => sum + (c.askingPrice || 0), 0),
+      totalValueTheyWant: activeTheyWant.reduce((sum, c) => sum + (c.askingPrice || 0), 0),
+    }
+  }, [match, localExclusions])
+
+  const balance = totalValueTheyWant - totalValueIWant
+  const canEdit = match?.status && ['active', 'contacted', 'dismissed'].includes(match.status)
+  const canRequest = canEdit && activeCardsIWant.length + activeCardsTheyWant.length > 0 && !hasLocalChanges
+  const canComment = myCommentCount < maxComments
 
   if (loading) {
     return (
@@ -138,18 +568,13 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   if (error || !match) {
     return (
       <div className="space-y-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-200"
-        >
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-200">
           <ArrowLeft className="w-4 h-4" />
           Volver al inicio
         </Link>
         <div className="card text-center py-12">
           <XCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
-          <h3 className="text-lg font-medium text-gray-300 mb-2">
-            {error || 'Trade no encontrado'}
-          </h3>
+          <h3 className="text-lg font-medium text-gray-300 mb-2">{error || 'Trade no encontrado'}</h3>
         </div>
       </div>
     )
@@ -157,17 +582,12 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
 
   const typeInfo = matchTypeLabels[match.matchType]
   const TypeIcon = typeInfo.icon
-  // Balance = valor de mis cartas - valor de sus cartas
-  // Positivo = ellos me deben pagar, Negativo = yo debo pagar
-  const balance = match.totalValueTheyWant - match.totalValueIWant
+  const statusInfo = statusLabels[match.status]
 
   return (
     <div className="space-y-6">
       {/* Back link */}
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-200"
-      >
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-200">
         <ArrowLeft className="w-4 h-4" />
         Volver al inicio
       </Link>
@@ -178,33 +598,25 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           {/* Avatar */}
           <div className="w-14 h-14 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
             {match.otherUser.avatarUrl ? (
-              <img
-                src={match.otherUser.avatarUrl}
-                alt={match.otherUser.displayName}
-                className="w-14 h-14 rounded-full object-cover"
-              />
+              <img src={match.otherUser.avatarUrl} alt={match.otherUser.displayName} className="w-14 h-14 rounded-full object-cover" />
             ) : (
-              <span className="text-xl font-bold text-mtg-green-400">
-                {match.otherUser.displayName.charAt(0).toUpperCase()}
-              </span>
+              <span className="text-xl font-bold text-mtg-green-400">{match.otherUser.displayName.charAt(0).toUpperCase()}</span>
             )}
           </div>
 
           {/* Info */}
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-bold text-gray-100">
-                {match.otherUser.displayName}
-              </h1>
+              <h1 className="text-xl font-bold text-gray-100">{match.otherUser.displayName}</h1>
               <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${typeInfo.color}`}>
                 <TypeIcon className="w-3 h-3" />
                 {typeInfo.label}
               </span>
-              {match.status === 'contacted' && (
-                <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Contactado
-                </span>
+              <span className={`text-xs px-2 py-1 rounded-full ${statusInfo.color}`}>
+                {statusInfo.label}
+              </span>
+              {match.isUserModified && (
+                <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">Modificado</span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-400">
@@ -220,53 +632,231 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   Precio excedido
                 </span>
               )}
+              {match.status === 'confirmed' && match.escrowExpiresAt && (
+                <EscrowCountdown expiresAt={match.escrowExpiresAt} />
+              )}
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
-            {match.status !== 'contacted' && (
-              <button
-                onClick={() => updateStatus('contacted')}
-                disabled={updatingStatus}
-                className="btn-primary flex items-center gap-2 text-sm"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Contactado
-              </button>
-            )}
-            <button
-              onClick={() => updateStatus('dismissed')}
-              disabled={updatingStatus}
-              className="btn-secondary text-red-400 hover:text-red-300 text-sm"
-            >
-              Descartar
-            </button>
           </div>
         </div>
       </div>
+
+      {/* Trade Status Banner */}
+      {match.status === 'requested' && (
+        <div className={`card border-2 ${match.iRequested ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {match.iRequested ? (
+                <>
+                  <Clock className="w-6 h-6 text-yellow-400" />
+                  <div>
+                    <h3 className="font-semibold text-yellow-400">Esperando confirmación</h3>
+                    <p className="text-sm text-gray-400">Solicitaste este trade, esperando respuesta de {match.otherUser.displayName}</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Handshake className="w-6 h-6 text-green-400" />
+                  <div>
+                    <h3 className="font-semibold text-green-400">{match.otherUser.displayName} solicita un trade</h3>
+                    <p className="text-sm text-gray-400">Revisá las cartas y confirmá si estás de acuerdo</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {match.iRequested ? (
+                <button
+                  onClick={cancelRequest}
+                  disabled={actionLoading !== null}
+                  className="btn-secondary text-red-400 flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Cancelar solicitud
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={cancelRequest}
+                    disabled={actionLoading !== null}
+                    className="btn-secondary text-red-400 flex items-center gap-2"
+                  >
+                    <Ban className="w-4 h-4" />
+                    Rechazar
+                  </button>
+                  <button
+                    onClick={confirmTrade}
+                    disabled={actionLoading !== null}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {actionLoading === 'confirm' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Confirmar trade
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {match.status === 'confirmed' && (
+        <div className="card border-2 border-purple-500/30 bg-purple-500/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Handshake className="w-6 h-6 text-purple-400" />
+              <div>
+                <h3 className="font-semibold text-purple-400">Trade confirmado - En escrow</h3>
+                <p className="text-sm text-gray-400">
+                  Realizá el intercambio físicamente y luego marcá como completado.
+                  {match.iCompleted !== null && (
+                    <span className="ml-2">
+                      {match.iCompleted ? '(Vos marcaste: Realizado)' : '(Vos marcaste: No realizado)'}
+                    </span>
+                  )}
+                  {match.theyCompleted !== null && (
+                    <span className="ml-2">
+                      ({match.otherUser.displayName} marcó: {match.theyCompleted ? 'Realizado' : 'No realizado'})
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            {match.iCompleted === null && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => markCompleted(false)}
+                  disabled={actionLoading !== null}
+                  className="btn-secondary text-red-400 flex items-center gap-2"
+                >
+                  {actionLoading === 'complete-no' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsDown className="w-4 h-4" />}
+                  No se realizó
+                </button>
+                <button
+                  onClick={() => markCompleted(true)}
+                  disabled={actionLoading !== null}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {actionLoading === 'complete-yes' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ThumbsUp className="w-4 h-4" />}
+                  Trade realizado
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {match.status === 'completed' && (
+        <div className="card border-2 border-green-500/30 bg-green-500/5">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-green-400" />
+            <div>
+              <h3 className="font-semibold text-green-400">Trade completado</h3>
+              <p className="text-sm text-gray-400">Las cartas fueron intercambiadas exitosamente</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {match.status === 'cancelled' && (
+        <div className="card border-2 border-red-500/30 bg-red-500/5">
+          <div className="flex items-center gap-3">
+            <XCircle className="w-6 h-6 text-red-400" />
+            <div>
+              <h3 className="font-semibold text-red-400">Trade cancelado{match.hasConflict ? ' (Conflicto)' : ''}</h3>
+              <p className="text-sm text-gray-400">
+                {match.hasConflict
+                  ? 'Hubo un conflicto: una parte marcó como realizado y la otra como no realizado'
+                  : 'El trade fue cancelado'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit actions bar */}
+      {canEdit && (
+        <div className="card bg-gray-900/50 border border-gray-800">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <span>Podés excluir cartas del trade haciendo click en la</span>
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500/20 text-red-400">
+                <X className="w-3 h-3" />
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={recalculateMatch}
+                disabled={actionLoading !== null}
+                className="btn-secondary flex items-center gap-2 text-sm"
+                title="Recalcular match con las colecciones actuales"
+              >
+                <RefreshCw className={`w-4 h-4 ${actionLoading === 'recalculate' ? 'animate-spin' : ''}`} />
+                Recalcular
+              </button>
+              <button
+                onClick={restoreMatch}
+                disabled={actionLoading !== null}
+                className="btn-secondary flex items-center gap-2 text-sm"
+                title="Restaurar todas las cartas"
+              >
+                <RotateCcw className={`w-4 h-4 ${actionLoading === 'restore' ? 'animate-spin' : ''}`} />
+                Restaurar
+              </button>
+              {hasLocalChanges && (
+                <>
+                  <button onClick={discardChanges} disabled={actionLoading !== null} className="btn-secondary text-gray-400 text-sm">
+                    Descartar
+                  </button>
+                  <button onClick={saveChanges} disabled={actionLoading !== null} className="btn-primary flex items-center gap-2 text-sm">
+                    <Save className={`w-4 h-4 ${actionLoading === 'save' ? 'animate-pulse' : ''}`} />
+                    Guardar
+                  </button>
+                </>
+              )}
+              {!hasLocalChanges && canRequest && (
+                <button
+                  onClick={requestTrade}
+                  disabled={actionLoading !== null}
+                  className="btn-primary flex items-center gap-2 text-sm"
+                >
+                  {actionLoading === 'request' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Solicitar trade
+                </button>
+              )}
+              <button
+                onClick={dismissMatch}
+                disabled={actionLoading !== null}
+                className="btn-secondary text-red-400 hover:text-red-300 text-sm"
+              >
+                Descartar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cards comparison - Two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Cards I want (they have) */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">
-              Cartas que querés
-            </h2>
+            <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">Cartas que querés</h2>
             <span className="text-xs text-gray-500">
-              {match.cardsIWant.length} carta{match.cardsIWant.length !== 1 ? 's' : ''}
+              {activeCardsIWant.length}/{match.cardsIWant.length} carta{match.cardsIWant.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {match.cardsIWant.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">
-              No tiene cartas de tu wishlist
-            </p>
+            <p className="text-sm text-gray-500 text-center py-4">No tiene cartas de tu wishlist</p>
           ) : (
             <div className="space-y-2">
               {match.cardsIWant.map((card) => (
-                <CardItem key={card.id} card={card} isMyCard={false} />
+                <CardItem
+                  key={card.id}
+                  card={card}
+                  isExcluded={localExclusions.has(card.id)}
+                  onToggleExclude={toggleCardExclusion}
+                  disabled={!canEdit}
+                />
               ))}
             </div>
           )}
@@ -274,31 +864,31 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           {/* Subtotal */}
           <div className="mt-4 pt-3 border-t border-mtg-green-900/30 flex items-center justify-between">
             <span className="text-sm text-gray-400">Subtotal</span>
-            <span className="text-lg font-semibold text-green-400">
-              ${match.totalValueIWant.toFixed(2)}
-            </span>
+            <span className="text-lg font-semibold text-green-400">${totalValueIWant.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Cards they want (I have) */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">
-              Cartas que buscan
-            </h2>
+            <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Cartas que buscan</h2>
             <span className="text-xs text-gray-500">
-              {match.cardsTheyWant.length} carta{match.cardsTheyWant.length !== 1 ? 's' : ''}
+              {activeCardsTheyWant.length}/{match.cardsTheyWant.length} carta{match.cardsTheyWant.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {match.cardsTheyWant.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">
-              No buscan cartas de tu colección
-            </p>
+            <p className="text-sm text-gray-500 text-center py-4">No buscan cartas de tu colección</p>
           ) : (
             <div className="space-y-2">
               {match.cardsTheyWant.map((card) => (
-                <CardItem key={card.id} card={card} isMyCard={true} />
+                <CardItem
+                  key={card.id}
+                  card={card}
+                  isExcluded={localExclusions.has(card.id)}
+                  onToggleExclude={toggleCardExclusion}
+                  disabled={!canEdit}
+                />
               ))}
             </div>
           )}
@@ -306,9 +896,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           {/* Subtotal */}
           <div className="mt-4 pt-3 border-t border-mtg-green-900/30 flex items-center justify-between">
             <span className="text-sm text-gray-400">Subtotal</span>
-            <span className="text-lg font-semibold text-blue-400">
-              ${match.totalValueTheyWant.toFixed(2)}
-            </span>
+            <span className="text-lg font-semibold text-blue-400">${totalValueTheyWant.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -325,17 +913,11 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {Math.abs(balance) < 1 ? (
-                <div className="p-2 rounded-full bg-green-500/20">
-                  <Minus className="w-5 h-5 text-green-400" />
-                </div>
+                <div className="p-2 rounded-full bg-green-500/20"><Minus className="w-5 h-5 text-green-400" /></div>
               ) : balance > 0 ? (
-                <div className="p-2 rounded-full bg-green-500/20">
-                  <TrendingUp className="w-5 h-5 text-green-400" />
-                </div>
+                <div className="p-2 rounded-full bg-green-500/20"><TrendingUp className="w-5 h-5 text-green-400" /></div>
               ) : (
-                <div className="p-2 rounded-full bg-red-500/20">
-                  <TrendingDown className="w-5 h-5 text-red-400" />
-                </div>
+                <div className="p-2 rounded-full bg-red-500/20"><TrendingDown className="w-5 h-5 text-red-400" /></div>
               )}
               <div>
                 <h3 className="font-semibold text-gray-100">Balance del trade</h3>
@@ -349,33 +931,94 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
               </div>
             </div>
             <div className="text-right">
-              <p className={`text-2xl font-bold ${
-                Math.abs(balance) < 1
-                  ? 'text-green-400'
-                  : balance > 0
-                    ? 'text-green-400'
-                    : 'text-red-400'
-              }`}>
+              <p className={`text-2xl font-bold ${Math.abs(balance) < 1 ? 'text-green-400' : balance > 0 ? 'text-green-400' : 'text-red-400'}`}>
                 ${Math.abs(balance).toFixed(2)}
               </p>
               <p className="text-xs text-gray-500">
-                {Math.abs(balance) < 1
-                  ? 'sin diferencia'
-                  : balance > 0
-                    ? 'a recibir'
-                    : 'a pagar'}
+                {Math.abs(balance) < 1 ? 'sin diferencia' : balance > 0 ? 'a recibir' : 'a pagar'}
               </p>
             </div>
           </div>
         </div>
       )}
 
+      {/* Comments section */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            Comentarios
+          </h2>
+          <span className="text-xs text-gray-500">
+            {myCommentCount}/{maxComments} mensajes este mes
+          </span>
+        </div>
+
+        {/* Comments list */}
+        <div className="space-y-4 max-h-96 overflow-y-auto mb-4">
+          {commentsLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-4">
+              No hay comentarios aún. Iniciá la conversación.
+            </p>
+          ) : (
+            comments.map((comment) => (
+              <CommentItem key={comment.id} comment={comment} onEdit={editComment} />
+            ))
+          )}
+          <div ref={commentsEndRef} />
+        </div>
+
+        {/* New comment input */}
+        {canComment ? (
+          <div className="flex gap-2 pt-3 border-t border-gray-800">
+            <div className="flex-1 relative">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Escribí un mensaje..."
+                maxLength={300}
+                rows={2}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-mtg-green-500 resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendComment()
+                  }
+                }}
+              />
+              <span className={`absolute bottom-2 right-2 text-xs ${newComment.length > 280 ? 'text-yellow-400' : 'text-gray-500'}`}>
+                {newComment.length}/300
+              </span>
+            </div>
+            <button
+              onClick={sendComment}
+              disabled={sendingComment || newComment.trim().length === 0}
+              className="btn-primary px-3 self-end disabled:opacity-50"
+            >
+              {sendingComment ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="pt-3 border-t border-gray-800 text-center">
+            <p className="text-sm text-yellow-400">
+              Alcanzaste el límite de {maxComments} mensajes por mes en este trade
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Location map */}
       {match.otherUser.location && (
         <div className="card">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
-            Ubicación aproximada
-          </h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Ubicación aproximada</h2>
           <LocationMap
             latitude={match.otherUser.location.latitude}
             longitude={match.otherUser.location.longitude}

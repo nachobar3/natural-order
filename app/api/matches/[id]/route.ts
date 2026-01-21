@@ -76,6 +76,10 @@ export async function GET(
       }
     }
 
+    // Calculate totals excluding excluded cards
+    const activeCardsIWant = cardsIWant.filter(c => !c.is_excluded)
+    const activeCardsTheyWant = cardsTheyWant.filter(c => !c.is_excluded)
+
     const result = {
       id: match.id,
       otherUser: {
@@ -94,6 +98,19 @@ export async function GET(
       status: match.status,
       createdAt: match.created_at,
 
+      // New trading fields
+      isUserModified: match.is_user_modified || false,
+      requestedBy: match.requested_by,
+      requestedAt: match.requested_at,
+      confirmedAt: match.confirmed_at,
+      escrowExpiresAt: match.escrow_expires_at,
+      hasConflict: match.has_conflict || false,
+      // Perspective-aware fields
+      iRequested: match.requested_by === user.id,
+      theyRequested: match.requested_by === otherUserId,
+      iCompleted: isUserA ? match.user_a_completed : match.user_b_completed,
+      theyCompleted: isUserA ? match.user_b_completed : match.user_a_completed,
+
       cardsIWant: cardsIWant.map(c => ({
         id: c.id,
         cardId: c.card_id,
@@ -108,6 +125,7 @@ export async function GET(
         isFoil: c.is_foil,
         quantityAvailable: c.quantity_available,
         quantityWanted: c.quantity_wanted,
+        isExcluded: c.is_excluded || false,
       })),
 
       cardsTheyWant: cardsTheyWant.map(c => ({
@@ -124,10 +142,12 @@ export async function GET(
         isFoil: c.is_foil,
         quantityAvailable: c.quantity_available,
         quantityWanted: c.quantity_wanted,
+        isExcluded: c.is_excluded || false,
       })),
 
-      totalValueIWant: cardsIWant.reduce((sum, c) => sum + (c.asking_price || 0), 0),
-      totalValueTheyWant: cardsTheyWant.reduce((sum, c) => sum + (c.asking_price || 0), 0),
+      // Totals based on active (non-excluded) cards
+      totalValueIWant: activeCardsIWant.reduce((sum, c) => sum + (c.asking_price || 0), 0),
+      totalValueTheyWant: activeCardsTheyWant.reduce((sum, c) => sum + (c.asking_price || 0), 0),
     }
 
     return NextResponse.json(result)

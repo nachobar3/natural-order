@@ -100,6 +100,15 @@ export default function WishlistPage() {
     setDeleteModalOpen(true)
   }
 
+  // Trigger match recalculation in background
+  const triggerMatchRecalculation = async () => {
+    try {
+      await fetch('/api/matches/compute', { method: 'POST' })
+    } catch (err) {
+      console.error('Error recalculating matches:', err)
+    }
+  }
+
   const confirmDelete = async () => {
     if (!itemToDelete) return
 
@@ -119,6 +128,9 @@ export default function WishlistPage() {
     setDeleting(false)
     setDeleteModalOpen(false)
     setItemToDelete(null)
+
+    // Recalculate matches after deletion
+    triggerMatchRecalculation()
   }
 
   const handleModalClose = () => {
@@ -130,6 +142,9 @@ export default function WishlistPage() {
   const handleSaveSuccess = () => {
     loadWishlist()
     handleModalClose()
+
+    // Recalculate matches after save
+    triggerMatchRecalculation()
   }
 
   if (loading) {

@@ -262,6 +262,64 @@ export interface Database {
           created_at?: string
         }
       }
+      match_comments: {
+        Row: {
+          id: string
+          match_id: string
+          user_id: string
+          content: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          match_id: string
+          user_id: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          match_id?: string
+          user_id?: string
+          content?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: 'trade_requested' | 'trade_confirmed' | 'trade_completed' | 'trade_cancelled' | 'match_modified' | 'new_comment' | 'request_invalidated' | 'escrow_expiring'
+          match_id: string | null
+          from_user_id: string | null
+          content: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: 'trade_requested' | 'trade_confirmed' | 'trade_completed' | 'trade_cancelled' | 'match_modified' | 'new_comment' | 'request_invalidated' | 'escrow_expiring'
+          match_id?: string | null
+          from_user_id?: string | null
+          content: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: 'trade_requested' | 'trade_confirmed' | 'trade_completed' | 'trade_cancelled' | 'match_modified' | 'new_comment' | 'request_invalidated' | 'escrow_expiring'
+          match_id?: string | null
+          from_user_id?: string | null
+          content?: string
+          is_read?: boolean
+          created_at?: string
+        }
+      }
       // Allow any table for flexibility during development
       [key: string]: {
         Row: Record<string, unknown>
@@ -303,7 +361,20 @@ export type CardCondition = 'NM' | 'LP' | 'MP' | 'HP' | 'DMG'
 
 // Match types
 export type MatchType = 'two_way' | 'one_way_buy' | 'one_way_sell'
-export type MatchStatus = 'active' | 'dismissed' | 'contacted'
+export type MatchStatus = 'active' | 'dismissed' | 'contacted' | 'requested' | 'confirmed' | 'completed' | 'cancelled'
+
+// Notification types
+export type NotificationType =
+  | 'new_match'
+  | 'trade_requested'
+  | 'trade_confirmed'
+  | 'trade_completed'
+  | 'trade_cancelled'
+  | 'trade_rejected'
+  | 'match_modified'
+  | 'new_comment'
+  | 'request_invalidated'
+  | 'escrow_reminder'
 
 export interface MatchCardPreview {
   name: string
@@ -331,6 +402,18 @@ export interface Match {
   status: MatchStatus
   createdAt: string
   updatedAt: string
+  // New trading fields
+  isUserModified: boolean
+  requestedBy: string | null
+  requestedAt: string | null
+  confirmedAt: string | null
+  escrowExpiresAt: string | null
+  hasConflict: boolean
+  // Perspective-aware fields (set based on current user)
+  iRequested: boolean
+  theyRequested: boolean
+  iCompleted: boolean | null
+  theyCompleted: boolean | null
 }
 
 export interface MatchCard {
@@ -347,6 +430,7 @@ export interface MatchCard {
   isFoil: boolean
   quantityAvailable: number
   quantityWanted: number
+  isExcluded: boolean
 }
 
 export interface MatchDetail extends Omit<Match, 'cardsIWant' | 'cardsTheyWant' | 'valueIWant' | 'valueTheyWant' | 'updatedAt' | 'otherUser'> {
@@ -363,6 +447,48 @@ export interface MatchDetail extends Omit<Match, 'cardsIWant' | 'cardsTheyWant' 
   cardsTheyWant: MatchCard[]
   totalValueIWant: number
   totalValueTheyWant: number
+}
+
+// Match comments (chat between users)
+export interface MatchComment {
+  id: string
+  matchId: string
+  userId: string
+  content: string
+  createdAt: string
+  updatedAt: string
+  // Populated from join
+  user?: {
+    id: string
+    displayName: string
+    avatarUrl: string | null
+  }
+}
+
+// Notifications
+export interface Notification {
+  id: string
+  userId: string
+  type: NotificationType
+  matchId: string | null
+  fromUserId: string | null
+  content: string
+  isRead: boolean
+  createdAt: string
+  // Populated from joins
+  match?: {
+    id: string
+    otherUser: {
+      id: string
+      displayName: string
+      avatarUrl: string | null
+    }
+  }
+  fromUser?: {
+    id: string
+    displayName: string
+    avatarUrl: string | null
+  }
 }
 
 // Scryfall API types

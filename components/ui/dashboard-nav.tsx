@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -13,6 +13,7 @@ import {
   X,
   Package,
   Heart,
+  Bell,
 } from 'lucide-react'
 import type { User as UserType } from '@/types/database'
 
@@ -27,14 +28,49 @@ export function DashboardNav({ user }: { user: UserType | null }) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const supabase = createClient()
+
+  // Fetch unread notification count
+  useEffect(() => {
+    async function fetchUnreadCount() {
+      try {
+        const res = await fetch('/api/notifications?unread=true&limit=1')
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadCount(data.unreadCount || 0)
+        }
+      } catch (err) {
+        console.error('Error fetching notifications count:', err)
+      }
+    }
+
+    fetchUnreadCount()
+
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Reset unread count when visiting notifications page
+  useEffect(() => {
+    if (pathname === '/dashboard/notifications') {
+      // Delay to allow page to mark as read first
+      const timeout = setTimeout(() => {
+        setUnreadCount(0)
+      }, 1500)
+      return () => clearTimeout(timeout)
+    }
+  }, [pathname])
 
   async function handleSignOut() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
+
+  const isNotificationsActive = pathname === '/dashboard/notifications'
 
   return (
     <nav className="bg-mtg-dark/80 border-b border-mtg-green-900/30 backdrop-blur-sm sticky top-0 z-50">
@@ -81,8 +117,26 @@ export function DashboardNav({ user }: { user: UserType | null }) {
           </div>
 
           {/* User menu */}
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Notifications bell */}
+            <Link
+              href="/dashboard/notifications"
+              className={`relative p-2 rounded-lg transition-colors ${
+                isNotificationsActive
+                  ? 'bg-mtg-green-600/20 text-mtg-green-400'
+                  : 'text-gray-400 hover:bg-mtg-green-900/20 hover:text-gray-200'
+              }`}
+              title="Notificaciones"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[10px] font-bold bg-mtg-green-500 text-mtg-dark rounded-full">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <div className="hidden md:flex items-center gap-3 ml-2">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-200">
                   {user?.display_name}
@@ -138,6 +192,24 @@ export function DashboardNav({ user }: { user: UserType | null }) {
                 </Link>
               )
             })}
+            {/* Notifications in mobile menu */}
+            <Link
+              href="/dashboard/notifications"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                isNotificationsActive
+                  ? 'bg-mtg-green-600/20 text-mtg-green-400'
+                  : 'text-gray-400 hover:bg-mtg-green-900/20 hover:text-gray-200'
+              }`}
+            >
+              <Bell className="w-5 h-5" />
+              Notificaciones
+              {unreadCount > 0 && (
+                <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-mtg-green-500 text-mtg-dark rounded-full">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
             <hr className="my-2 border-mtg-green-900/30" />
             <div className="px-3 py-2">
               <p className="text-sm font-medium text-gray-200">
