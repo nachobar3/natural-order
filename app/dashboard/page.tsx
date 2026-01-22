@@ -23,6 +23,12 @@ import {
   XCircle,
   RotateCcw,
   Archive,
+  Clock,
+  CheckCircle2,
+  XOctagon,
+  Inbox,
+  MessageCircle,
+  Handshake,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Match, MatchType } from '@/types/database'
@@ -32,6 +38,62 @@ const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRigh
   one_way_buy: { label: 'Compra', icon: ShoppingCart, color: 'text-blue-400 bg-blue-500/20' },
   one_way_sell: { label: 'Venta', icon: Tag, color: 'text-purple-400 bg-purple-500/20' },
 }
+
+// Filter categories mapping UI categories to DB statuses
+type FilterCategory = 'disponibles' | 'activos' | 'confirmados' | 'realizados' | 'cancelados' | 'descartados'
+
+const filterCategories: Record<FilterCategory, {
+  label: string
+  icon: typeof Inbox
+  dbStatuses: string[]
+  activeColor: string
+  inactiveColor: string
+}> = {
+  disponibles: {
+    label: 'Disponibles',
+    icon: Inbox,
+    dbStatuses: ['active'],
+    activeColor: 'bg-blue-500 text-white border-blue-500',
+    inactiveColor: 'bg-transparent text-blue-400 border-blue-500/50 hover:border-blue-500 hover:bg-blue-500/10',
+  },
+  activos: {
+    label: 'Activos',
+    icon: MessageCircle,
+    dbStatuses: ['contacted', 'requested'],
+    activeColor: 'bg-green-500 text-white border-green-500',
+    inactiveColor: 'bg-transparent text-green-400 border-green-500/50 hover:border-green-500 hover:bg-green-500/10',
+  },
+  confirmados: {
+    label: 'Confirmados',
+    icon: Handshake,
+    dbStatuses: ['confirmed'],
+    activeColor: 'bg-yellow-500 text-black border-yellow-500',
+    inactiveColor: 'bg-transparent text-yellow-400 border-yellow-500/50 hover:border-yellow-500 hover:bg-yellow-500/10',
+  },
+  realizados: {
+    label: 'Realizados',
+    icon: CheckCircle2,
+    dbStatuses: ['completed'],
+    activeColor: 'bg-gray-500 text-white border-gray-500',
+    inactiveColor: 'bg-transparent text-gray-400 border-gray-500/50 hover:border-gray-500 hover:bg-gray-500/10',
+  },
+  cancelados: {
+    label: 'Cancelados',
+    icon: XOctagon,
+    dbStatuses: ['cancelled'],
+    activeColor: 'bg-red-500 text-white border-red-500',
+    inactiveColor: 'bg-transparent text-red-400 border-red-500/50 hover:border-red-500 hover:bg-red-500/10',
+  },
+  descartados: {
+    label: 'Descartados',
+    icon: Archive,
+    dbStatuses: ['dismissed'],
+    activeColor: 'bg-gray-600 text-white border-gray-600',
+    inactiveColor: 'bg-transparent text-gray-500 border-gray-600/50 hover:border-gray-600 hover:bg-gray-600/10',
+  },
+}
+
+type CategoryCounts = Record<FilterCategory, number>
 
 interface SetupStatus {
   profile: boolean
@@ -74,7 +136,15 @@ export default function DashboardPage() {
   const [matchesLoading, setMatchesLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [matchError, setMatchError] = useState<string | null>(null)
-  const [matchFilter, setMatchFilter] = useState<'active' | 'dismissed'>('active')
+  const [activeFilters, setActiveFilters] = useState<Set<FilterCategory>>(() => new Set<FilterCategory>(['disponibles', 'activos']))
+  const [categoryCounts, setCategoryCounts] = useState<CategoryCounts>({
+    disponibles: 0,
+    activos: 0,
+    confirmados: 0,
+    realizados: 0,
+    cancelados: 0,
+    descartados: 0,
+  })
 
   const completedSteps = Object.values(setupStatus).filter(Boolean).length
   const totalSteps = Object.keys(setupStatus).length
@@ -143,19 +213,31 @@ export default function DashboardPage() {
     loadSetupStatus()
   }, [supabase])
 
-  const loadMatches = useCallback(async (status: 'active' | 'dismissed' = 'active') => {
+  const loadMatches = useCallback(async (filters: Set<FilterCategory>) => {
     try {
       setMatchesLoading(true)
-      const res = await fetch(`/api/matches?status=${status}`)
+
+      // Map UI categories to DB statuses
+      const dbStatuses = Array.from(filters).flatMap(cat => filterCategories[cat].dbStatuses)
+
+      const res = await fetch(`/api/matches?status=${dbStatuses.join(',')}&counts=true`)
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Error al cargar trades')
       }
       const data = await res.json()
       setMatches(data.matches || [])
-      if (status === 'active') {
-        setMetrics(prev => ({ ...prev, matchesCount: data.matches?.length || 0 }))
+
+      // Update category counts
+      if (data.counts) {
+        setCategoryCounts(data.counts)
+        // Update metrics with active matches count (disponibles + activos)
+        setMetrics(prev => ({
+          ...prev,
+          matchesCount: (data.counts.disponibles || 0) + (data.counts.activos || 0)
+        }))
       }
+
       setMatchError(null)
     } catch (err) {
       setMatchError(err instanceof Error ? err.message : 'Error desconocido')
@@ -173,12 +255,27 @@ export default function DashboardPage() {
         const data = await res.json()
         throw new Error(data.error || 'Error al calcular trades')
       }
-      await loadMatches()
+      await loadMatches(activeFilters)
     } catch (err) {
       setMatchError(err instanceof Error ? err.message : 'Error al refrescar')
     } finally {
       setRefreshing(false)
     }
+  }
+
+  const toggleFilter = (category: FilterCategory) => {
+    setActiveFilters(prev => {
+      const newFilters = new Set(prev)
+      if (newFilters.has(category)) {
+        // Don't allow deselecting all filters
+        if (newFilters.size > 1) {
+          newFilters.delete(category)
+        }
+      } else {
+        newFilters.add(category)
+      }
+      return newFilters
+    })
   }
 
   const dismissMatch = async (matchId: string) => {
@@ -208,15 +305,16 @@ export default function DashboardPage() {
     }
   }
 
-  // Auto-compute trades on page load when viewing active trades
+  // Auto-compute trades on page load, then reload when filters change
   useEffect(() => {
-    if (matchFilter === 'active' && isFullySetup) {
+    // Only compute once when fully setup
+    if (isFullySetup && activeFilters.has('disponibles')) {
       refreshMatches()
     } else {
-      loadMatches(matchFilter)
+      loadMatches(activeFilters)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchFilter, isFullySetup])
+  }, [activeFilters, isFullySetup])
 
   if (loading) {
     return (
@@ -435,35 +533,9 @@ export default function DashboardPage() {
       {/* Trades section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-gray-100">Tus Trades</h2>
-            {/* Filter toggle */}
-            <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-1">
-              <button
-                onClick={() => setMatchFilter('active')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                  matchFilter === 'active'
-                    ? 'bg-mtg-green-600 text-white'
-                    : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                Activos
-              </button>
-              <button
-                onClick={() => setMatchFilter('dismissed')}
-                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
-                  matchFilter === 'dismissed'
-                    ? 'bg-mtg-green-600 text-white'
-                    : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                <Archive className="w-3 h-3" />
-                Descartados
-              </button>
-            </div>
-          </div>
+          <h2 className="text-xl font-bold text-gray-100">Tus Trades</h2>
           {/* Subtle refresh button */}
-          {matchFilter === 'active' && isFullySetup && (
+          {activeFilters.has('disponibles') && isFullySetup && (
             <button
               onClick={refreshMatches}
               disabled={refreshing}
@@ -473,6 +545,38 @@ export default function DashboardPage() {
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           )}
+        </div>
+
+        {/* Filter pills */}
+        <div className="flex flex-wrap gap-2">
+          {(Object.entries(filterCategories) as [FilterCategory, typeof filterCategories[FilterCategory]][]).map(([key, config]) => {
+            const Icon = config.icon
+            const isActive = activeFilters.has(key)
+            const count = categoryCounts[key]
+
+            return (
+              <button
+                key={key}
+                onClick={() => toggleFilter(key)}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                  border transition-all duration-200
+                  ${isActive ? config.activeColor : config.inactiveColor}
+                `}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{config.label}</span>
+                {count > 0 && (
+                  <span className={`
+                    ml-1 px-1.5 py-0.5 text-xs rounded-full
+                    ${isActive ? 'bg-white/20' : 'bg-current/10'}
+                  `}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         {/* Match error */}
@@ -498,29 +602,17 @@ export default function DashboardPage() {
         {/* Empty state */}
         {!matchesLoading && !matchError && matches.length === 0 && (
           <div className="card text-center py-12">
-            {matchFilter === 'active' ? (
-              <>
-                <Users className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                <h3 className="text-lg font-medium text-gray-300 mb-2">
-                  No hay trades todavía
-                </h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  {isFullySetup
-                    ? 'No encontramos usuarios cercanos con cartas que coincidan. Agregá más cartas a tu colección o wishlist.'
-                    : 'Completá los pasos de configuración arriba para empezar a encontrar trades.'}
-                </p>
-              </>
-            ) : (
-              <>
-                <Archive className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                <h3 className="text-lg font-medium text-gray-300 mb-2">
-                  No hay trades descartados
-                </h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  Los trades que descartes aparecerán aquí. Podés restaurarlos en cualquier momento.
-                </p>
-              </>
-            )}
+            <Users className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+            <h3 className="text-lg font-medium text-gray-300 mb-2">
+              No hay trades en esta vista
+            </h3>
+            <p className="text-gray-500 max-w-md mx-auto">
+              {activeFilters.has('disponibles') && !isFullySetup
+                ? 'Completá los pasos de configuración arriba para empezar a encontrar trades.'
+                : activeFilters.has('disponibles')
+                  ? 'No encontramos usuarios cercanos con cartas que coincidan. Agregá más cartas a tu colección o wishlist.'
+                  : `No hay trades con los filtros seleccionados. Probá cambiando los filtros.`}
+            </p>
           </div>
         )}
 
@@ -564,6 +656,25 @@ export default function DashboardPage() {
                           <TypeIcon className="w-3 h-3" />
                           {typeInfo.label}
                         </span>
+                        {/* Status badge for non-active statuses */}
+                        {match.status !== 'active' && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            match.status === 'contacted' ? 'text-blue-400 bg-blue-500/20' :
+                            match.status === 'requested' ? 'text-green-400 bg-green-500/20' :
+                            match.status === 'confirmed' ? 'text-yellow-400 bg-yellow-500/20' :
+                            match.status === 'completed' ? 'text-gray-400 bg-gray-500/20' :
+                            match.status === 'cancelled' ? 'text-red-400 bg-red-500/20' :
+                            match.status === 'dismissed' ? 'text-gray-500 bg-gray-600/20' :
+                            'text-gray-400 bg-gray-500/20'
+                          }`}>
+                            {match.status === 'contacted' && <><MessageCircle className="w-3 h-3" />Contactado</>}
+                            {match.status === 'requested' && <><Clock className="w-3 h-3" />Solicitado</>}
+                            {match.status === 'confirmed' && <><Handshake className="w-3 h-3" />Confirmado</>}
+                            {match.status === 'completed' && <><CheckCircle2 className="w-3 h-3" />Realizado</>}
+                            {match.status === 'cancelled' && <><XOctagon className="w-3 h-3" />Cancelado</>}
+                            {match.status === 'dismissed' && <><Archive className="w-3 h-3" />Descartado</>}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                         {match.distanceKm !== null && (
@@ -575,8 +686,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Dismiss/Restore button */}
-                    {matchFilter === 'active' ? (
+                    {/* Dismiss/Restore button - only for active/dismissed status */}
+                    {match.status === 'active' && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -587,7 +698,8 @@ export default function DashboardPage() {
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
-                    ) : (
+                    )}
+                    {match.status === 'dismissed' && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()

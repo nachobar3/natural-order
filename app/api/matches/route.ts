@@ -11,15 +11,46 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams
-    const status = searchParams.get('status') || 'active'
+    const statusParam = searchParams.get('status')
+    const includeCounts = searchParams.get('counts') === 'true'
+
+    // Support multiple statuses via comma-separated values
+    const statuses = statusParam ? statusParam.split(',') : ['active']
+
+    // If counts requested, fetch counts by UI category
+    let categoryCounts = null
+    if (includeCounts) {
+      const { data: allMatches } = await supabase
+        .from('matches')
+        .select('status')
+        .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+
+      if (allMatches) {
+        categoryCounts = {
+          disponibles: allMatches.filter(m => m.status === 'active').length,
+          activos: allMatches.filter(m => ['contacted', 'requested'].includes(m.status)).length,
+          confirmados: allMatches.filter(m => m.status === 'confirmed').length,
+          realizados: allMatches.filter(m => m.status === 'completed').length,
+          cancelados: allMatches.filter(m => m.status === 'cancelled').length,
+          descartados: allMatches.filter(m => m.status === 'dismissed').length,
+        }
+      }
+    }
 
     // Get matches where current user is involved
-    const { data: matches, error } = await supabase
+    let query = supabase
       .from('matches')
       .select('*')
       .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-      .eq('status', status)
-      .order('match_score', { ascending: false })
+
+    // Filter by multiple statuses
+    if (statuses.length === 1) {
+      query = query.eq('status', statuses[0])
+    } else {
+      query = query.in('status', statuses)
+    }
+
+    const { data: matches, error } = await query.order('match_score', { ascending: false })
 
     if (error) {
       console.error('Error fetching matches:', error)
@@ -27,7 +58,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (!matches || matches.length === 0) {
-      return NextResponse.json({ matches: [] })
+      return NextResponse.json({
+        matches: [],
+        ...(categoryCounts && { counts: categoryCounts })
+      })
     }
 
     const matchIds = matches.map(m => m.id)
@@ -118,7 +152,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ matches: transformedMatches || [] })
+    return NextResponse.json({
+      matches: transformedMatches || [],
+      ...(categoryCounts && { counts: categoryCounts })
+    })
   } catch (error) {
     console.error('Get matches error:', error)
     return NextResponse.json({ error: 'Error al obtener trades' }, { status: 500 })

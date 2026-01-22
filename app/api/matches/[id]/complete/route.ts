@@ -171,45 +171,49 @@ async function handleTradeCompletion(supabase: ReturnType<typeof createClient> e
     // 2. Reduce quantity in wishlist (or delete if quantity becomes 0)
 
     for (const card of matchCards) {
-      // Handle collection - reduce or delete
-      const { data: collectionItem } = await supabase
-        .from('collections')
-        .select('id, quantity')
-        .eq('id', card.collection_id)
-        .single()
+      // Handle collection - reduce or delete (skip if already processed/NULL)
+      if (card.collection_id) {
+        const { data: collectionItem } = await supabase
+          .from('collections')
+          .select('id, quantity')
+          .eq('id', card.collection_id)
+          .single()
 
-      if (collectionItem) {
-        const tradedQuantity = Math.min(card.quantity_available, card.quantity_wanted)
-        const newQuantity = collectionItem.quantity - tradedQuantity
+        if (collectionItem) {
+          const tradedQuantity = Math.min(card.quantity_available, card.quantity_wanted)
+          const newQuantity = collectionItem.quantity - tradedQuantity
 
-        if (newQuantity <= 0) {
-          await supabase.from('collections').delete().eq('id', card.collection_id)
-        } else {
-          await supabase
-            .from('collections')
-            .update({ quantity: newQuantity, updated_at: new Date().toISOString() })
-            .eq('id', card.collection_id)
+          if (newQuantity <= 0) {
+            await supabase.from('collections').delete().eq('id', card.collection_id)
+          } else {
+            await supabase
+              .from('collections')
+              .update({ quantity: newQuantity, updated_at: new Date().toISOString() })
+              .eq('id', card.collection_id)
+          }
         }
       }
 
-      // Handle wishlist - reduce or delete
-      const { data: wishlistItem } = await supabase
-        .from('wishlist')
-        .select('id, quantity')
-        .eq('id', card.wishlist_id)
-        .single()
+      // Handle wishlist - reduce or delete (skip if already processed/NULL)
+      if (card.wishlist_id) {
+        const { data: wishlistItem } = await supabase
+          .from('wishlist')
+          .select('id, quantity')
+          .eq('id', card.wishlist_id)
+          .single()
 
-      if (wishlistItem) {
-        const tradedQuantity = Math.min(card.quantity_available, card.quantity_wanted)
-        const newQuantity = wishlistItem.quantity - tradedQuantity
+        if (wishlistItem) {
+          const tradedQuantity = Math.min(card.quantity_available, card.quantity_wanted)
+          const newQuantity = wishlistItem.quantity - tradedQuantity
 
-        if (newQuantity <= 0) {
-          await supabase.from('wishlist').delete().eq('id', card.wishlist_id)
-        } else {
-          await supabase
-            .from('wishlist')
-            .update({ quantity: newQuantity })
-            .eq('id', card.wishlist_id)
+          if (newQuantity <= 0) {
+            await supabase.from('wishlist').delete().eq('id', card.wishlist_id)
+          } else {
+            await supabase
+              .from('wishlist')
+              .update({ quantity: newQuantity })
+              .eq('id', card.wishlist_id)
+          }
         }
       }
     }
