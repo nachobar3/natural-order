@@ -14,6 +14,7 @@ import {
   Package,
   Heart,
   Bell,
+  MapPin,
 } from 'lucide-react'
 import type { User as UserType } from '@/types/database'
 
@@ -29,8 +30,33 @@ export function DashboardNav({ user }: { user: UserType | null }) {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [locationName, setLocationName] = useState<string | null>(null)
 
   const supabase = createClient()
+
+  // Fetch user's location
+  useEffect(() => {
+    async function fetchLocation() {
+      if (!user) return
+      try {
+        const { data } = await supabase
+          .from('locations')
+          .select('name, address')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single()
+
+        if (data) {
+          // Use address (shorter) or name
+          setLocationName(data.address || data.name)
+        }
+      } catch (err) {
+        console.error('Error fetching location:', err)
+      }
+    }
+
+    fetchLocation()
+  }, [user, supabase])
 
   // Fetch unread notification count
   useEffect(() => {
@@ -141,7 +167,12 @@ export function DashboardNav({ user }: { user: UserType | null }) {
                 <p className="text-sm font-medium text-gray-200">
                   {user?.display_name}
                 </p>
-                <p className="text-xs text-gray-500">{user?.email}</p>
+                {locationName && (
+                  <p className="text-xs text-gray-500 flex items-center justify-end gap-1">
+                    <MapPin className="w-3 h-3" />
+                    <span className="truncate max-w-[150px]">{locationName}</span>
+                  </p>
+                )}
               </div>
               <button
                 onClick={handleSignOut}
@@ -215,7 +246,12 @@ export function DashboardNav({ user }: { user: UserType | null }) {
               <p className="text-sm font-medium text-gray-200">
                 {user?.display_name}
               </p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
+              {locationName && (
+                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <MapPin className="w-3 h-3" />
+                  <span>{locationName}</span>
+                </p>
+              )}
             </div>
             <button
               onClick={handleSignOut}

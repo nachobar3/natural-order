@@ -384,59 +384,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link href="/dashboard/profile?tab=ubicacion" className="card hover:border-mtg-green-500/30 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-mtg-green-600/20">
-              <MapPin className="w-5 h-5 text-mtg-green-400" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs text-gray-500">Ubicación</p>
-              <p className="font-medium text-gray-200 truncate text-sm">
-                {metrics.locationName || 'Sin configurar'}
-              </p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/dashboard/collection" className="card hover:border-mtg-green-500/30 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <Package className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Colección</p>
-              <p className="font-medium text-gray-200 text-sm">{metrics.collectionCount} cartas</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/dashboard/wishlist" className="card hover:border-mtg-green-500/30 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <Heart className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Wishlist</p>
-              <p className="font-medium text-gray-200 text-sm">{metrics.wishlistCount} cartas</p>
-            </div>
-          </div>
-        </Link>
-
-        <div className="card">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-mtg-gold/20">
-              <Users className="w-5 h-5 text-mtg-gold" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Trades</p>
-              <p className="font-medium text-gray-200 text-sm">{metrics.matchesCount} activos</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Setup checklist - Only show if not complete */}
       {!isFullySetup && (
         <div className="card">
