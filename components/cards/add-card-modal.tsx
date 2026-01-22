@@ -66,9 +66,11 @@ export function AddCardModal({
   const [condition, setCondition] = useState<CardCondition>('NM')
   const [foil, setFoil] = useState(false)
   const [priceMode, setPriceMode] = useState<'percentage' | 'fixed'>('percentage')
-  const [pricePercentage, setPricePercentage] = useState(100)
+  const [pricePercentage, setPricePercentage] = useState(80)
   const [priceFixed, setPriceFixed] = useState<string>('')
   const [notes, setNotes] = useState('')
+  const [globalDiscount, setGlobalDiscount] = useState(80)
+  const [priceOverride, setPriceOverride] = useState(false)
 
   // Wishlist fields
   const [maxPrice, setMaxPrice] = useState<string>('')
@@ -80,6 +82,26 @@ export function AddCardModal({
   const [isEditionSelectorOpen, setIsEditionSelectorOpen] = useState(false)
 
   const supabase = createClient()
+
+  // Load global discount when modal opens (for new cards)
+  useEffect(() => {
+    if (!isOpen || editItem) return
+
+    const loadGlobalDiscount = async () => {
+      try {
+        const res = await fetch('/api/preferences/global-discount')
+        if (res.ok) {
+          const data = await res.json()
+          setGlobalDiscount(data.percentage)
+          setPricePercentage(data.percentage)
+        }
+      } catch (err) {
+        console.error('Failed to load global discount:', err)
+      }
+    }
+
+    loadGlobalDiscount()
+  }, [isOpen, editItem])
 
   // Fetch printings when editing
   useEffect(() => {
@@ -136,14 +158,15 @@ export function AddCardModal({
         setEditionPreference(item.edition_preference || 'any')
         setSpecificEditions(item.specific_editions || [])
       } else {
-        // New item - reset to defaults
+        // New item - reset to defaults (use global discount)
         setQuantity(1)
         setCondition('NM')
         setFoil(false)
         setPriceMode('percentage')
-        setPricePercentage(100)
+        setPricePercentage(globalDiscount)
         setPriceFixed('')
         setNotes('')
+        setPriceOverride(false)
         setMaxPrice('')
         setMinCondition('LP')
         setFoilPreference('any')
@@ -197,6 +220,11 @@ export function AddCardModal({
       const cardId = savedCard.id
 
       if (mode === 'collection') {
+        // Mark as override if user changed the price from global or uses fixed price
+        const hasOverride = editItem
+          ? (editItem as CollectionWithCard).price_override || false
+          : priceMode === 'fixed' || pricePercentage !== globalDiscount
+
         const collectionData = {
           user_id: user.id,
           card_id: cardId,
@@ -207,6 +235,7 @@ export function AddCardModal({
           price_percentage: pricePercentage,
           price_fixed: priceMode === 'fixed' && priceFixed ? parseFloat(priceFixed) : null,
           notes: notes || null,
+          price_override: hasOverride,
         }
 
         if (editItem) {

@@ -59,8 +59,8 @@ export default function ImportPage() {
     setIsMatching(true)
     setMatchProgress(0)
 
-    // Process in batches of 20
-    const batchSize = 20
+    // Process in batches of 200 (API now supports up to 500 with Scryfall collection endpoint)
+    const batchSize = 200
     const updatedCards = [...cardsToMatch]
 
     for (let i = 0; i < cardsToMatch.length; i += batchSize) {
@@ -130,8 +130,8 @@ export default function ImportPage() {
     setIsImporting(true)
     setImportProgress(0)
 
-    // Process in batches
-    const batchSize = 20
+    // Process in batches of 200 (API now supports batch DB operations)
+    const batchSize = 200
     let processed = 0
     const allResults: { inserted: number; updated: number; skipped: number; errors: number } = {
       inserted: 0,
@@ -222,11 +222,11 @@ export default function ImportPage() {
       {/* Step: Upload */}
       {step === 'upload' && (
         <div className="space-y-6">
-          {/* Drop zone */}
+          {/* Drop zone - Desktop */}
           <div
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
-            className="card border-2 border-dashed border-gray-700 hover:border-mtg-green-500/50 transition-colors cursor-pointer"
+            className="hidden sm:block card border-2 border-dashed border-gray-700 hover:border-mtg-green-500/50 transition-colors cursor-pointer"
           >
             <label className="flex flex-col items-center justify-center py-12 cursor-pointer">
               <Upload className="w-12 h-12 text-gray-500 mb-4" />
@@ -246,6 +246,23 @@ export default function ImportPage() {
             </label>
           </div>
 
+          {/* Upload button - Mobile */}
+          <div className="sm:hidden card">
+            <label className="flex flex-col items-center justify-center py-8 cursor-pointer">
+              <Upload className="w-10 h-10 text-mtg-green-400 mb-3" />
+              <p className="text-gray-300 mb-4 text-center">
+                Seleccioná tu archivo CSV
+              </p>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <span className="btn-primary">Seleccionar archivo</span>
+            </label>
+          </div>
+
           {/* Format help */}
           <div className="card">
             <div className="flex items-start gap-3">
@@ -256,6 +273,7 @@ export default function ImportPage() {
                   <li><strong>Moxfield:</strong> Exportá tu colección desde Moxfield → Export → CSV</li>
                   <li><strong>ManaBox:</strong> Exportá desde ManaBox → Settings → Export → CSV</li>
                   <li><strong>Deckbox:</strong> Exportá desde Deckbox → Tools → Export</li>
+                  <li><strong>CubeCobra:</strong> Exportá tu cube desde List → Export → CSV</li>
                   <li><strong>Genérico:</strong> Cualquier CSV con columnas: Name, Quantity/Count, Set/Edition, Condition, Foil</li>
                 </ul>
               </div>

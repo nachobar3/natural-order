@@ -1,0 +1,141 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+// GET - Get current global discount percentage
+export async function GET() {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const { data: preferences, error } = await supabase
+      .from('preferences')
+      .select('default_price_percentage')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching preferences:', error)
+      return NextResponse.json({ error: 'Error al obtener preferencias' }, { status: 500 })
+    }
+
+    // Default to 80% if no preference set
+    const percentage = preferences?.default_price_percentage ?? 80
+
+    return NextResponse.json({ percentage })
+  } catch (error) {
+    console.error('Global discount GET error:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+
+// PUT - Update global discount percentage
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const { percentage } = await request.json()
+
+    if (typeof percentage !== 'number' || percentage < 1 || percentage > 200) {
+      return NextResponse.json(
+        { error: 'El porcentaje debe estar entre 1 y 200' },
+        { status: 400 }
+      )
+    }
+
+    // Upsert preferences
+    const { error } = await supabase
+      .from('preferences')
+      .upsert({
+        user_id: user.id,
+        default_price_percentage: percentage,
+      }, {
+        onConflict: 'user_id',
+      })
+
+    if (error) {
+      console.error('Error updating preferences:', error)
+      return NextResponse.json({ error: 'Error al actualizar preferencias' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, percentage })
+  } catch (error) {
+    console.error('Global discount PUT error:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+
+// POST - Apply global discount to all cards without override
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const { percentage } = await request.json()
+
+    if (typeof percentage !== 'number' || percentage < 1 || percentage > 200) {
+      return NextResponse.json(
+        { error: 'El porcentaje debe estar entre 1 y 200' },
+        { status: 400 }
+      )
+    }
+
+    // Update all cards that don't have price_override
+    const { data, error } = await supabase
+      .from('collections')
+      .update({
+        price_percentage: percentage,
+        price_mode: 'percentage',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+      .eq('price_override', false)
+      .select('id')
+
+    if (error) {
+      console.error('Error applying global discount:', error)
+      return NextResponse.json({ error: 'Error al aplicar descuento' }, { status: 500 })
+    }
+
+    const updatedCount = data?.length ?? 0
+
+    // Also update the preference
+    await supabase
+      .from('preferences')
+      .upsert({
+        user_id: user.id,
+        default_price_percentage: percentage,
+      }, {
+        onConflict: 'user_id',
+      })
+
+    // Trigger match recalculation
+    fetch(new URL('/api/matches/compute', request.url).toString(), {
+      method: 'POST',
+      headers: {
+        cookie: request.headers.get('cookie') || '',
+      },
+    }).catch(err => console.error('Error triggering match recalculation:', err))
+
+    return NextResponse.json({
+      success: true,
+      updatedCount,
+      message: `Se actualizaron ${updatedCount} cartas al ${percentage}%`
+    })
+  } catch (error) {
+    console.error('Global discount POST error:', error)
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}

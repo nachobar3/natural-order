@@ -1,8 +1,8 @@
 # Natural Order - MVP Architecture & Roadmap
 
-**Version:** 1.0
+**Version:** 2.0
 **Last Updated:** January 2026
-**Status:** Planning
+**Status:** Pre-Launch (90% complete)
 
 ---
 
@@ -16,21 +16,27 @@ A proximity-based marketplace for MTG card trading that matches users based on t
 - **For sellers:** Reach local buyers without shipping hassles
 - **Differentiator:** Automatic matching + proximity awareness + reference pricing
 
-### 1.3 MVP Scope
-| In Scope | Out of Scope (Post-MVP) |
-|----------|------------------------|
-| User registration & profiles | Camera card scanning |
-| Collection & wishlist management | Multiple card games (Pokémon, etc.) |
-| Proximity-based matching | Store/LGS integration |
-| In-app messaging | Advanced analytics dashboard |
-| Price reference (Card Kingdom) | Escrow/payment processing |
-| Push notifications | Reputation/rating system |
+### 1.3 Current MVP Scope
+
+| Completed | Pending for Launch | Post-Launch |
+|-----------|-------------------|-------------|
+| User registration (email + Google) | Push notifications | Camera card scanning |
+| Collection & wishlist management | Match sorting options | Multiple card games |
+| Bulk import (Moxfield, ManaBox, Deckbox, CubeCobra) | FAQs section | Store/LGS integration (API) |
+| Proximity-based matching | PWA install prompt | Reputation system |
+| Trade flow (request → confirm → complete) | Landing page (non-logged) | Price drop alerts |
+| In-app notifications | i18n (EN, PT) | |
+| PWA config (black status bar, bottom nav) | Vacation mode | |
+| Match filters (pendientes/historial) | Testing structure | |
+| Password reset | | |
+| Global collection discount | | |
+| Optimized bulk import (batch processing) | | |
 
 ---
 
-## 2. Technical Stack
+## 2. Current Technical Stack
 
-### 2.1 Architecture Overview
+### 2.1 Architecture (Implemented)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -43,538 +49,559 @@ A proximity-based marketplace for MTG card trading that matches users based on t
 ┌─────────────────────────────────────────────────────────────┐
 │                    Backend Services                          │
 │  ┌─────────────────┐    ┌─────────────────────────────────┐ │
-│  │    Supabase     │    │      Python FastAPI             │ │
+│  │    Supabase     │    │     Next.js API Routes          │ │
 │  │  - Auth         │    │  - Matching algorithm           │ │
-│  │  - Database     │    │  - Scryfall sync                │ │
-│  │  - Realtime     │    │  - Price calculations           │ │
+│  │  - Database     │    │  - Card search (Scryfall)       │ │
 │  │  - Storage      │    │  - Bulk import processing       │ │
-│  └─────────────────┘    └─────────────────────────────────┘ │
+│  └─────────────────┘    │  - Trade management             │ │
+│                         │  - Notifications                 │ │
+│                         └─────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    External Services                         │
-│  - Scryfall API (card data)                                  │
-│  - Card Kingdom (price reference)                            │
-│  - Google Maps API (future: travel time)                     │
+│  - Scryfall API (card data, prices)                         │
+│  - Google Maps API (geocoding)                              │
+│  - Vercel (hosting)                                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 Technology Choices
+### 2.2 Technology Choices (Final)
 
-| Layer | Technology | Rationale |
-|-------|------------|-----------|
-| **Frontend** | Next.js 14 + Tailwind CSS | SSR, PWA support, great DX |
-| **Auth** | Supabase Auth | Email + Google OAuth built-in |
-| **Database** | Supabase (PostgreSQL) | Relational data, PostGIS for geo |
-| **Realtime** | Supabase Realtime | Chat, notifications |
-| **Backend API** | Python FastAPI | Complex matching logic, Scryfall sync |
-| **Hosting** | Vercel (frontend) + Railway/Fly.io (Python) | Easy deployment, good free tiers |
-| **Card Data** | Scryfall API | Free, comprehensive, well-maintained |
+| Layer | Technology | Status |
+|-------|------------|--------|
+| **Frontend** | Next.js 14 + Tailwind CSS | ✅ Implemented |
+| **Auth** | Supabase Auth (Email + Google) | ✅ Implemented |
+| **Database** | Supabase PostgreSQL | ✅ Implemented |
+| **API** | Next.js API Routes | ✅ Implemented |
+| **Hosting** | Vercel | ✅ Deployed |
+| **Card Data** | Scryfall API | ✅ Integrated |
+| **PWA** | next-pwa | ✅ Configured |
+| **i18n** | next-intl | ✅ Setup (ES only) |
 
-### 2.3 Why PostgreSQL over MongoDB
-
-For Natural Order specifically:
-1. **Strong relationships:** Users → Collections → Cards → Editions
-2. **PostGIS extension:** Native geolocation queries for proximity matching
-3. **Supabase ecosystem:** Auth, Realtime, Row-Level Security included
-4. **ACID compliance:** Important for trade transactions
+**Note:** Python FastAPI backend was originally planned but deemed unnecessary. All logic runs efficiently in Next.js API routes.
 
 ---
 
-## 3. Data Model
+## 3. Features Pending for Launch
 
-### 3.1 Entity Relationship Diagram
+### 3.1 Push Notifications (Priority: HIGH)
 
-```
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│    users     │       │  locations   │       │ preferences  │
-├──────────────┤       ├──────────────┤       ├──────────────┤
-│ id (PK)      │──────<│ user_id (FK) │       │ user_id (FK) │
-│ email        │       │ name         │       │ trade_mode   │
-│ display_name │       │ coordinates  │       │ min_match    │
-│ avatar_url   │       │ radius_km    │       │ availability │
-│ created_at   │       │ is_active    │       │ notify_prefs │
-└──────────────┘       └──────────────┘       └──────────────┘
-        │
-        │
-        ▼
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│ collections  │       │   wishlist   │       │    cards     │
-├──────────────┤       ├──────────────┤       ├──────────────┤
-│ id (PK)      │       │ id (PK)      │       │ id (PK)      │
-│ user_id (FK) │       │ user_id (FK) │       │ scryfall_id  │
-│ card_id (FK) │       │ card_id (FK) │       │ name         │
-│ edition_id   │       │ edition_id   │       │ set_code     │
-│ condition    │       │ max_price    │       │ collector_no │
-│ quantity     │       │ min_condition│       │ image_uri    │
-│ price_mode   │       │ quantity     │       │ prices_usd   │
-│ price_value  │       │ priority     │       │ updated_at   │
-│ notes        │       └──────────────┘       └──────────────┘
-└──────────────┘
-        │
-        ▼
-┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-│   matches    │       │   messages   │       │conversations │
-├──────────────┤       ├──────────────┤       ├──────────────┤
-│ id (PK)      │       │ id (PK)      │       │ id (PK)      │
-│ user_a_id    │       │ convo_id(FK) │       │ match_id(FK) │
-│ user_b_id    │       │ sender_id    │       │ user_a_id    │
-│ match_type   │       │ content      │       │ user_b_id    │
-│ cards_a_wants│       │ created_at   │       │ status       │
-│ cards_b_wants│       │ read_at      │       │ created_at   │
-│ distance_km  │       └──────────────┘       └──────────────┘
-│ total_value  │
-│ created_at   │
-└──────────────┘
-```
+**Objetivo:** Mantener usuarios engaged notificándoles eventos importantes en tiempo real.
 
-### 3.2 Core Tables Definition
+**Eventos que disparan notificaciones:**
+| Evento | Mensaje ejemplo |
+|--------|-----------------|
+| Nuevo match disponible | "Nuevo match! Juan tiene 4 cartas que buscás" |
+| Nuevo comentario en trade | "Juan comentó en tu trade" |
+| Trade solicitado | "Juan quiere concretar el trade" |
+| Trade confirmado | "Juan confirmó el trade - ¡a coordinar!" |
 
-#### users
+**Implementación técnica:**
+- Web Push API + Service Worker (ya configurado con next-pwa)
+- Supabase Edge Functions para enviar pushes
+- Tabla `push_subscriptions` para guardar tokens
+- Configuración en Perfil > Preferencias (checkboxes existentes)
+
+**Requisitos:**
+- VAPID keys (público/privado)
+- Endpoint para suscribir/desuscribir
+- Lógica en cada evento para enviar push
+
+---
+
+### 3.2 Match Sorting Options (Priority: HIGH)
+
+**Objetivo:** Permitir al usuario ordenar matches según su criterio preferido, sin calcular un "score" arbitrario.
+
+**Opciones de sorting:**
+| Opción | Descripción | Default |
+|--------|-------------|---------|
+| Menor precio | Promedio de % descuento vs Card Kingdom | ✅ |
+| Mayor cercanía | Distancia en km ascendente | |
+| Más cartas | Cantidad total de cartas en match | |
+| Mayor valor | Valor total USD de cartas | |
+
+**Comportamiento por vista:**
+- **Pendientes:**
+  - Activos siempre primero (tienen actividad)
+  - Disponibles ordenados según criterio seleccionado
+- **Historial:**
+  - Ordenados por `updated_at` descendente (más reciente arriba)
+
+**UI recomendada:**
+- Dropdown compacto al lado del título "Tus Trades"
+- Icono de sorting (ArrowUpDown) + texto del criterio actual
+- Opciones desplegables al hacer click
+
+**Cambios en API:**
+- Agregar parámetro `sort_by` a `/api/matches`
+- Calcular `avg_discount_percent` para cada match
+
+---
+
+### 3.3 Global Collection Discount ✅ COMPLETADO
+
+**Estado:** Implementado en enero 2026
+
+**Implementación final:**
+- API endpoint: `/api/preferences/global-discount`
+- Componente: `GlobalDiscount` en página de colección
+- Permite definir % global (default: 80%)
+- Botón "Aplicar a todas" actualiza cartas sin override
+- Nuevas cartas heredan automáticamente el % global
+
+**Cambios en DB aplicados:**
 ```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  display_name TEXT NOT NULL,
-  avatar_url TEXT,
-  preferred_language TEXT DEFAULT 'es', -- es, en, pt
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-#### locations
-```sql
-CREATE TABLE locations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL, -- "Casa", "Trabajo", etc.
-  coordinates GEOGRAPHY(POINT, 4326) NOT NULL, -- PostGIS
-  radius_km INTEGER DEFAULT 10,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX locations_geo_idx ON locations USING GIST(coordinates);
-```
-
-#### preferences
-```sql
-CREATE TABLE preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
-  trade_mode TEXT DEFAULT 'both', -- 'trade_only', 'sell_only', 'both'
-  min_match_threshold INTEGER DEFAULT 1, -- minimum cards for notification
-  availability JSONB, -- {"monday": ["18:00-21:00"], ...}
-  notify_new_matches BOOLEAN DEFAULT true,
-  notify_messages BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-#### cards (synced from Scryfall)
-```sql
-CREATE TABLE cards (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  scryfall_id TEXT UNIQUE NOT NULL,
-  oracle_id TEXT NOT NULL, -- groups all editions of same card
-  name TEXT NOT NULL,
-  set_code TEXT NOT NULL,
-  set_name TEXT NOT NULL,
-  collector_number TEXT,
-  image_uri TEXT,
-  prices_usd DECIMAL(10,2), -- Card Kingdom reference
-  rarity TEXT,
-  type_line TEXT,
-  mana_cost TEXT,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX cards_name_idx ON cards USING GIN(to_tsvector('english', name));
-CREATE INDEX cards_oracle_idx ON cards(oracle_id);
-```
-
-#### collections
-```sql
-CREATE TABLE collections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  card_id UUID REFERENCES cards(id),
-  quantity INTEGER DEFAULT 1,
-  condition TEXT NOT NULL, -- 'NM', 'LP', 'MP', 'HP', 'DMG'
-  price_mode TEXT DEFAULT 'percentage', -- 'percentage', 'fixed'
-  price_percentage INTEGER DEFAULT 100, -- % of Card Kingdom price
-  price_fixed DECIMAL(10,2), -- if price_mode = 'fixed'
-  foil BOOLEAN DEFAULT false,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, card_id, condition, foil)
-);
-
-CREATE INDEX collections_user_idx ON collections(user_id);
-```
-
-#### wishlist
-```sql
-CREATE TABLE wishlist (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  card_id UUID REFERENCES cards(id),
-  oracle_id TEXT, -- if any edition is acceptable
-  quantity INTEGER DEFAULT 1,
-  max_price DECIMAL(10,2), -- maximum willing to pay
-  min_condition TEXT DEFAULT 'LP', -- minimum acceptable
-  foil_preference TEXT DEFAULT 'any', -- 'any', 'foil_only', 'non_foil'
-  priority INTEGER DEFAULT 5, -- 1-10, higher = more wanted
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, card_id)
-);
-
-CREATE INDEX wishlist_user_idx ON wishlist(user_id);
-CREATE INDEX wishlist_oracle_idx ON wishlist(oracle_id);
+ALTER TABLE preferences ADD COLUMN default_price_percentage INTEGER DEFAULT 80;
+ALTER TABLE collections ADD COLUMN price_override BOOLEAN DEFAULT false;
 ```
 
 ---
 
-## 4. Feature Specifications
+### 3.4 FAQs Section (Priority: HIGH)
 
-### 4.1 Authentication
+**Objetivo:** Educar usuarios sobre el funcionamiento de la plataforma.
 
-**Methods supported:**
-- Email + Password
-- Google OAuth
+**Ubicación:**
+- **Logueados:** Link en navbar superior → página `/dashboard/faqs`
+- **No logueados:** Sección al final del landing page
 
-**Flow:**
-1. User lands on homepage → clicks "Join" / "Sign In"
-2. Choose method (email or Google)
-3. If new user → redirect to onboarding (set display name, location)
-4. If returning → redirect to dashboard
+**Contenido inicial:**
 
-**Implementation:** Supabase Auth with Next.js middleware for protected routes.
+#### ¿Cómo funciona el algoritmo de matching?
+> Natural Order compara tu wishlist con las colecciones de otros usuarios cercanos, y viceversa. Cuando hay coincidencias, se crea un "match". Los matches pueden ser:
+> - **Intercambio:** Ambos tienen cartas que el otro busca
+> - **Compra:** El otro usuario tiene cartas que vos buscás
+> - **Venta:** Vos tenés cartas que el otro busca
 
-### 4.2 User Profile & Preferences
+#### ¿Cómo se calculan los precios?
+> Usamos Card Kingdom como referencia de mercado. Cuando listás una carta, elegís un porcentaje sobre ese precio (por ejemplo, 80% = 20% de descuento). Esto permite comparar ofertas de forma justa.
 
-**Profile fields:**
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| display_name | text | Yes | Public name |
-| avatar | image | No | Upload |
-| preferred_language | select | Yes | es, en, pt |
+#### ¿Mis datos de ubicación son privados?
+> Sí. Nunca mostramos tu ubicación exacta a otros usuarios. Solo mostramos la distancia aproximada (ej: "~2 km") para que sepan qué tan cerca están.
 
-**Preferences:**
-| Preference | Options | Default |
-|------------|---------|---------|
-| Trade mode | Trade only / Sell only / Both | Both |
-| Min match threshold | 1-10 cards | 1 |
-| Availability | Day/time slots | All times |
-| Notifications | New matches / Messages | Both on |
+#### ¿Cómo funciona el flujo de un trade?
+> 1. Encontrás un match y dejás un comentario para coordinar
+> 2. Cuando están de acuerdo, cualquiera puede "Solicitar trade"
+> 3. Ambos deben confirmar el trade
+> 4. Se juntan, intercambian, y marcan como "Completado"
 
-### 4.3 Location Management
-
-**Features:**
-- Auto-detect via browser Geolocation API (with permission)
-- Manual input via address search (Geocoding API)
-- Save multiple locations ("Home", "Work", "LGS")
-- Set active location (one at a time)
-- Set search radius (1km, 5km, 10km, 25km, 50km)
-
-**Privacy:**
-- Exact coordinates never shown to other users
-- Only distance/direction displayed ("~2km north")
-
-### 4.4 Card Search & Management
-
-#### Search
-- Powered by local Scryfall data (synced daily)
-- Search by: name, set, collector number
-- Autocomplete with card images
-- Filter by: set, rarity, color, type
-
-#### Adding to Collection
-**Single card:**
-1. Search for card
-2. Select specific edition (set + collector number)
-3. Set condition (NM, LP, MP, HP, DMG)
-4. Set quantity
-5. Set price: % of Card Kingdom OR fixed USD
-6. Optional: mark as foil, add notes
-
-**Bulk import:**
-- Supported formats: Moxfield, ManaBox, Deckbox, plain CSV
-- Format auto-detection
-- Preview before import
-- Conflict resolution (duplicate handling)
-
-**CSV format example:**
-```csv
-Count,Name,Edition,Condition,Foil,Price Mode,Price Value
-4,Lightning Bolt,2XM,NM,false,percentage,80
-1,Ragavan Nimble Pilferer,MH2,LP,false,fixed,45.00
-```
-
-#### Adding to Wishlist
-1. Search for card
-2. Choose: specific edition OR any edition (oracle_id)
-3. Set max price willing to pay
-4. Set minimum acceptable condition
-5. Set priority (1-10)
-6. Set foil preference
-
-### 4.5 Pricing System
-
-**Reference market:** Card Kingdom (primary)
-- Fallback: Scryfall price data (TCGPlayer market)
-
-**Price display:**
-- All prices in USD
-- Show discount from reference: "80% of CK ($36.00 → $28.80)"
-
-**User pricing options:**
-1. **Percentage mode:** Set % of Card Kingdom price (e.g., 80%)
-2. **Fixed mode:** Set exact USD price
-
-**Price updates:**
-- Card Kingdom prices synced daily via scraping/API
-- User notified if their prices become stale (>7 days)
-
-### 4.6 Matching Algorithm
-
-#### Match Types
-| Type | Description | Display |
-|------|-------------|---------|
-| **Two-way trade** | Both users have cards the other wants | ⭐ Best match |
-| **One-way buy** | They have what I want (I may sell) | Standard match |
-| **One-way sell** | I have what they want | Opportunity |
-
-#### Match Calculation
-```python
-def calculate_match(user_a, user_b):
-    # Cards user_a wants that user_b has
-    a_wants = intersect(user_a.wishlist, user_b.collection)
-
-    # Cards user_b wants that user_a has
-    b_wants = intersect(user_b.wishlist, user_a.collection)
-
-    # Filter by conditions, prices, preferences
-    a_wants_filtered = filter_by_preferences(a_wants, user_a.wishlist_prefs)
-    b_wants_filtered = filter_by_preferences(b_wants, user_b.wishlist_prefs)
-
-    # Calculate distance
-    distance = calculate_distance(user_a.active_location, user_b.active_location)
-
-    # Calculate total value
-    total_value_a = sum(card.price for card in a_wants_filtered)
-    total_value_b = sum(card.price for card in b_wants_filtered)
-
-    return Match(
-        cards_a_wants=a_wants_filtered,
-        cards_b_wants=b_wants_filtered,
-        match_type='two_way' if both else 'one_way',
-        distance_km=distance,
-        total_value=total_value_a
-    )
-```
-
-#### Match Display (MVP)
-```
-┌─────────────────────────────────────────────┐
-│ 🔄 Juan M.                         ~2.5 km  │
-│                                             │
-│ They have 4 cards you want         ~$85 USD │
-│ You have 2 cards they want         ~$32 USD │
-│                                             │
-│ [View Details]              [Send Message]  │
-└─────────────────────────────────────────────┘
-```
-
-### 4.7 Messaging
-
-**Features:**
-- In-app real-time chat (Supabase Realtime)
-- WhatsApp fallback button (opens wa.me link)
-- Message history per match
-- Read receipts
-- Push notifications for new messages
-
-**Chat UI:**
-- Conversation list (sorted by recent)
-- Individual chat view with card context
-- Quick actions: "Propose meetup", "Share location"
-
-### 4.8 Notifications
-
-**Push notification triggers:**
-| Event | Condition | Message |
-|-------|-----------|---------|
-| New match | Cards >= min_threshold | "New match! Juan has 4 cards you want" |
-| New message | Always | "Juan: Are you free Saturday?" |
-| Price drop | Wishlist card price drops | "Ragavan dropped to $42 on Card Kingdom" |
-
-**Implementation:** Web Push API + Supabase Edge Functions
+#### ¿Qué pasa si el otro usuario no responde?
+> Podés descartar el match (no lo verás más) o simplemente esperar. Si cambiás de opinión, podés restaurar matches descartados desde el Historial.
 
 ---
 
-## 5. API Design
+### 3.5 PWA Install Prompt (Priority: MEDIUM)
 
-### 5.1 Supabase (Direct Client Access)
+**Objetivo:** Guiar usuarios mobile a instalar la app para mejor experiencia.
 
-Used for: Auth, realtime subscriptions, simple CRUD
+**Comportamiento:**
+- Solo aparece en mobile (detectar user agent)
+- Primera vez: aparece después de login exitoso
+- Si se cierra: no reaparece por 10 días (guardar en localStorage)
+- Instrucciones diferenciadas iOS vs Android
 
+**Contenido iOS (Safari requerido):**
+```
+📱 Instalá Natural Order
+
+Para mejor experiencia, agregá la app a tu pantalla de inicio:
+
+1. Tocá el ícono de compartir (□↑)
+2. Seleccioná "Agregar a pantalla de inicio"
+3. Confirmá tocando "Agregar"
+
+[Entendido] [Recordarme después]
+```
+
+**Contenido Android (Chrome):**
+```
+📱 Instalá Natural Order
+
+[Instalar App]  ← Usa beforeinstallprompt event
+
+O manualmente:
+1. Tocá el menú (⋮)
+2. Seleccioná "Instalar aplicación"
+
+[Cerrar]
+```
+
+**Implementación:**
+- Hook `useInstallPrompt` que detecta plataforma
+- Modal/Banner component
+- localStorage para tracking de dismissal
+
+---
+
+### 3.6 Landing Page (Non-Logged Users) (Priority: MEDIUM)
+
+**Objetivo:** Página de bienvenida que explique el producto y lleve al registro.
+
+**Contenido:**
+1. Hero section actual de `index.html`
+2. Sección "Cómo funciona" (3 pasos visuales)
+3. Beneficios clave
+4. FAQs (mismas que para logueados)
+5. CTA final: "Empezá gratis"
+
+**Ruta:** `/` (actualmente redirige a `/dashboard` si logueado)
+
+**Botón "Ingresar":** En navbar, lleva a `/login`
+
+---
+
+### 3.7 i18n - English & Portuguese (Priority: MEDIUM)
+
+**Objetivo:** Expandir a mercados de habla inglesa y Brasil.
+
+**Idiomas:**
+- `es` - Español (completado)
+- `en` - English (pendiente)
+- `pt-BR` - Português Brasil (pendiente)
+
+**Archivos a traducir:**
+- `messages/es.json` → `messages/en.json`, `messages/pt-BR.json`
+- Emails transaccionales (Supabase templates)
+- Push notification texts
+
+**Selector de idioma:**
+- En Perfil > Preferencias
+- Detectar idioma del browser como default
+
+---
+
+### 3.8 Vacation Mode (Priority: LOW)
+
+**Objetivo:** Permitir al usuario ocultarse temporalmente del matching.
+
+**Implementación:**
+- Toggle en Perfil: "Modo vacaciones"
+- Cuando activo: usuario no aparece en matches de otros
+- Sus matches existentes siguen visibles pero con badge "En pausa"
+
+**Cambio en DB:**
+```sql
+ALTER TABLE users ADD COLUMN vacation_mode BOOLEAN DEFAULT false;
+```
+
+---
+
+### 3.9 Testing Structure (Priority: MEDIUM)
+
+**Objetivo:** Automatizar tests antes de campaña publicitaria.
+
+**Flujos críticos a testear:**
+
+| Flujo | Tipo de test |
+|-------|--------------|
+| Registro + onboarding | E2E (Playwright) |
+| Bulk import 1000+ cartas | Integration + Performance |
+| Matching con muchos usuarios | Load test |
+| Flujo completo de trade | E2E |
+| Auth flows (login, reset password) | E2E |
+
+**Stress test:**
+- Tool: k6 o Artillery
+- Target: 1000 usuarios concurrentes
+- Endpoints críticos: `/api/matches`, `/api/matches/compute`
+- Métricas: response time p95, error rate
+
+**Estructura propuesta:**
+```
+/tests
+  /e2e
+    auth.spec.ts
+    onboarding.spec.ts
+    trade-flow.spec.ts
+  /integration
+    bulk-import.test.ts
+    matching.test.ts
+  /load
+    stress-test.js (k6 script)
+```
+
+---
+
+### 3.10 Analytics & Product Metrics (Priority: HIGH)
+
+**Objetivo:** Medir el uso del producto para tomar decisiones basadas en datos y mejorar la experiencia de usuario.
+
+**Herramientas recomendadas:**
+| Opción | Tipo | Pros | Contras |
+|--------|------|------|---------|
+| PostHog | Self-hosted/Cloud | Feature flags, session replay, funnels | Setup más complejo |
+| Mixpanel | Cloud | Funnels poderosos, retención | Límite gratuito |
+| Plausible | Privacy-first | Simple, liviano, GDPR-friendly | Sin eventos custom avanzados |
+| Vercel Analytics | Integrado | Zero-config, Web Vitals | Solo pageviews básicos |
+
+**Métricas clave a trackear:**
+
+#### User Engagement
+| Métrica | Descripción | Cómo medir |
+|---------|-------------|------------|
+| DAU/WAU/MAU | Usuarios activos diarios/semanales/mensuales | Login events |
+| Session duration | Tiempo promedio por sesión | Timestamp diff |
+| Pages per session | Páginas visitadas por sesión | Page views |
+| Retention D1/D7/D30 | Usuarios que vuelven | Cohorte analysis |
+
+#### Funnel Metrics
+| Paso | Evento | Target |
+|------|--------|--------|
+| 1. Signup started | `signup_started` | 100% |
+| 2. Signup completed | `signup_completed` | >80% |
+| 3. Location set | `location_set` | >90% |
+| 4. First card added | `card_added` (first) | >70% |
+| 5. First match viewed | `match_viewed` (first) | >60% |
+| 6. First message sent | `message_sent` (first) | >30% |
+| 7. Trade requested | `trade_requested` | >20% |
+| 8. Trade completed | `trade_completed` | >50% de requested |
+
+#### Feature Usage
+| Feature | Evento | Para entender |
+|---------|--------|---------------|
+| Bulk import | `import_started`, `import_completed` | Adopción de import |
+| CSV format used | `import_format` (moxfield/manabox/etc) | Qué formatos priorizar |
+| Global discount | `global_discount_set`, `global_discount_applied` | Uso de la feature |
+| Filtros de match | `filter_applied` (type, distance) | Preferencias de búsqueda |
+| Sorting | `sort_changed` (price/distance/cards/value) | Criterios preferidos |
+
+#### Trade Metrics
+| Métrica | Descripción |
+|---------|-------------|
+| Match-to-contact rate | % de matches que inician conversación |
+| Contact-to-trade rate | % de conversaciones que solicitan trade |
+| Trade completion rate | % de trades solicitados que se completan |
+| Avg time to complete | Tiempo desde match hasta completado |
+| Cards per trade | Promedio de cartas por trade completado |
+| Trade value | Valor USD promedio por trade |
+
+#### Technical Metrics
+| Métrica | Target | Alerta si |
+|---------|--------|-----------|
+| API response time (p95) | <500ms | >1000ms |
+| Error rate | <1% | >2% |
+| Bulk import time | <30s/1000 cards | >60s |
+| PWA install rate | >20% mobile | <10% |
+
+**Implementación recomendada:**
+1. Usar PostHog (tier gratuito amplio) o Plausible (si priorizamos simplicidad)
+2. Crear helper `trackEvent(name, properties)` para consistencia
+3. Agregar tracking a eventos clave gradualmente
+4. Dashboard con métricas principales visible para el equipo
+
+**Eventos prioritarios para implementar primero:**
 ```typescript
-// Auth
-supabase.auth.signInWithOAuth({ provider: 'google' })
-supabase.auth.signInWithPassword({ email, password })
+// Onboarding funnel
+trackEvent('signup_started')
+trackEvent('signup_completed', { method: 'email' | 'google' })
+trackEvent('location_set', { city: string })
+trackEvent('first_card_added', { source: 'manual' | 'import' })
 
-// Collections
-supabase.from('collections').select('*, cards(*)').eq('user_id', userId)
-supabase.from('collections').insert({ user_id, card_id, condition, ... })
-
-// Realtime chat
-supabase.channel('messages:convo_123').on('INSERT', handleNewMessage)
-```
-
-### 5.2 FastAPI Backend
-
-Used for: Complex logic, external API calls, bulk operations
-
-```
-POST   /api/v1/cards/search          # Search cards (Scryfall data)
-POST   /api/v1/cards/sync            # Admin: sync Scryfall data
-POST   /api/v1/import/collection     # Bulk import collection
-POST   /api/v1/import/wishlist       # Bulk import wishlist
-GET    /api/v1/matches               # Get matches for current user
-POST   /api/v1/matches/refresh       # Force recalculate matches
-GET    /api/v1/prices/card/:id       # Get current Card Kingdom price
-POST   /api/v1/prices/sync           # Admin: sync prices
+// Core actions
+trackEvent('import_completed', { format: string, card_count: number })
+trackEvent('match_viewed', { match_id: string, type: 'exchange' | 'buy' | 'sell' })
+trackEvent('message_sent', { match_id: string })
+trackEvent('trade_requested', { match_id: string, card_count: number })
+trackEvent('trade_completed', { match_id: string, value_usd: number })
 ```
 
 ---
 
-## 6. Development Roadmap
+### 3.11 Store Integration (Priority: POST-LAUNCH)
 
-### Phase 1: Foundation (Week 1-2)
-- [ ] Project setup (Next.js, Supabase, FastAPI)
-- [ ] Database schema creation
-- [ ] Authentication (Email + Google)
-- [ ] Basic user profile & preferences
-- [ ] Location management (manual + GPS)
+**Objetivo:** Integrar stock de tiendas locales (LGS) para que usuarios encuentren cartas en tiendas cercanas.
 
-### Phase 2: Card Data (Week 3-4)
-- [ ] Scryfall data sync script
-- [ ] Card search with autocomplete
-- [ ] Collection management (single add)
-- [ ] Wishlist management (single add)
-- [ ] Price reference integration (Card Kingdom)
+**Enfoque:**
+- **NO scraping** - Solo integraciones via API
+- Negociar acceso con tiendas que usen plataformas con API abierta
+- Tiendas aparecen como entidades diferenciadas en matches
 
-### Phase 3: Bulk Import (Week 5)
-- [ ] CSV parser for Moxfield/ManaBox format
-- [ ] Import preview & validation
-- [ ] Bulk insert with progress
-- [ ] Conflict resolution UI
+**Plataformas identificadas:**
+| Plataforma | Tiendas ejemplo | API disponible |
+|------------|-----------------|----------------|
+| TiendaNube | Tienda MTG | Sí (REST API) |
+| Shopify | Magic Lair | Sí (GraphQL/REST) |
+| BigCommerce | MTG Pirulo | Sí (REST API) |
 
-### Phase 4: Matching (Week 6-7)
-- [ ] Matching algorithm implementation
-- [ ] Match calculation job (background)
-- [ ] Match list UI
-- [ ] Match detail view
-- [ ] Distance calculation (radius-based)
+**Modelo de datos:**
+```sql
+CREATE TABLE stores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  platform TEXT NOT NULL, -- 'tiendanube', 'shopify', 'bigcommerce'
+  api_credentials JSONB, -- encrypted
+  location_id UUID REFERENCES locations(id),
+  logo_url TEXT,
+  website_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  sync_interval_minutes INTEGER DEFAULT 60,
+  last_sync_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-### Phase 5: Communication (Week 8)
-- [ ] In-app messaging
-- [ ] WhatsApp fallback
-- [ ] Push notifications setup
-- [ ] Notification preferences
+CREATE TABLE store_inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
+  scryfall_id TEXT NOT NULL,
+  card_name TEXT NOT NULL,
+  set_code TEXT,
+  condition TEXT,
+  quantity INTEGER DEFAULT 1,
+  price_usd DECIMAL(10,2),
+  external_product_id TEXT,
+  external_url TEXT,
+  last_sync_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(store_id, scryfall_id, condition)
+);
+```
 
-### Phase 6: Polish & Launch (Week 9-10)
-- [ ] i18n (ES, EN, PT)
-- [ ] PWA configuration
-- [ ] Performance optimization
-- [ ] Error handling & edge cases
-- [ ] Beta testing with power users
-- [ ] Launch to waitlist
+**Diferenciación en UI:**
+- Badge "Tienda" en match cards (vs usuario normal)
+- Sin botón "Solicitar trade" - reemplazado por:
+  - "Ver en tienda" → link externo al producto
+  - O, si tienda opera en plataforma: flujo simplificado
+- Mostrar logo de tienda, horarios, dirección
+- Filtro para mostrar/ocultar tiendas en matches
 
----
+**Flujo diferenciado:**
+1. Usuario ve match con tienda
+2. Click "Ver en tienda" → abre web de la tienda
+3. Usuario compra directamente en la tienda
+4. (Opcional futuro) Tienda marca como vendido via webhook
 
-## 7. Internationalization (i18n)
-
-### Supported Languages
-| Code | Language | Market |
-|------|----------|--------|
-| es | Spanish | Argentina, Chile, Mexico, etc. |
-| en | English | US, Global |
-| pt | Portuguese | Brazil |
-
-### Implementation
-- Use `next-intl` for Next.js
-- Store user preference in `users.preferred_language`
-- Fallback chain: User pref → Browser → Spanish
-
-### Translation scope (MVP)
-- All UI text
-- Error messages
-- Email templates
-- Push notification text
-
----
-
-## 8. Security Considerations
-
-### Data Protection
-- Row-Level Security (RLS) on all user data
-- Users can only access their own collections/wishlists
-- Location coordinates encrypted at rest
-
-### API Security
-- Supabase: JWT validation via middleware
-- FastAPI: API key + JWT validation
-- Rate limiting on search/import endpoints
-
-### Privacy
-- Exact coordinates never exposed
-- Email hidden from other users
-- Option to hide from search (vacation mode)
+**Sync de inventario:**
+- Cron job cada X minutos por tienda (configurable)
+- Edge Function para sync manual
+- Webhook opcional para actualizaciones real-time
 
 ---
 
-## 9. Scalability Notes
+## 4. Implementation Priority
 
-### Database
-- PostgreSQL handles millions of rows easily
-- Indexes on: user_id, card_id, oracle_id, coordinates
-- Consider partitioning collections table by user_id if >1M users
+### Phase 1: Launch-Critical ✅ COMPLETADO
+1. ✅ Global Collection Discount
+2. ✅ PWA Improvements (black status bar, bottom navbar)
+3. ✅ CubeCobra import format
+4. ✅ Bulk import optimization (batch processing)
 
-### Matching Algorithm
-- Run as background job, not real-time
-- Cache matches, invalidate on collection/wishlist changes
-- Consider pre-computing common card overlaps
+### Phase 2: Pre-Campaign (En progreso)
+5. Push Notifications
+6. Match Sorting Options
+7. FAQs Section
+8. PWA Install Prompt
+9. Landing Page (non-logged)
+10. **Analytics Setup** ← NUEVO
 
-### Price Sync
-- Daily job, off-peak hours
-- Only update cards in active collections/wishlists
-- ~30K unique cards in typical use = manageable
+### Phase 3: Testing & Polish
+11. Testing Structure
+12. Rate limiting API routes
+
+### Phase 4: Expansion (Post-Launch)
+13. i18n (English, Portuguese)
+14. Vacation Mode
+15. Store Integration (LGS)
+16. Advanced analytics dashboards
 
 ---
 
-## 10. Success Metrics
+## 5. Database Migrations Needed
 
-### MVP Launch Goals
+```sql
+-- Migration: Add global discount and vacation mode
+ALTER TABLE preferences ADD COLUMN IF NOT EXISTS default_price_percentage INTEGER DEFAULT 80;
+ALTER TABLE collections ADD COLUMN IF NOT EXISTS price_override BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS vacation_mode BOOLEAN DEFAULT false;
+
+-- Migration: Push subscriptions table
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  endpoint TEXT NOT NULL,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, endpoint)
+);
+
+-- Migration: Store integration (Post-Launch)
+CREATE TABLE IF NOT EXISTS stores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  platform TEXT NOT NULL,
+  api_credentials JSONB,
+  location_id UUID REFERENCES locations(id),
+  logo_url TEXT,
+  website_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  sync_interval_minutes INTEGER DEFAULT 60,
+  last_sync_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS store_inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  store_id UUID REFERENCES stores(id) ON DELETE CASCADE,
+  scryfall_id TEXT NOT NULL,
+  card_name TEXT NOT NULL,
+  set_code TEXT,
+  condition TEXT,
+  quantity INTEGER DEFAULT 1,
+  price_usd DECIMAL(10,2),
+  external_product_id TEXT,
+  external_url TEXT,
+  last_sync_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(store_id, scryfall_id, condition)
+);
+```
+
+---
+
+## 6. Success Metrics
+
+### Launch Goals (First Month)
 | Metric | Target |
 |--------|--------|
-| Registered users | 500 |
-| Active users (weekly) | 200 |
-| Collections uploaded | 300 |
-| Matches generated | 1000+ |
-| Messages sent | 500 |
-| Completed trades (self-reported) | 50 |
+| Registered users | 100 |
+| Active users (weekly) | 50 |
+| Push notification opt-in rate | 60% |
+| Match-to-contact rate | 30% |
+| Completed trades | 10 |
 
 ### Key Health Indicators
-- Match-to-message conversion rate
-- Collection size (avg cards per user)
-- Return rate (users active after 7 days)
-- Geographic density (users per city)
+- Average response time `/api/matches` < 500ms
+- Error rate < 1%
+- PWA install rate (mobile) > 20%
 
 ---
 
-*Document created: January 2026*
-*Next review: After Phase 1 completion*
+## 7. Known Technical Debt
+
+| Item | Impact | Priority |
+|------|--------|----------|
+| ESLint warnings en useEffect dependencies | Low | Low |
+| next-pwa deprecated dependencies | Medium | Medium |
+| Card prices not synced (using Scryfall only) | Medium | Post-launch |
+| No rate limiting on API routes | High | Pre-campaign |
+
+---
+
+## 8. Recent Changes Log
+
+| Fecha | Cambio | Detalles |
+|-------|--------|----------|
+| Ene 2026 | Bulk import optimizado | Batch processing con Scryfall collection endpoint (75 cards/request) y batch DB operations |
+| Ene 2026 | CubeCobra import | Agregado soporte para formato CubeCobra CSV |
+| Ene 2026 | PWA status bar negro | Cambiado theme-color a #000000, statusBarStyle a 'black' |
+| Ene 2026 | Bottom navigation | Nueva navbar inferior para mobile con 5 opciones (Colección, Wishlist, Trades, Alertas, Perfil) |
+| Ene 2026 | Global discount | API y UI para definir % descuento global que aplica a nuevas cartas |
+| Ene 2026 | PWA icons | Íconos actualizados con fondo negro |
+
+---
+
+*Document updated: January 22, 2026*
+*Next review: After Analytics implementation*

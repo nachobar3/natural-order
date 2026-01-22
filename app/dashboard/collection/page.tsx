@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { AddCardModal } from '@/components/cards/add-card-modal'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import { GlobalDiscount } from '@/components/collection/global-discount'
 import { Package, Loader2, Trash2, Edit2, Plus, LayoutGrid, List, Upload } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -215,6 +216,9 @@ export default function CollectionPage() {
           </div>
         </div>
       </div>
+
+      {/* Global discount */}
+      <GlobalDiscount onApplyAll={loadCollection} />
 
       {/* Search */}
       <div className="card overflow-visible relative z-20">

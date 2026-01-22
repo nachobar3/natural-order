@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardNav } from '@/components/ui/dashboard-nav'
+import { BottomNav } from '@/components/ui/bottom-nav'
 
 export default async function DashboardLayout({
   children,
@@ -24,9 +25,10 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen">
       <DashboardNav user={profile} />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-8">
         {children}
       </main>
+      <BottomNav />
     </div>
   )
 }

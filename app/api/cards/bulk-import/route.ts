@@ -53,136 +53,163 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cards array is required' }, { status: 400 })
     }
 
-    const results: ImportResult[] = []
+    if (cards.length === 0) {
+      return NextResponse.json({
+        results: [],
+        summary: { total: 0, inserted: 0, updated: 0, skipped: 0, errors: 0 }
+      })
+    }
+
+    const results: ImportResult[] = new Array(cards.length)
+    const now = new Date().toISOString()
+
+    // Step 1: Batch upsert all cards to the cards table
+    const cardsToUpsert = cards.map(item => ({
+      scryfall_id: item.card.scryfall_id,
+      oracle_id: item.card.oracle_id,
+      name: item.card.name,
+      set_code: item.card.set_code,
+      set_name: item.card.set_name,
+      collector_number: item.card.collector_number,
+      image_uri: item.card.image_uri,
+      image_uri_small: item.card.image_uri_small,
+      prices_usd: item.card.prices_usd,
+      prices_usd_foil: item.card.prices_usd_foil,
+      rarity: item.card.rarity,
+      type_line: item.card.type_line,
+      mana_cost: item.card.mana_cost,
+      colors: item.card.colors,
+      color_identity: item.card.color_identity,
+      cmc: item.card.cmc,
+      legalities: item.card.legalities,
+      released_at: item.card.released_at,
+      updated_at: now,
+    }))
+
+    const { error: upsertError } = await supabase
+      .from('cards')
+      .upsert(cardsToUpsert, { onConflict: 'scryfall_id' })
+
+    if (upsertError) {
+      console.error('Batch upsert error:', upsertError)
+      // If batch upsert fails completely, mark all as error
+      for (let i = 0; i < cards.length; i++) {
+        results[i] = {
+          index: i,
+          success: false,
+          error: `Error al guardar cartas: ${upsertError.message}`,
+          action: 'error',
+        }
+      }
+      return NextResponse.json({
+        results,
+        summary: { total: cards.length, inserted: 0, updated: 0, skipped: 0, errors: cards.length }
+      })
+    }
+
+    // Step 2: Get all card IDs by scryfall_id
+    const scryfallIds = cards.map(c => c.card.scryfall_id)
+    const { data: savedCards, error: fetchError } = await supabase
+      .from('cards')
+      .select('id, scryfall_id')
+      .in('scryfall_id', scryfallIds)
+
+    if (fetchError || !savedCards) {
+      console.error('Fetch cards error:', fetchError)
+      for (let i = 0; i < cards.length; i++) {
+        results[i] = {
+          index: i,
+          success: false,
+          error: 'Error al obtener IDs de cartas',
+          action: 'error',
+        }
+      }
+      return NextResponse.json({
+        results,
+        summary: { total: cards.length, inserted: 0, updated: 0, skipped: 0, errors: cards.length }
+      })
+    }
+
+    // Create a map of scryfall_id to card_id
+    const scryfallToCardId = new Map<string, string>()
+    for (const card of savedCards) {
+      scryfallToCardId.set(card.scryfall_id, card.id)
+    }
+
+    // Step 3: Check existing collection entries for all cards at once
+    const cardIds = Array.from(new Set(
+      cards.map(c => scryfallToCardId.get(c.card.scryfall_id)).filter(Boolean)
+    )) as string[]
+
+    const { data: existingEntries } = await supabase
+      .from('collections')
+      .select('id, card_id, condition, foil, quantity')
+      .eq('user_id', user.id)
+      .in('card_id', cardIds)
+
+    // Create a map of existing entries: card_id-condition-foil -> entry
+    const existingMap = new Map<string, { id: string; quantity: number }>()
+    for (const entry of existingEntries || []) {
+      const key = `${entry.card_id}-${entry.condition}-${entry.foil}`
+      existingMap.set(key, { id: entry.id, quantity: entry.quantity })
+    }
+
+    // Step 4: Categorize cards into insert, update, or skip
+    const toInsert: { index: number; data: Record<string, unknown> }[] = []
+    const toUpdate: { index: number; id: string; quantity: number; notes: string | null }[] = []
 
     for (let i = 0; i < cards.length; i++) {
       const item = cards[i]
+      const cardId = scryfallToCardId.get(item.card.scryfall_id)
 
-      try {
-        // First, upsert the card to our cards table
-        const { data: savedCard, error: cardError } = await supabase
-          .from('cards')
-          .upsert({
-            scryfall_id: item.card.scryfall_id,
-            oracle_id: item.card.oracle_id,
-            name: item.card.name,
-            set_code: item.card.set_code,
-            set_name: item.card.set_name,
-            collector_number: item.card.collector_number,
-            image_uri: item.card.image_uri,
-            image_uri_small: item.card.image_uri_small,
-            prices_usd: item.card.prices_usd,
-            prices_usd_foil: item.card.prices_usd_foil,
-            rarity: item.card.rarity,
-            type_line: item.card.type_line,
-            mana_cost: item.card.mana_cost,
-            colors: item.card.colors,
-            color_identity: item.card.color_identity,
-            cmc: item.card.cmc,
-            legalities: item.card.legalities,
-            released_at: item.card.released_at,
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'scryfall_id',
-          })
-          .select('id')
-          .single()
-
-        if (cardError) {
-          results.push({
-            index: i,
-            success: false,
-            error: `Error al guardar carta: ${cardError.message}`,
-            action: 'error',
-          })
-          continue
+      if (!cardId) {
+        results[i] = {
+          index: i,
+          success: false,
+          error: 'No se encontró el ID de la carta',
+          action: 'error',
         }
+        continue
+      }
 
-        const cardId = savedCard.id
+      const key = `${cardId}-${item.condition}-${item.foil}`
+      const existing = existingMap.get(key)
 
-        // Check if this card already exists in user's collection with same condition and foil
-        const { data: existing } = await supabase
-          .from('collections')
-          .select('id, quantity')
-          .eq('user_id', user.id)
-          .eq('card_id', cardId)
-          .eq('condition', item.condition)
-          .eq('foil', item.foil)
-          .single()
+      if (existing) {
+        // Handle conflict based on mode
+        switch (conflictMode) {
+          case 'skip':
+            results[i] = {
+              index: i,
+              success: true,
+              error: null,
+              action: 'skipped',
+            }
+            break
 
-        if (existing) {
-          // Handle conflict based on mode
-          switch (conflictMode) {
-            case 'skip':
-              results.push({
-                index: i,
-                success: true,
-                error: null,
-                action: 'skipped',
-              })
-              continue
+          case 'update':
+            toUpdate.push({
+              index: i,
+              id: existing.id,
+              quantity: item.quantity,
+              notes: item.notes,
+            })
+            break
 
-            case 'update':
-              // Update quantity
-              const { error: updateError } = await supabase
-                .from('collections')
-                .update({
-                  quantity: item.quantity,
-                  notes: item.notes,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', existing.id)
-
-              if (updateError) {
-                results.push({
-                  index: i,
-                  success: false,
-                  error: `Error al actualizar: ${updateError.message}`,
-                  action: 'error',
-                })
-              } else {
-                results.push({
-                  index: i,
-                  success: true,
-                  error: null,
-                  action: 'updated',
-                })
-              }
-              continue
-
-            case 'add':
-              // Add quantity to existing
-              const { error: addError } = await supabase
-                .from('collections')
-                .update({
-                  quantity: existing.quantity + item.quantity,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', existing.id)
-
-              if (addError) {
-                results.push({
-                  index: i,
-                  success: false,
-                  error: `Error al sumar cantidad: ${addError.message}`,
-                  action: 'error',
-                })
-              } else {
-                results.push({
-                  index: i,
-                  success: true,
-                  error: null,
-                  action: 'updated',
-                })
-              }
-              continue
-          }
+          case 'add':
+            toUpdate.push({
+              index: i,
+              id: existing.id,
+              quantity: existing.quantity + item.quantity,
+              notes: item.notes,
+            })
+            break
         }
-
-        // Insert new collection entry
-        const { error: insertError } = await supabase
-          .from('collections')
-          .insert({
+      } else {
+        // New entry
+        toInsert.push({
+          index: i,
+          data: {
             user_id: user.id,
             card_id: cardId,
             quantity: item.quantity,
@@ -191,30 +218,79 @@ export async function POST(request: NextRequest) {
             price_mode: 'percentage',
             price_percentage: 100,
             notes: item.notes,
-          })
+          },
+        })
+      }
+    }
 
-        if (insertError) {
-          results.push({
-            index: i,
+    // Step 5: Batch insert new entries
+    if (toInsert.length > 0) {
+      const insertData = toInsert.map(item => item.data)
+      const { error: insertError } = await supabase
+        .from('collections')
+        .insert(insertData)
+
+      if (insertError) {
+        console.error('Batch insert error:', insertError)
+        // Mark all inserts as error
+        for (const item of toInsert) {
+          results[item.index] = {
+            index: item.index,
             success: false,
             error: `Error al insertar: ${insertError.message}`,
             action: 'error',
-          })
-        } else {
-          results.push({
-            index: i,
+          }
+        }
+      } else {
+        // Mark all inserts as success
+        for (const item of toInsert) {
+          results[item.index] = {
+            index: item.index,
             success: true,
             error: null,
             action: 'inserted',
-          })
+          }
         }
-      } catch (err) {
-        results.push({
-          index: i,
-          success: false,
-          error: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
-          action: 'error',
-        })
+      }
+    }
+
+    // Step 6: Batch update existing entries
+    // Supabase doesn't support batch updates with different values in one call,
+    // but we can group by quantity and do fewer updates
+    if (toUpdate.length > 0) {
+      // Group updates by quantity and notes to minimize calls
+      // For simplicity, we'll do individual updates but in parallel
+      const updatePromises = toUpdate.map(async (item) => {
+        const { error: updateError } = await supabase
+          .from('collections')
+          .update({
+            quantity: item.quantity,
+            notes: item.notes,
+            updated_at: now,
+          })
+          .eq('id', item.id)
+
+        return { index: item.index, error: updateError }
+      })
+
+      const updateResults = await Promise.all(updatePromises)
+
+      for (const result of updateResults) {
+        if (result.error) {
+          results[result.index] = {
+            index: result.index,
+            success: false,
+            error: `Error al actualizar: ${result.error.message}`,
+            action: 'error',
+          }
+        } else {
+          results[result.index] = {
+            index: result.index,
+            success: true,
+            error: null,
+            action: 'updated',
+          }
+        }
       }
     }
 

@@ -9,8 +9,6 @@ import {
   Home,
   User,
   LogOut,
-  Menu,
-  X,
   Package,
   Heart,
   Bell,
@@ -19,7 +17,7 @@ import {
 import type { User as UserType } from '@/types/database'
 
 const navItems = [
-  { href: '/dashboard', label: 'Inicio', icon: Home },
+  { href: '/dashboard', label: 'Trades', icon: Home },
   { href: '/dashboard/collection', label: 'Colección', icon: Package },
   { href: '/dashboard/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/dashboard/profile', label: 'Perfil', icon: User },
@@ -28,7 +26,6 @@ const navItems = [
 export function DashboardNav({ user }: { user: UserType | null }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [locationName, setLocationName] = useState<string | null>(null)
 
@@ -183,86 +180,16 @@ export function DashboardNav({ user }: { user: UserType | null }) {
               </button>
             </div>
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-gray-400 hover:text-gray-200 rounded-lg hover:bg-mtg-green-900/20"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
+            {/* Mobile: just show user name, nav is in bottom bar */}
+            <div className="md:hidden flex items-center gap-2">
+              <span className="text-sm text-gray-400 truncate max-w-[100px]">
+                {user?.display_name}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-t border-mtg-green-900/30 bg-mtg-dark/95 backdrop-blur-sm">
-          <div className="px-4 py-3 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href ||
-                (item.href !== '/dashboard' && pathname.startsWith(item.href))
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
-                    isActive
-                      ? 'bg-mtg-green-600/20 text-mtg-green-400'
-                      : 'text-gray-400 hover:bg-mtg-green-900/20 hover:text-gray-200'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  {item.label}
-                </Link>
-              )
-            })}
-            {/* Notifications in mobile menu */}
-            <Link
-              href="/dashboard/notifications"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
-                isNotificationsActive
-                  ? 'bg-mtg-green-600/20 text-mtg-green-400'
-                  : 'text-gray-400 hover:bg-mtg-green-900/20 hover:text-gray-200'
-              }`}
-            >
-              <Bell className="w-5 h-5" />
-              Notificaciones
-              {unreadCount > 0 && (
-                <span className="ml-auto px-2 py-0.5 text-xs font-bold bg-mtg-green-500 text-mtg-dark rounded-full">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
-            <hr className="my-2 border-mtg-green-900/30" />
-            <div className="px-3 py-2">
-              <p className="text-sm font-medium text-gray-200">
-                {user?.display_name}
-              </p>
-              {locationName && (
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                  <MapPin className="w-3 h-3" />
-                  <span>{locationName}</span>
-                </p>
-              )}
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10"
-            >
-              <LogOut className="w-5 h-5" />
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      )}
     </nav>
   )
 }

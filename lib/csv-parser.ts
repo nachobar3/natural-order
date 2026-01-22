@@ -29,7 +29,7 @@ export interface ParsedCard {
   } | null
 }
 
-export type CsvFormat = 'moxfield' | 'manabox' | 'deckbox' | 'generic' | 'unknown'
+export type CsvFormat = 'moxfield' | 'manabox' | 'deckbox' | 'cubecobra' | 'generic' | 'unknown'
 
 interface FormatSignature {
   format: CsvFormat
@@ -52,6 +52,11 @@ const FORMAT_SIGNATURES: FormatSignature[] = [
     format: 'deckbox',
     requiredHeaders: ['count', 'name', 'edition', 'card number'],
     optionalHeaders: ['condition', 'foil', 'language'],
+  },
+  {
+    format: 'cubecobra',
+    requiredHeaders: ['name', 'cmc', 'type'],
+    optionalHeaders: ['set', 'collector number', 'finish', 'color category', 'status', 'tags', 'notes'],
   },
   {
     format: 'generic',
@@ -225,6 +230,18 @@ function parseRow(row: Record<string, string>, format: CsvFormat): ParsedCard {
       language = row['language'] || null
       break
 
+    case 'cubecobra':
+      // CubeCobra exports cube lists (1 of each card by default)
+      name = row['name'] || ''
+      setCode = row['set'] || null
+      collectorNumber = row['collector number'] || null
+      quantity = 1 // Cubes typically have 1 of each
+      condition = 'NM' // CubeCobra doesn't track condition
+      // CubeCobra uses "Finish" column with values like "Foil" or "Non-Foil"
+      foil = (row['finish']?.toLowerCase() || '').includes('foil') && !(row['finish']?.toLowerCase() || '').includes('non-foil')
+      notes = row['tags'] || row['notes'] || null
+      break
+
     case 'generic':
     default:
       // Try to find name
@@ -296,6 +313,7 @@ export const FORMAT_LABELS: Record<CsvFormat, string> = {
   moxfield: 'Moxfield',
   manabox: 'ManaBox',
   deckbox: 'Deckbox',
+  cubecobra: 'CubeCobra',
   generic: 'Genérico',
   unknown: 'Desconocido',
 }

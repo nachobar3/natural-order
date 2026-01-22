@@ -4,8 +4,8 @@
   "description": "Trading de cartas MTG con gente cerca tuyo",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0f0a",
-  "theme_color": "#16a34a",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {

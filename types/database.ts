@@ -83,6 +83,7 @@ export interface Database {
           availability: Json | null
           notify_new_matches: boolean
           notify_messages: boolean
+          default_price_percentage: number
           created_at: string
         }
         Insert: {
@@ -93,6 +94,7 @@ export interface Database {
           availability?: Json | null
           notify_new_matches?: boolean
           notify_messages?: boolean
+          default_price_percentage?: number
           created_at?: string
         }
         Update: {
@@ -103,6 +105,7 @@ export interface Database {
           availability?: Json | null
           notify_new_matches?: boolean
           notify_messages?: boolean
+          default_price_percentage?: number
           created_at?: string
         }
       }
@@ -185,6 +188,7 @@ export interface Database {
           price_mode: 'percentage' | 'fixed'
           price_percentage: number
           price_fixed: number | null
+          price_override: boolean
           notes: string | null
           created_at: string
           updated_at: string
@@ -199,6 +203,7 @@ export interface Database {
           price_mode?: 'percentage' | 'fixed'
           price_percentage?: number
           price_fixed?: number | null
+          price_override?: boolean
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -213,6 +218,7 @@ export interface Database {
           price_mode?: 'percentage' | 'fixed'
           price_percentage?: number
           price_fixed?: number | null
+          price_override?: boolean
           notes?: string | null
           created_at?: string
           updated_at?: string
