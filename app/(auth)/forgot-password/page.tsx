@@ -99,7 +99,11 @@ export default function ForgotPasswordPage() {
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Te enviaremos un link para restablecer tu contraseña
+                Te enviaremos un link para restablecer tu contraseña.
+                <br />
+                <span className="text-gray-600">
+                  Si te registraste con Google, usá el botón de Google para iniciar sesión.
+                </span>
               </p>
             </div>
 

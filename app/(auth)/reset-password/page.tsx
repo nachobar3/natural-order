@@ -12,21 +12,60 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [initializing, setInitializing] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   const supabase = createClient()
 
-  // Check if we have a valid session from the reset link
+  // Process the recovery token from the URL and check session
   useEffect(() => {
-    const checkSession = async () => {
+    const handleRecovery = async () => {
+      // Check URL hash for tokens (Supabase sends them in the hash)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      const type = hashParams.get('type')
+
+      // Check URL search params for error
+      const searchParams = new URLSearchParams(window.location.search)
+      const errorParam = searchParams.get('error')
+      const errorDescription = searchParams.get('error_description')
+
+      if (errorParam) {
+        setError(errorDescription || 'Error al procesar el link de recuperación.')
+        setInitializing(false)
+        return
+      }
+
+      // If we have tokens in the hash, set the session
+      if (accessToken && refreshToken && type === 'recovery') {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+
+        if (sessionError) {
+          setError('El link de recuperación es inválido o expiró. Solicitá uno nuevo.')
+          setInitializing(false)
+          return
+        }
+
+        // Clear the hash from URL for security
+        window.history.replaceState(null, '', window.location.pathname)
+        setInitializing(false)
+        return
+      }
+
+      // No tokens in URL, check if we already have a valid session
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        // No session means the link is invalid or expired
         setError('El link de recuperación es inválido o expiró. Solicitá uno nuevo.')
       }
+      setInitializing(false)
     }
-    checkSession()
+
+    handleRecovery()
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -62,6 +101,20 @@ export default function ResetPasswordPage() {
     setTimeout(() => {
       router.push('/dashboard')
     }, 2000)
+  }
+
+  // Show loading while processing the recovery link
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="card text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-mtg-green-400 mb-4" />
+            <p className="text-gray-400">Verificando link de recuperación...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (success) {
