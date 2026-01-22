@@ -29,6 +29,8 @@ import {
   Inbox,
   MessageCircle,
   Handshake,
+  SlidersHorizontal,
+  History,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Match, MatchType } from '@/types/database'
@@ -95,6 +97,26 @@ const filterCategories: Record<FilterCategory, {
 
 type CategoryCounts = Record<FilterCategory, number>
 
+// Group definitions for simplified UI
+type FilterGroup = 'pendientes' | 'historial'
+
+const filterGroups: Record<FilterGroup, {
+  label: string
+  icon: typeof Inbox
+  categories: FilterCategory[]
+}> = {
+  pendientes: {
+    label: 'Pendientes',
+    icon: Inbox,
+    categories: ['disponibles', 'activos'],
+  },
+  historial: {
+    label: 'Historial',
+    icon: History,
+    categories: ['confirmados', 'realizados', 'cancelados', 'descartados'],
+  },
+}
+
 interface SetupStatus {
   profile: boolean
   location: boolean
@@ -136,7 +158,9 @@ export default function DashboardPage() {
   const [matchesLoading, setMatchesLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [matchError, setMatchError] = useState<string | null>(null)
+  const [activeGroup, setActiveGroup] = useState<FilterGroup>('pendientes')
   const [activeFilters, setActiveFilters] = useState<Set<FilterCategory>>(() => new Set<FilterCategory>(['disponibles', 'activos']))
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [categoryCounts, setCategoryCounts] = useState<CategoryCounts>({
     disponibles: 0,
     activos: 0,
@@ -263,12 +287,21 @@ export default function DashboardPage() {
     }
   }
 
+  const switchGroup = (group: FilterGroup) => {
+    setActiveGroup(group)
+    setFiltersExpanded(false)
+    // Set all categories in the group as active
+    setActiveFilters(new Set<FilterCategory>(filterGroups[group].categories))
+  }
+
   const toggleFilter = (category: FilterCategory) => {
     setActiveFilters(prev => {
       const newFilters = new Set(prev)
       if (newFilters.has(category)) {
-        // Don't allow deselecting all filters
-        if (newFilters.size > 1) {
+        // Don't allow deselecting all filters within the group
+        const groupCategories = filterGroups[activeGroup].categories
+        const activeInGroup = groupCategories.filter(c => newFilters.has(c))
+        if (activeInGroup.length > 1) {
           newFilters.delete(category)
         }
       } else {
@@ -276,6 +309,11 @@ export default function DashboardPage() {
       }
       return newFilters
     })
+  }
+
+  // Calculate group counts
+  const getGroupCount = (group: FilterGroup) => {
+    return filterGroups[group].categories.reduce((sum, cat) => sum + categoryCounts[cat], 0)
   }
 
   const dismissMatch = async (matchId: string) => {
@@ -547,36 +585,95 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Filter pills */}
-        <div className="flex flex-wrap gap-2">
-          {(Object.entries(filterCategories) as [FilterCategory, typeof filterCategories[FilterCategory]][]).map(([key, config]) => {
-            const Icon = config.icon
-            const isActive = activeFilters.has(key)
-            const count = categoryCounts[key]
+        {/* Simplified filter UI */}
+        <div className="space-y-2">
+          {/* Main toggle + filter button */}
+          <div className="flex items-center gap-2">
+            {/* Group toggle */}
+            <div className="flex items-center bg-gray-800/50 rounded-lg p-1">
+              {(Object.entries(filterGroups) as [FilterGroup, typeof filterGroups[FilterGroup]][]).map(([key, group]) => {
+                const isActive = activeGroup === key
+                const count = getGroupCount(key)
+                const Icon = group.icon
 
-            return (
-              <button
-                key={key}
-                onClick={() => toggleFilter(key)}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
-                  border transition-all duration-200
-                  ${isActive ? config.activeColor : config.inactiveColor}
-                `}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{config.label}</span>
-                {count > 0 && (
-                  <span className={`
-                    ml-1 px-1.5 py-0.5 text-xs rounded-full
-                    ${isActive ? 'bg-white/20' : 'bg-current/10'}
-                  `}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
+                return (
+                  <button
+                    key={key}
+                    onClick={() => switchGroup(key)}
+                    className={`
+                      flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                      ${isActive
+                        ? 'bg-mtg-green-600 text-white'
+                        : 'text-gray-400 hover:text-gray-200'
+                      }
+                    `}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{group.label}</span>
+                    {count > 0 && (
+                      <span className={`
+                        ml-1 px-1.5 py-0.5 text-xs rounded-full
+                        ${isActive ? 'bg-white/20' : 'bg-gray-700'}
+                      `}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Expand filters button */}
+            <button
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                ${filtersExpanded
+                  ? 'bg-gray-700 text-gray-200'
+                  : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/50'
+                }
+              `}
+              title="Filtros detallados"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              {filtersExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+          </div>
+
+          {/* Expanded filter pills */}
+          {filtersExpanded && (
+            <div className="flex flex-wrap gap-2 pl-1 pt-1 pb-1 border-l-2 border-gray-700 ml-2">
+              {filterGroups[activeGroup].categories.map((key) => {
+                const config = filterCategories[key]
+                const Icon = config.icon
+                const isActive = activeFilters.has(key)
+                const count = categoryCounts[key]
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleFilter(key)}
+                    className={`
+                      flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
+                      border transition-all duration-200
+                      ${isActive ? config.activeColor : config.inactiveColor}
+                    `}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{config.label}</span>
+                    {count > 0 && (
+                      <span className={`
+                        ml-1 px-1.5 py-0.5 text-xs rounded-full
+                        ${isActive ? 'bg-white/20' : 'bg-current/10'}
+                      `}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Match error */}
