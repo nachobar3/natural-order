@@ -3,6 +3,7 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development', // Disable in dev to avoid caching issues
+  buildExcludes: [/middleware-manifest\.json$/], // Exclude middleware from PWA
   runtimeCaching: [
     {
       // Cache card images from Scryfall
