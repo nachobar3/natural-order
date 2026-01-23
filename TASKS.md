@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 9/15
+- **Tareas completadas:** 11/15
 
 ---
 
@@ -35,19 +35,19 @@
 
 
 
-### Optimización: Performance
-- [ ] Verificar que queries tienen límites apropiados
-- [ ] Verificar uso de índices en queries frecuentes
-- [ ] Identificar N+1 queries si existen
+### Optimización: Performance ✅
+- [x] Verificar que queries tienen límites apropiados (ver notas)
+- [x] Verificar uso de índices en queries frecuentes (48 índices, bien cubierto)
+- [x] Identificar N+1 queries si existen (ninguno - usa batch fetching)
 
 ### Documentación: API
 - [ ] Documentar endpoints principales en README o archivo separado
 - [ ] Documentar estructura de respuestas
 
-### Cleanup: Technical Debt
-- [ ] Revisar TODOs en el código
-- [ ] Identificar código duplicado
-- [ ] Limpiar imports no usados
+### Cleanup: Technical Debt ✅
+- [x] Revisar TODOs en el código (ninguno encontrado)
+- [x] Identificar código duplicado (ver notas - duplicación estructural en API routes)
+- [x] Limpiar imports no usados (ya limpiados en commit anterior)
 
 ---
 
@@ -155,4 +155,32 @@
   - `/api/matches/[id]/counterpart-collection` - Colección del otro usuario con paginación y búsqueda
 - **Datos consistentes:** match_cards tiene direcciones a_wants/b_wants correctas
 - **Colecciones reales:** 5+ usuarios con colecciones de 64-885 cartas
+
+### 2026-01-23 - Technical Debt Cleanup
+- **TODOs/FIXMEs:** Ninguno encontrado en el código
+- **Imports no usados:** Ya limpiados en commit `7909b20`
+- **ESLint actual:** Solo 6 warnings (useEffect deps + img vs Image), no errores
+- **Duplicación de código identificada (estructural, no crítica):**
+  - Auth + match validation: ~13 API routes repiten el mismo patrón (normal en Next.js API routes)
+  - Perspectiva A/B (isUserA, direction filtering): ~5 archivos
+  - Bulk import logic: `bulk-import/` y `bulk-import-wishlist/` comparten ~80% código
+  - Notificaciones: ~6 instancias similares
+- **Recomendación:** Considerar middleware de auth y helpers para perspectiva en futuras refactorizaciones
+
+### 2026-01-23 - Performance Optimization
+- **Índices:** 48 índices configurados, cubren todas las queries frecuentes
+  - `collections_user_idx`, `wishlist_user_idx` para filtros por usuario
+  - `idx_locations_active` partial index para ubicaciones activas
+  - `matches_user_a_idx`, `matches_user_b_idx` para búsqueda de matches
+  - `match_cards_match_idx` para cartas por match
+- **N+1 Queries:** No hay. Los endpoints usan batch fetching correctamente:
+  - `/api/matches` hace 4 queries batch (matches, users, match_cards, card_prices) + transform en memoria
+  - `/api/matches/compute` carga todos los datos upfront y procesa en memoria
+- **Queries sin límite identificadas (por diseño):**
+  - `/api/matches/compute/route.ts` carga wishlists/collections completas para el algoritmo de matching
+  - `/api/matches/route.ts` carga todos los matches del usuario para calcular category counts
+  - Estas queries son necesarias para la lógica de negocio pero pueden crecer con usuarios activos
+- **Recomendaciones futuras:**
+  - Considerar paginación para `/api/matches` cuando usuarios tengan 100+ matches
+  - Evaluar background jobs para el cálculo de matches cuando la base crezca
 
