@@ -104,7 +104,8 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Strip _index before sending to Scryfall
+        // Strip _index before sending to Scryfall (eslint-disable to allow unused destructured var)
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const scryfallIdentifiers = identifiers.map(({ _index, ...rest }) => rest)
 
         const response = await fetch(`${SCRYFALL_API}/cards/collection`, {
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
         // Scryfall returns cards in same order as identifiers (for found ones)
         // and a not_found array for unfound ones
         const foundCards = data.data || []
-        const notFound = data.not_found || []
+        // data.not_found contains cards that Scryfall couldn't find
 
         // Create a map of found cards by their identifier
         // We need to match them back to original indices

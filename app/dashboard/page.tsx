@@ -10,7 +10,6 @@ import {
   Package,
   Heart,
   Check,
-  ChevronRight,
   ChevronDown,
   ChevronUp,
   Users,
@@ -185,7 +184,8 @@ export default function DashboardPage() {
     collection: false,
     wishlist: false,
   })
-  const [metrics, setMetrics] = useState<Metrics>({
+  // metrics is used to display setup completion status
+  const [, setMetrics] = useState<Metrics>({
     locationName: null,
     collectionCount: 0,
     wishlistCount: 0,

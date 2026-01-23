@@ -70,7 +70,8 @@ export function AddCardModal({
   const [priceFixed, setPriceFixed] = useState<string>('')
   const [notes, setNotes] = useState('')
   const [globalDiscount, setGlobalDiscount] = useState(80)
-  const [priceOverride, setPriceOverride] = useState(false)
+  // priceOverride is set when user explicitly changes the percentage from global default
+  const [, setPriceOverride] = useState(false)
 
   // Wishlist fields
   const [maxPrice, setMaxPrice] = useState<string>('')

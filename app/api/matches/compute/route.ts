@@ -58,13 +58,6 @@ interface CollectionItem {
   }
 }
 
-interface UserLocation {
-  user_id: string
-  latitude: number
-  longitude: number
-  radius_km: number
-}
-
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

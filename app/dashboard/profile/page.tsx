@@ -34,8 +34,9 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
   const [profile, setProfile] = useState<UserType | null>(null)
-  const [location, setLocation] = useState<Location | null>(null)
-  const [preferences, setPreferences] = useState<Preferences | null>(null)
+  // Location and preferences state is set via individual form fields
+  const [, setLocation] = useState<Location | null>(null)
+  const [, setPreferences] = useState<Preferences | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)

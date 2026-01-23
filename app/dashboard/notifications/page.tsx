@@ -12,7 +12,6 @@ import {
   Clock,
   Send,
   Handshake,
-  ThumbsUp,
   ThumbsDown,
 } from 'lucide-react'
 import type { NotificationType } from '@/types/database'

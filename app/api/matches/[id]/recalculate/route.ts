@@ -340,13 +340,7 @@ export async function POST(
       ? [valueIWant, valueTheyWant]
       : [valueTheyWant, valueIWant]
 
-    // Get existing custom cards to preserve them
-    const { data: existingCustomCards } = await supabase
-      .from('match_cards')
-      .select('*')
-      .eq('match_id', matchId)
-      .eq('is_custom', true)
-
+    // Custom cards are preserved by the delete filter below
     // Delete only non-custom match cards (preserve custom ones)
     await supabase
       .from('match_cards')

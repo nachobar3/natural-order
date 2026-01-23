@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Upload, FileText, AlertCircle, CheckCircle2, XCircle, Loader2, ArrowLeft, HelpCircle } from 'lucide-react'
+import { Upload, AlertCircle, CheckCircle2, XCircle, Loader2, ArrowLeft, HelpCircle } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { parseCSV, FORMAT_LABELS, type ParsedCard, type CsvFormat } from '@/lib/csv-parser'
@@ -24,7 +24,8 @@ export default function ImportPage() {
   const [conflictMode, setConflictMode] = useState<ConflictMode>('add')
   const [isMatching, setIsMatching] = useState(false)
   const [matchProgress, setMatchProgress] = useState(0)
-  const [isImporting, setIsImporting] = useState(false)
+  // isImporting is set but read indirectly via step === 'importing'
+  const [, setIsImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
   const [importResults, setImportResults] = useState<{
     total: number

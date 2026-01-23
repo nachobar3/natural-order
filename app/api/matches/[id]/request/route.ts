@@ -132,7 +132,6 @@ export async function DELETE(
       )
     }
 
-    const otherUserId = match.user_a_id === user.id ? match.user_b_id : match.user_a_id
     const isRequester = match.requested_by === user.id
 
     // Update match status back to active
