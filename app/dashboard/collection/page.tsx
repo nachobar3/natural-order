@@ -6,7 +6,7 @@ import { CardSearch } from '@/components/cards/card-search'
 import { AddCardModal } from '@/components/cards/add-card-modal'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { GlobalDiscount } from '@/components/collection/global-discount'
-import { Package, Loader2, Trash2, Edit2, Plus, LayoutGrid, List, Upload } from 'lucide-react'
+import { Package, Loader2, Trash2, Edit2, LayoutGrid, List, Upload } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { CollectionWithCard, CardCondition } from '@/types/database'
@@ -52,8 +52,21 @@ export default function CollectionPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<CollectionWithCard | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [minimumPrice, setMinimumPrice] = useState(0)
 
   const supabase = createClient()
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      const res = await fetch('/api/preferences/global-discount')
+      if (res.ok) {
+        const data = await res.json()
+        setMinimumPrice(data.minimumPrice ?? 0)
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error)
+    }
+  }, [])
 
   const loadCollection = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -76,7 +89,8 @@ export default function CollectionPage() {
 
   useEffect(() => {
     loadCollection()
-  }, [loadCollection])
+    loadPreferences()
+  }, [loadCollection, loadPreferences])
 
   const handleCardSelect = (card: CardSearchResult) => {
     setSelectedCard(card)
@@ -142,23 +156,31 @@ export default function CollectionPage() {
     triggerMatchRecalculation()
   }
 
-  const calculatePrice = (item: CollectionWithCard) => {
+  const calculatePrice = (item: CollectionWithCard): { final: number | null; reference: number | null } => {
     const basePrice = item.foil
       ? item.cards.prices_usd_foil
       : item.cards.prices_usd
 
-    if (!basePrice) return null
+    if (!basePrice) return { final: null, reference: null }
 
+    const reference = basePrice
+
+    let final: number
     if (item.price_mode === 'fixed' && item.price_fixed) {
-      return item.price_fixed
+      // Fixed price: do NOT apply minimum (user's explicit decision)
+      final = item.price_fixed
+    } else {
+      // Percentage mode: apply minimum
+      final = (basePrice * item.price_percentage) / 100
+      final = Math.max(final, minimumPrice)
     }
 
-    return (basePrice * item.price_percentage) / 100
+    return { final, reference }
   }
 
   const totalValue = collection.reduce((sum, item) => {
-    const price = calculatePrice(item)
-    return sum + (price ? price * item.quantity : 0)
+    const { final } = calculatePrice(item)
+    return sum + (final ? final * item.quantity : 0)
   }, 0)
 
   if (loading) {
@@ -218,18 +240,16 @@ export default function CollectionPage() {
       </div>
 
       {/* Global discount */}
-      <GlobalDiscount onApplyAll={loadCollection} />
+      <GlobalDiscount
+        onApplyAll={loadCollection}
+        onSettingsChange={(settings) => setMinimumPrice(settings.minimumPrice)}
+      />
 
       {/* Search */}
       <div className="card overflow-visible relative z-20">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-mtg-green-600/20">
-            <Plus className="w-5 h-5 text-mtg-green-400" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-100">Agregar carta</h2>
-            <p className="text-sm text-gray-400">Buscá una carta para agregarla a tu colección</p>
-          </div>
+        <div className="mb-3">
+          <h2 className="text-sm font-medium text-gray-200">Agregar carta</h2>
+          <p className="text-xs text-gray-500">Buscá una carta para agregarla a tu colección</p>
         </div>
         <CardSearch onSelect={handleCardSelect} placeholder="Buscar carta para agregar..." />
       </div>
@@ -249,7 +269,7 @@ export default function CollectionPage() {
         /* Binder View - Grid of cards */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 relative z-10">
           {collection.map((item) => {
-            const price = calculatePrice(item)
+            const { final, reference } = calculatePrice(item)
             return (
               <div
                 key={item.id}
@@ -308,11 +328,18 @@ export default function CollectionPage() {
                   <p className="text-xs text-gray-500 truncate">
                     {item.cards.set_code.toUpperCase()} • {conditionLabels[item.condition]}
                   </p>
-                  <div className="flex items-center justify-between mt-1">
-                    {price ? (
-                      <span className="text-sm font-medium text-mtg-green-400">
-                        ${(price * item.quantity).toFixed(2)}
-                      </span>
+                  <div className="flex items-baseline justify-between mt-1">
+                    {final ? (
+                      <>
+                        <span className="text-sm font-medium text-mtg-green-400">
+                          ${(final * item.quantity).toFixed(2)}
+                        </span>
+                        {reference && (
+                          <span className="text-xs text-gray-500">
+                            ${reference.toFixed(2)}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="text-xs text-gray-500">-</span>
                     )}
@@ -326,7 +353,7 @@ export default function CollectionPage() {
         /* List View */
         <div className="grid gap-4 relative z-10">
           {collection.map((item) => {
-            const price = calculatePrice(item)
+            const { final, reference } = calculatePrice(item)
             return (
               <div
                 key={item.id}
@@ -372,17 +399,19 @@ export default function CollectionPage() {
 
                 {/* Price */}
                 <div className="text-right flex-shrink-0">
-                  {price ? (
+                  {final ? (
                     <>
                       <p className="font-medium text-mtg-green-400">
-                        ${(price * item.quantity).toFixed(2)}
+                        ${(final * item.quantity).toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        ${price.toFixed(2)} c/u
-                      </p>
+                      {reference && (
+                        <p className="text-xs text-gray-500">
+                          ${reference.toFixed(2)} CK
+                        </p>
+                      )}
                       {item.price_mode === 'percentage' && (
                         <p className="text-xs text-gray-500">
-                          {item.price_percentage}% CK
+                          {item.price_percentage}%
                         </p>
                       )}
                     </>

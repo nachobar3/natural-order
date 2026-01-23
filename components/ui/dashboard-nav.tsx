@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Home,
+  ArrowRightLeft,
   User,
   LogOut,
   Package,
@@ -17,7 +17,7 @@ import {
 import type { User as UserType } from '@/types/database'
 
 const navItems = [
-  { href: '/dashboard', label: 'Trades', icon: Home },
+  { href: '/dashboard', label: 'Trades', icon: ArrowRightLeft },
   { href: '/dashboard/collection', label: 'Colección', icon: Package },
   { href: '/dashboard/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/dashboard/profile', label: 'Perfil', icon: User },

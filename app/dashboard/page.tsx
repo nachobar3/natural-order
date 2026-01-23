@@ -137,7 +137,6 @@ export default function DashboardPage() {
   const supabase = createClient()
 
   const [loading, setLoading] = useState(true)
-  const [displayName, setDisplayName] = useState('')
   const [setupExpanded, setSetupExpanded] = useState(true)
   const [setupStatus, setSetupStatus] = useState<SetupStatus>({
     profile: false,
@@ -186,8 +185,6 @@ export default function DashboardPage() {
         .select('display_name')
         .eq('id', user.id)
         .single()
-
-      setDisplayName(profile?.display_name || 'Usuario')
 
       // Load location
       const { data: location } = await supabase
@@ -372,18 +369,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-100">
-          ¡Hola, {displayName}!
-        </h1>
-        <p className="text-gray-400 mt-1">
-          {isFullySetup
-            ? 'Tu perfil está completo. ¡Buscá trades!'
-            : 'Completá tu perfil para empezar a encontrar trades'}
-        </p>
-      </div>
-
       {/* Setup checklist - Only show if not complete */}
       {!isFullySetup && (
         <div className="card">

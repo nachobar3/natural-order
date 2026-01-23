@@ -13,7 +13,7 @@ export async function GET() {
 
     const { data: preferences, error } = await supabase
       .from('preferences')
-      .select('default_price_percentage')
+      .select('default_price_percentage, minimum_price')
       .eq('user_id', user.id)
       .single()
 
@@ -22,10 +22,11 @@ export async function GET() {
       return NextResponse.json({ error: 'Error al obtener preferencias' }, { status: 500 })
     }
 
-    // Default to 80% if no preference set
+    // Default to 80% if no preference set, 0 for minimum price
     const percentage = preferences?.default_price_percentage ?? 80
+    const minimumPrice = preferences?.minimum_price ?? 0
 
-    return NextResponse.json({ percentage })
+    return NextResponse.json({ percentage, minimumPrice })
   } catch (error) {
     console.error('Global discount GET error:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
@@ -42,7 +43,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { percentage } = await request.json()
+    const { percentage, minimumPrice } = await request.json()
 
     if (typeof percentage !== 'number' || percentage < 1 || percentage > 200) {
       return NextResponse.json(
@@ -51,13 +52,26 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    if (minimumPrice !== undefined && (typeof minimumPrice !== 'number' || minimumPrice < 0)) {
+      return NextResponse.json(
+        { error: 'El precio mínimo debe ser mayor o igual a 0' },
+        { status: 400 }
+      )
+    }
+
     // Upsert preferences
+    const updateData: Record<string, unknown> = {
+      user_id: user.id,
+      default_price_percentage: percentage,
+    }
+
+    if (minimumPrice !== undefined) {
+      updateData.minimum_price = minimumPrice
+    }
+
     const { error } = await supabase
       .from('preferences')
-      .upsert({
-        user_id: user.id,
-        default_price_percentage: percentage,
-      }, {
+      .upsert(updateData, {
         onConflict: 'user_id',
       })
 
@@ -66,7 +80,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Error al actualizar preferencias' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, percentage })
+    return NextResponse.json({ success: true, percentage, minimumPrice })
   } catch (error) {
     console.error('Global discount PUT error:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
