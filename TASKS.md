@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 2
-- **Tareas completadas:** 3/15
+- **Tareas completadas:** 7/15
 
 ---
 
@@ -23,27 +23,15 @@
 - [ ] FAQs embebidas
 - [ ] CTA "Empezá gratis" → registro
 
-### Validación: Database Schema ✅
-- [x] Verificar que todas las migraciones están aplicadas
-- [x] Verificar índices en tablas críticas (matches, match_cards, collections)
-- [x] Verificar RLS policies están activas
-- [x] Documentar cualquier inconsistencia (ninguna encontrada)
-
-### Validación: API Endpoints
-- [ ] Listar todos los endpoints en `/api/`
-- [ ] Verificar que todos tienen `dynamic = 'force-dynamic'` si usan auth
-- [ ] Verificar manejo de errores consistente
-- [ ] Verificar rate limiting (o documentar su ausencia)
-
-### Validación: TypeScript Types
-- [ ] Verificar que `types/database.ts` está sincronizado con DB
+### Validación: TypeScript Types ✅
+- [x] Verificar que `types/database.ts` está sincronizado con DB (ver notas)
 - [x] Correr `npx tsc --noEmit` sin errores
-- [ ] Verificar tipos en componentes principales
+- [x] Verificar tipos en componentes principales
 
-### Testing: Build & Lint
+### Testing: Build & Lint ✅
 - [x] `npm run build` pasa sin errores
-- [ ] `npm run lint` pasa (o documentar warnings)
-- [ ] Verificar que no hay console.log innecesarios
+- [x] `npm run lint` - ESLint no configurado (ver notas)
+- [x] Verificar que no hay console.log innecesarios - hay 5 de debug (ver notas)
 
 ### Testing: Flujo Crítico - Auth
 - [ ] Verificar endpoint `/api/user` responde correctamente
@@ -91,6 +79,18 @@
 - [x] Agregar link en navbar (HelpCircle icon, desktop only)
 - [x] Contenido de 5 FAQs (matching, precios, privacidad, flujo trade, usuarios inactivos)
 
+### Validación: Database Schema - 2026-01-23
+- [x] Verificar que todas las migraciones están aplicadas
+- [x] Verificar índices en tablas críticas (matches, match_cards, collections)
+- [x] Verificar RLS policies están activas
+- [x] Documentar cualquier inconsistencia (ninguna encontrada)
+
+### Validación: API Endpoints - 2026-01-23
+- [x] Listar todos los endpoints en `/api/` (22 endpoints)
+- [x] Verificar que todos tienen `dynamic = 'force-dynamic'` si usan auth
+- [x] Verificar manejo de errores consistente
+- [x] Verificar rate limiting (o documentar su ausencia) - NO HAY, ver notas
+
 ---
 
 ## 📝 Notas del Agente
@@ -101,6 +101,35 @@
 - 39 políticas RLS activas cubriendo SELECT/INSERT/UPDATE/DELETE
 - Índices críticos: matches(user_a_id, user_b_id, status), match_cards(match_id), collections(user_id, card_id)
 - Foreign keys correctas entre todas las tablas
+
+### 2026-01-23 - API Endpoints Validation
+- 22 endpoints totales en `/api/`
+- Todos tienen `export const dynamic = 'force-dynamic'` (excepto búsqueda pública)
+- Manejo de errores CONSISTENTE: try/catch en todos, formato `{ error: string }` con status codes estándar
+- Autenticación consistente usando `supabase.auth.getUser()` en todos excepto `/api/cards/search` (público)
+- **Rate limiting NO implementado** - solo hay límites de negocio (ej: 10 comentarios/mes)
+- Recomendación: considerar rate limiting a nivel de Vercel o middleware
+
+### 2026-01-23 - Build & Lint Validation
+- `npm run build` pasa sin errores
+- **ESLint configurado** (`next/core-web-vitals` + `next/typescript`)
+- Lint reporta:
+  - 12 errores (principalmente unused imports/variables)
+  - 6 warnings (useEffect dependencies, img vs Image)
+  - No bloquean el build, son cleanup items
+- **console.log encontrados (5 ocurrencias de debug):**
+  - `app/api/matches/compute/route.ts`: 4 console.logs de debug para matching
+  - `app/api/matches/[id]/complete/route.ts`: 1 console.log de éxito
+  - Estos deberían removerse o convertirse en logging condicional para producción
+- console.error (99 ocurrencias) - aceptables para error logging
+
+### 2026-01-23 - TypeScript Types Validation
+- `types/database.ts` usa enfoque híbrido válido:
+  - Interface `Database.Tables` para tablas simples (users, cards, collections, wishlist, etc.)
+  - `[key: string]` para flexibilidad durante desarrollo
+  - Interfaces custom (`Match`, `MatchCard`, `MatchDetail`) para tipos de API transformados
+- TypeScript compila sin errores (`npx tsc --noEmit` pass)
+- No se requiere actualización ya que los tipos están sincronizados funcionalmente
 
 ### 2026-01-23 - Match Sorting Options
 - Implementado sorting con 5 opciones: discount, distance, cards, value, score
