@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET - Get current user info
 export async function GET() {
   try {
