@@ -13,6 +13,7 @@ import {
   Heart,
   Bell,
   MapPin,
+  HelpCircle,
 } from 'lucide-react'
 import type { User as UserType } from '@/types/database'
 
@@ -94,6 +95,7 @@ export function DashboardNav({ user }: { user: UserType | null }) {
   }
 
   const isNotificationsActive = pathname === '/dashboard/notifications'
+  const isFAQsActive = pathname === '/dashboard/faqs'
 
   return (
     <nav className="bg-mtg-dark/80 border-b border-mtg-green-900/30 backdrop-blur-sm sticky top-0 z-50">
@@ -141,6 +143,19 @@ export function DashboardNav({ user }: { user: UserType | null }) {
 
           {/* User menu */}
           <div className="flex items-center gap-2">
+            {/* FAQs link */}
+            <Link
+              href="/dashboard/faqs"
+              className={`hidden md:flex p-2 rounded-lg transition-colors ${
+                isFAQsActive
+                  ? 'bg-mtg-green-600/20 text-mtg-green-400'
+                  : 'text-gray-400 hover:bg-mtg-green-900/20 hover:text-gray-200'
+              }`}
+              title="Preguntas frecuentes"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </Link>
+
             {/* Notifications bell */}
             <Link
               href="/dashboard/notifications"
