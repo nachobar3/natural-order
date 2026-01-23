@@ -3,8 +3,8 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-23
-- **Iteración actual:** 2
-- **Tareas completadas:** 7/15
+- **Iteración actual:** 3
+- **Tareas completadas:** 8/15
 
 ---
 
@@ -33,10 +33,6 @@
 - [x] `npm run lint` - ESLint no configurado (ver notas)
 - [x] Verificar que no hay console.log innecesarios - hay 5 de debug (ver notas)
 
-### Testing: Flujo Crítico - Auth
-- [ ] Verificar endpoint `/api/user` responde correctamente
-- [ ] Verificar middleware de auth funciona
-- [ ] Verificar redirect a login para rutas protegidas
 
 ### Testing: Flujo Crítico - Matches
 - [ ] Verificar `/api/matches` retorna datos correctos
@@ -91,6 +87,11 @@
 - [x] Verificar manejo de errores consistente
 - [x] Verificar rate limiting (o documentar su ausencia) - NO HAY, ver notas
 
+### Testing: Flujo Crítico - Auth - 2026-01-23
+- [x] Verificar endpoint `/api/user` responde correctamente (401 sin auth)
+- [x] Verificar middleware de auth funciona (redirect con redirectTo)
+- [x] Verificar redirect a login para rutas protegidas (todas las /dashboard/* → 307)
+
 ---
 
 ## 📝 Notas del Agente
@@ -137,4 +138,11 @@
 - El sorting aplica lógica especial: activos (contacted/requested) siempre primero, historial ordena por `updated_at`
 - El dropdown solo aparece en vista "Pendientes" ya que historial tiene orden fijo
 - Agregado campo `avgDiscountPercent` al tipo `Match` en `types/database.ts`
+
+### 2026-01-23 - Auth Flow Testing
+- **Endpoint `/api/user`:** Retorna 401 `{"error":"No autenticado"}` sin sesión (correcto)
+- **Middleware:** Redirige `/dashboard/*` a `/login?redirectTo=...` con status 307 (correcto)
+- **Rutas protegidas verificadas:** /dashboard, /collection, /wishlist, /profile, /notifications, /matches/[id]
+- **Login page:** Lee `redirectTo` de searchParams y redirige post-login (incluyendo OAuth con Google)
+- **Auth pages:** `/login` y `/register` muestran correctamente sin redirect cuando no hay sesión
 
