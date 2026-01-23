@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { ScryfallCard } from '@/types/database'
 
+export const dynamic = 'force-dynamic'
+
 const SCRYFALL_API = 'https://api.scryfall.com'
 
 export async function GET(request: NextRequest) {

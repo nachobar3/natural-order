@@ -9,6 +9,8 @@ import {
   calculateAskingPrice,
 } from '@/lib/matching'
 
+export const dynamic = 'force-dynamic'
+
 interface WishlistItem {
   id: string
   user_id: string

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 const ESCROW_DAYS = 15
 
 // POST - Confirm a trade (moves to escrow)

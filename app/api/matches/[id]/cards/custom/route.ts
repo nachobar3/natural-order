@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 // POST - Add a custom card from counterpart's collection to the trade
 export async function POST(
   request: NextRequest,

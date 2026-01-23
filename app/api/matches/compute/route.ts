@@ -9,6 +9,8 @@ import {
   calculateAskingPrice,
 } from '@/lib/matching'
 
+export const dynamic = 'force-dynamic'
+
 const DEFAULT_RADIUS_KM = 25
 
 interface WishlistItem {
