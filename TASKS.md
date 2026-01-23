@@ -3,18 +3,12 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-23
-- **Iteración actual:** 1
-- **Tareas completadas:** 1/15
+- **Iteración actual:** 2
+- **Tareas completadas:** 3/15
 
 ---
 
 ## 🔴 Pendientes
-
-### Feature: FAQs Section (HIGH)
-- [ ] Crear página `/app/dashboard/faqs/page.tsx`
-- [ ] Componente accordion para FAQs expandibles
-- [ ] Agregar link en navbar o perfil
-- [ ] Contenido de 5 FAQs según MVP_ARCHITECTURE.md
 
 ### Feature: PWA Install Prompt (MEDIUM)
 - [ ] Hook `useInstallPrompt` para detectar plataforma
@@ -29,11 +23,11 @@
 - [ ] FAQs embebidas
 - [ ] CTA "Empezá gratis" → registro
 
-### Validación: Database Schema
-- [ ] Verificar que todas las migraciones están aplicadas
-- [ ] Verificar índices en tablas críticas (matches, match_cards, collections)
-- [ ] Verificar RLS policies están activas
-- [ ] Documentar cualquier inconsistencia
+### Validación: Database Schema ✅
+- [x] Verificar que todas las migraciones están aplicadas
+- [x] Verificar índices en tablas críticas (matches, match_cards, collections)
+- [x] Verificar RLS policies están activas
+- [x] Documentar cualquier inconsistencia (ninguna encontrada)
 
 ### Validación: API Endpoints
 - [ ] Listar todos los endpoints en `/api/`
@@ -91,9 +85,22 @@
 - [x] UI: Dropdown de sorting en dashboard (precio/distancia/cartas/valor)
 - [x] Verificar que sorting funciona correctamente (build + tsc pass)
 
+### Feature: FAQs Section (HIGH) - 2026-01-23
+- [x] Crear página `/app/dashboard/faqs/page.tsx`
+- [x] Componente accordion para FAQs expandibles
+- [x] Agregar link en navbar (HelpCircle icon, desktop only)
+- [x] Contenido de 5 FAQs (matching, precios, privacidad, flujo trade, usuarios inactivos)
+
 ---
 
 ## 📝 Notas del Agente
+
+### 2026-01-23 - Database Schema Validation
+- 48 índices verificados en todas las tablas
+- RLS habilitado en todas las tablas (excepto spatial_ref_sys que es de PostGIS)
+- 39 políticas RLS activas cubriendo SELECT/INSERT/UPDATE/DELETE
+- Índices críticos: matches(user_a_id, user_b_id, status), match_cards(match_id), collections(user_id, card_id)
+- Foreign keys correctas entre todas las tablas
 
 ### 2026-01-23 - Match Sorting Options
 - Implementado sorting con 5 opciones: discount, distance, cards, value, score
