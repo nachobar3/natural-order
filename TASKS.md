@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 11/15
+- **Tareas completadas:** 12/15
 
 ---
 
@@ -16,12 +16,12 @@
 - [ ] localStorage para tracking de dismissal (10 días)
 - [ ] Solo mostrar en mobile después de login
 
-### Feature: Landing Page (MEDIUM)
-- [ ] Crear página `/app/page.tsx` para usuarios no logueados
-- [ ] Hero section con propuesta de valor
-- [ ] Sección "Cómo funciona" (3 pasos)
-- [ ] FAQs embebidas
-- [ ] CTA "Empezá gratis" → registro
+### Feature: Landing Page (MEDIUM) ✅
+- [x] Crear página `/app/page.tsx` para usuarios no logueados
+- [x] Hero section con propuesta de valor
+- [x] Sección "Cómo funciona" (3 pasos)
+- [x] FAQs embebidas (4 preguntas con acordeón usando `<details>`)
+- [x] CTA "Empezá gratis" → registro (múltiples CTAs en hero y final)
 
 ### Validación: TypeScript Types ✅
 - [x] Verificar que `types/database.ts` está sincronizado con DB (ver notas)
@@ -183,4 +183,20 @@
 - **Recomendaciones futuras:**
   - Considerar paginación para `/api/matches` cuando usuarios tengan 100+ matches
   - Evaluar background jobs para el cálculo de matches cuando la base crezca
+
+### 2026-01-23 - Landing Page Implementation
+- **Implementación completa** de landing page para usuarios no logueados
+- **Secciones:**
+  - Hero: Logo, título con gradiente dorado, propuesta de valor, CTAs
+  - Cómo funciona: 3 pasos (Armá perfil → Configurá zona → Hacé trades)
+  - Features highlights: Instantáneo, Seguro, Comunidad
+  - FAQs: 4 preguntas con acordeón nativo `<details>` (sin JS adicional)
+  - CTA final: Card destacado con llamada a registro
+  - Footer: Logo y copyright
+- **Características técnicas:**
+  - Server component con check de auth (redirect a dashboard si logueado)
+  - Usa componentes y estilos existentes (card, btn-primary, badge-green, etc.)
+  - Responsive (mobile-first)
+  - Animaciones existentes (animate-fade-in, animate-bounce)
+  - Build y TypeScript pasan sin errores
 
