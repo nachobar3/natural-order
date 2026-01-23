@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 8/15
+- **Tareas completadas:** 9/15
 
 ---
 
@@ -34,10 +34,6 @@
 - [x] Verificar que no hay console.log innecesarios - hay 5 de debug (ver notas)
 
 
-### Testing: Flujo Crítico - Matches
-- [ ] Verificar `/api/matches` retorna datos correctos
-- [ ] Verificar `/api/matches/[id]` con match real
-- [ ] Verificar `/api/matches/[id]/counterpart-collection` funciona
 
 ### Optimización: Performance
 - [ ] Verificar que queries tienen límites apropiados
@@ -92,6 +88,11 @@
 - [x] Verificar middleware de auth funciona (redirect con redirectTo)
 - [x] Verificar redirect a login para rutas protegidas (todas las /dashboard/* → 307)
 
+### Testing: Flujo Crítico - Matches - 2026-01-23
+- [x] Verificar `/api/matches` retorna datos correctos (401 sin auth, estructura con sorting/counts)
+- [x] Verificar `/api/matches/[id]` con match real (estructura completa con cardsIWant/cardsTheyWant)
+- [x] Verificar `/api/matches/[id]/counterpart-collection` funciona (paginación y búsqueda)
+
 ---
 
 ## 📝 Notas del Agente
@@ -145,4 +146,13 @@
 - **Rutas protegidas verificadas:** /dashboard, /collection, /wishlist, /profile, /notifications, /matches/[id]
 - **Login page:** Lee `redirectTo` de searchParams y redirige post-login (incluyendo OAuth con Google)
 - **Auth pages:** `/login` y `/register` muestran correctamente sin redirect cuando no hay sesión
+
+### 2026-01-23 - Matches Flow Testing
+- **DB Status:** 19 matches totales (12 active, 3 requested, 2 confirmed, 2 completed)
+- **Endpoints verificados (todos retornan 401 sin auth):**
+  - `/api/matches` - Lista con sorting (score/discount/distance/cards/value) y category counts
+  - `/api/matches/[id]` - Detalle completo con cardsIWant/cardsTheyWant y perspective-aware fields
+  - `/api/matches/[id]/counterpart-collection` - Colección del otro usuario con paginación y búsqueda
+- **Datos consistentes:** match_cards tiene direcciones a_wants/b_wants correctas
+- **Colecciones reales:** 5+ usuarios con colecciones de 64-885 cartas
 
