@@ -30,7 +30,11 @@ import {
   ThumbsDown,
   MessageCircle,
   Edit2,
+  Eye,
+  Trash2,
+  Sparkles,
 } from 'lucide-react'
+import { CounterpartCollectionDrawer } from '@/components/matches/counterpart-collection-drawer'
 import { LocationMap } from '@/components/ui/location-map'
 import type { MatchDetail, MatchCard, MatchType, MatchStatus } from '@/types/database'
 
@@ -69,10 +73,15 @@ interface CardItemProps {
   card: MatchCard
   isExcluded: boolean
   onToggleExclude: (cardId: string) => void
+  onDeleteCustom?: (cardId: string) => void
   disabled?: boolean
+  canDelete?: boolean
+  currentUserId?: string
 }
 
-function CardItem({ card, isExcluded, onToggleExclude, disabled }: CardItemProps) {
+function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
+  const isMyCustomCard = card.isCustom && card.addedByUserId === currentUserId
+
   return (
     <div
       className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
@@ -80,26 +89,43 @@ function CardItem({ card, isExcluded, onToggleExclude, disabled }: CardItemProps
           ? 'bg-gray-900/20 opacity-50'
           : card.priceExceedsMax
             ? 'bg-gray-900/30 border border-yellow-500/30'
-            : 'bg-gray-900/30'
+            : card.isCustom
+              ? 'bg-purple-900/10 border border-purple-500/20'
+              : 'bg-gray-900/30'
       }`}
     >
-      {/* Exclude/Include button */}
-      <button
-        onClick={() => onToggleExclude(card.id)}
-        disabled={disabled}
-        className={`p-1.5 rounded-full transition-colors flex-shrink-0 ${
-          isExcluded
-            ? 'bg-gray-700 hover:bg-gray-600 text-gray-400'
-            : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
-        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
-      >
-        {isExcluded ? (
-          <Check className="w-3.5 h-3.5" />
-        ) : (
-          <X className="w-3.5 h-3.5" />
+      {/* Action buttons */}
+      <div className="flex flex-col gap-1 flex-shrink-0">
+        {/* Exclude/Include button */}
+        <button
+          onClick={() => onToggleExclude(card.id)}
+          disabled={disabled}
+          className={`p-1.5 rounded-full transition-colors ${
+            isExcluded
+              ? 'bg-gray-700 hover:bg-gray-600 text-gray-400'
+              : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
+        >
+          {isExcluded ? (
+            <Check className="w-3.5 h-3.5" />
+          ) : (
+            <X className="w-3.5 h-3.5" />
+          )}
+        </button>
+
+        {/* Delete button for custom cards */}
+        {canDelete && isMyCustomCard && onDeleteCustom && (
+          <button
+            onClick={() => onDeleteCustom(card.id)}
+            disabled={disabled}
+            className="p-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors disabled:opacity-50"
+            title="Eliminar carta agregada manualmente"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Card image */}
       {card.cardImageUri ? (
@@ -118,9 +144,17 @@ function CardItem({ card, isExcluded, onToggleExclude, disabled }: CardItemProps
 
       {/* Card info */}
       <div className="flex-1 min-w-0">
-        <h4 className={`text-sm font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
-          {card.cardName}
-        </h4>
+        <div className="flex items-center gap-1.5">
+          <h4 className={`text-sm font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+            {card.cardName}
+          </h4>
+          {card.isCustom && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 flex-shrink-0" title="Agregado manualmente">
+              <Sparkles className="w-2.5 h-2.5" />
+              Manual
+            </span>
+          )}
+        </div>
         <p className="text-xs text-gray-500">
           {card.cardSetCode.toUpperCase()} • {card.condition}
           {card.isFoil && <span className="text-purple-400 ml-1">✨</span>}
@@ -311,6 +345,23 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   const [maxComments, setMaxComments] = useState(10)
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Get current user ID
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/user')
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentUserId(data.id)
+      }
+    } catch (err) {
+      console.error('Error fetching current user:', err)
+    }
+  }, [])
+
   const loadMatch = useCallback(async () => {
     try {
       const res = await fetch(`/api/matches/${id}`)
@@ -492,6 +543,25 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     }
   }
 
+  const deleteCustomCard = async (cardId: string) => {
+    setActionLoading(`delete-${cardId}`)
+    try {
+      const res = await fetch(`/api/matches/${id}/cards/${cardId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        await loadMatch()
+      } else {
+        const data = await res.json()
+        console.error('Error deleting card:', data.error)
+      }
+    } catch (err) {
+      console.error('Error deleting custom card:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   // Comment actions
   const sendComment = async () => {
     if (!newComment.trim() || sendingComment) return
@@ -535,7 +605,8 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     loadMatch()
     loadComments()
-  }, [loadMatch, loadComments])
+    fetchCurrentUser()
+  }, [loadMatch, loadComments, fetchCurrentUser])
 
   // Calculate totals based on local exclusions
   const { activeCardsIWant, activeCardsTheyWant, totalValueIWant, totalValueTheyWant } = useMemo(() => {
@@ -839,14 +910,37 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         {/* Cards I want (they have) */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">Cartas que querés</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">Cartas que querés</h2>
+              {canEdit && (
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-gray-100 flex items-center gap-1 transition-colors"
+                  title="Ver colección completa del otro usuario"
+                >
+                  <Eye className="w-3 h-3" />
+                  Ver colección
+                </button>
+              )}
+            </div>
             <span className="text-xs text-gray-500">
               {activeCardsIWant.length}/{match.cardsIWant.length} carta{match.cardsIWant.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {match.cardsIWant.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No tiene cartas de tu wishlist</p>
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-500 mb-2">No tiene cartas de tu wishlist</p>
+              {canEdit && (
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="text-xs px-3 py-1.5 rounded bg-mtg-green-600 hover:bg-mtg-green-500 text-white flex items-center gap-1 mx-auto transition-colors"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Explorar su colección
+                </button>
+              )}
+            </div>
           ) : (
             <div className="space-y-2">
               {match.cardsIWant.map((card) => (
@@ -855,7 +949,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   card={card}
                   isExcluded={localExclusions.has(card.id)}
                   onToggleExclude={toggleCardExclusion}
+                  onDeleteCustom={deleteCustomCard}
                   disabled={!canEdit}
+                  canDelete={canEdit}
+                  currentUserId={currentUserId || undefined}
                 />
               ))}
             </div>
@@ -887,7 +984,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   card={card}
                   isExcluded={localExclusions.has(card.id)}
                   onToggleExclude={toggleCardExclusion}
+                  onDeleteCustom={deleteCustomCard}
                   disabled={!canEdit}
+                  canDelete={canEdit}
+                  currentUserId={currentUserId || undefined}
                 />
               ))}
             </div>
@@ -1027,6 +1127,15 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           />
         </div>
       )}
+
+      {/* Counterpart Collection Drawer */}
+      <CounterpartCollectionDrawer
+        matchId={id}
+        otherUserName={match.otherUser.displayName}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCardAdded={loadMatch}
+      />
     </div>
   )
 }

@@ -126,6 +126,8 @@ export async function GET(
         quantityAvailable: c.quantity_available,
         quantityWanted: c.quantity_wanted,
         isExcluded: c.is_excluded || false,
+        isCustom: c.is_custom || false,
+        addedByUserId: c.added_by_user_id || null,
       })),
 
       cardsTheyWant: cardsTheyWant.map(c => ({
@@ -143,6 +145,8 @@ export async function GET(
         quantityAvailable: c.quantity_available,
         quantityWanted: c.quantity_wanted,
         isExcluded: c.is_excluded || false,
+        isCustom: c.is_custom || false,
+        addedByUserId: c.added_by_user_id || null,
       })),
 
       // Totals based on active (non-excluded) cards

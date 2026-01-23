@@ -221,12 +221,44 @@ export async function POST(
       }
     }
 
-    // If no matches found, we could delete the match or keep it empty
-    if (cardsIWant.length === 0 && cardsTheyWant.length === 0) {
-      // Delete existing match cards and reset the match
-      await supabase.from('match_cards').delete().eq('match_id', matchId)
+    // Get existing custom cards count for the response
+    const { data: existingCustomCardsCheck } = await supabase
+      .from('match_cards')
+      .select('id, direction, is_custom')
+      .eq('match_id', matchId)
+      .eq('is_custom', true)
 
-      // Update match to reflect no cards
+    const customCardsCount = existingCustomCardsCheck?.length || 0
+
+    // If no wishlist matches found but there might be custom cards
+    if (cardsIWant.length === 0 && cardsTheyWant.length === 0) {
+      // Delete only non-custom match cards
+      await supabase
+        .from('match_cards')
+        .delete()
+        .eq('match_id', matchId)
+        .eq('is_custom', false)
+
+      // If there are custom cards, keep the match active
+      if (customCardsCount > 0) {
+        await supabase
+          .from('matches')
+          .update({
+            is_user_modified: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', matchId)
+
+        return NextResponse.json({
+          success: true,
+          message: 'No hay coincidencias de wishlist, pero hay cartas agregadas manualmente',
+          cardsIWant: 0,
+          cardsTheyWant: 0,
+          customCardsPreserved: customCardsCount,
+        })
+      }
+
+      // No custom cards either - update match to reflect no cards
       await supabase
         .from('matches')
         .update({
@@ -306,8 +338,19 @@ export async function POST(
       ? [valueIWant, valueTheyWant]
       : [valueTheyWant, valueIWant]
 
-    // Delete existing match cards
-    await supabase.from('match_cards').delete().eq('match_id', matchId)
+    // Get existing custom cards to preserve them
+    const { data: existingCustomCards } = await supabase
+      .from('match_cards')
+      .select('*')
+      .eq('match_id', matchId)
+      .eq('is_custom', true)
+
+    // Delete only non-custom match cards (preserve custom ones)
+    await supabase
+      .from('match_cards')
+      .delete()
+      .eq('match_id', matchId)
+      .eq('is_custom', false)
 
     // Update match
     await supabase

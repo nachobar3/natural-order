@@ -84,6 +84,7 @@ export interface Database {
           notify_new_matches: boolean
           notify_messages: boolean
           default_price_percentage: number
+          minimum_price: number
           created_at: string
         }
         Insert: {
@@ -95,6 +96,7 @@ export interface Database {
           notify_new_matches?: boolean
           notify_messages?: boolean
           default_price_percentage?: number
+          minimum_price?: number
           created_at?: string
         }
         Update: {
@@ -106,6 +108,7 @@ export interface Database {
           notify_new_matches?: boolean
           notify_messages?: boolean
           default_price_percentage?: number
+          minimum_price?: number
           created_at?: string
         }
       }
@@ -437,6 +440,8 @@ export interface MatchCard {
   quantityAvailable: number
   quantityWanted: number
   isExcluded: boolean
+  isCustom: boolean
+  addedByUserId: string | null
 }
 
 export interface MatchDetail extends Omit<Match, 'cardsIWant' | 'cardsTheyWant' | 'valueIWant' | 'valueTheyWant' | 'updatedAt' | 'otherUser'> {
