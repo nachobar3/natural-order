@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const statusParam = searchParams.get('status')
     const includeCounts = searchParams.get('counts') === 'true'
+    const sortBy = searchParams.get('sort_by') || 'score' // score, distance, cards, value, discount
 
     // Support multiple statuses via comma-separated values
     const statuses = statusParam ? statusParam.split(',') : ['active']
@@ -80,9 +81,18 @@ export async function GET(request: NextRequest) {
     // Fetch match_cards for all matches
     const { data: matchCards } = await supabase
       .from('match_cards')
-      .select('match_id, card_name, card_set_code, asking_price, direction')
+      .select('match_id, card_name, card_set_code, asking_price, direction, card_id')
       .in('match_id', matchIds)
       .order('asking_price', { ascending: false })
+
+    // Get card market prices for discount calculation
+    const cardIds = Array.from(new Set(matchCards?.map(mc => mc.card_id) || []))
+    const { data: cardPrices } = await supabase
+      .from('cards')
+      .select('id, prices_usd')
+      .in('id', cardIds)
+
+    const cardPricesMap = new Map(cardPrices?.map(c => [c.id, c.prices_usd]) || [])
 
     const usersMap = new Map(users?.map(u => [u.id, u]) || [])
 
@@ -105,13 +115,28 @@ export async function GET(request: NextRequest) {
 
       // Separate cards by direction (from my perspective)
       // If I'm user_a, I want 'a_wants' cards; if I'm user_b, I want 'b_wants' cards
-      const cardsIWantList = cards
-        .filter(c => isUserA ? c.direction === 'a_wants' : c.direction === 'b_wants')
-        .map(c => ({ name: c.card_name, setCode: c.card_set_code, price: c.asking_price }))
+      const cardsIWantRaw = cards.filter(c => isUserA ? c.direction === 'a_wants' : c.direction === 'b_wants')
+      const cardsIWantList = cardsIWantRaw.map(c => ({ name: c.card_name, setCode: c.card_set_code, price: c.asking_price }))
 
       const cardsTheyWantList = cards
         .filter(c => isUserA ? c.direction === 'b_wants' : c.direction === 'a_wants')
         .map(c => ({ name: c.card_name, setCode: c.card_set_code, price: c.asking_price }))
+
+      // Calculate average discount percent for cards I want to buy
+      // Discount = 100 - (asking_price / market_price * 100)
+      let avgDiscountPercent: number | null = null
+      const discounts: number[] = []
+      for (const card of cardsIWantRaw) {
+        const marketPrice = cardPricesMap.get(card.card_id)
+        if (marketPrice && marketPrice > 0 && card.asking_price) {
+          const pricePercent = (Number(card.asking_price) / Number(marketPrice)) * 100
+          const discount = 100 - pricePercent
+          discounts.push(discount)
+        }
+      }
+      if (discounts.length > 0) {
+        avgDiscountPercent = Math.round(discounts.reduce((a, b) => a + b, 0) / discounts.length)
+      }
 
       // Cards I want vs Cards they want (from my perspective)
       const cardsIWant = isUserA ? match.cards_a_wants_count : match.cards_b_wants_count
@@ -145,6 +170,7 @@ export async function GET(request: NextRequest) {
         valueIWant,
         valueTheyWant,
         matchScore: match.match_score,
+        avgDiscountPercent,
         hasPriceWarnings: match.has_price_warnings,
         status: match.status,
         createdAt: match.created_at,
@@ -152,8 +178,53 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Sort matches based on sort_by parameter
+    // For "Pendientes" view: activos (contacted/requested) always first, then sort disponibles
+    // For "Historial" view: sort by updated_at descending
+    const sortedMatches = [...transformedMatches].sort((a, b) => {
+      // Active statuses (contacted, requested) always come first within pendientes
+      const activeStatuses = ['contacted', 'requested']
+      const aIsActive = activeStatuses.includes(a.status)
+      const bIsActive = activeStatuses.includes(b.status)
+
+      if (aIsActive && !bIsActive) return -1
+      if (!aIsActive && bIsActive) return 1
+
+      // For historial statuses, always sort by updated_at
+      const historialStatuses = ['confirmed', 'completed', 'cancelled', 'dismissed']
+      if (historialStatuses.includes(a.status) && historialStatuses.includes(b.status)) {
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      }
+
+      // Apply user-selected sorting for disponibles (active status)
+      switch (sortBy) {
+        case 'discount':
+          // Higher discount first (null values at end)
+          if (a.avgDiscountPercent === null && b.avgDiscountPercent === null) return 0
+          if (a.avgDiscountPercent === null) return 1
+          if (b.avgDiscountPercent === null) return -1
+          return b.avgDiscountPercent - a.avgDiscountPercent
+        case 'distance':
+          // Closer first (null values at end)
+          if (a.distanceKm === null && b.distanceKm === null) return 0
+          if (a.distanceKm === null) return 1
+          if (b.distanceKm === null) return -1
+          return Number(a.distanceKm) - Number(b.distanceKm)
+        case 'cards':
+          // More cards first
+          return (b.cardsIWant + b.cardsTheyWant) - (a.cardsIWant + a.cardsTheyWant)
+        case 'value':
+          // Higher value first
+          return (Number(b.valueIWant) + Number(b.valueTheyWant)) - (Number(a.valueIWant) + Number(a.valueTheyWant))
+        case 'score':
+        default:
+          // Higher score first
+          return Number(b.matchScore) - Number(a.matchScore)
+      }
+    })
+
     return NextResponse.json({
-      matches: transformedMatches || [],
+      matches: sortedMatches,
       ...(categoryCounts && { counts: categoryCounts })
     })
   } catch (error) {

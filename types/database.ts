@@ -407,6 +407,7 @@ export interface Match {
   valueIWant: number
   valueTheyWant: number
   matchScore: number
+  avgDiscountPercent: number | null
   hasPriceWarnings: boolean
   status: MatchStatus
   createdAt: string

@@ -31,6 +31,11 @@ import {
   Handshake,
   SlidersHorizontal,
   History,
+  ArrowUpDown,
+  Percent,
+  Ruler,
+  Layers,
+  DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Match, MatchType } from '@/types/database'
@@ -117,6 +122,41 @@ const filterGroups: Record<FilterGroup, {
   },
 }
 
+// Sorting options for matches
+type SortOption = 'discount' | 'distance' | 'cards' | 'value' | 'score'
+
+const sortOptions: Record<SortOption, {
+  label: string
+  icon: typeof Percent
+  description: string
+}> = {
+  discount: {
+    label: 'Mejor precio',
+    icon: Percent,
+    description: 'Mayor descuento primero',
+  },
+  distance: {
+    label: 'Más cerca',
+    icon: Ruler,
+    description: 'Menor distancia primero',
+  },
+  cards: {
+    label: 'Más cartas',
+    icon: Layers,
+    description: 'Más cartas en el trade',
+  },
+  value: {
+    label: 'Mayor valor',
+    icon: DollarSign,
+    description: 'Mayor valor total USD',
+  },
+  score: {
+    label: 'Relevancia',
+    icon: ArrowUpDown,
+    description: 'Mejor score general',
+  },
+}
+
 interface SetupStatus {
   profile: boolean
   location: boolean
@@ -160,6 +200,8 @@ export default function DashboardPage() {
   const [activeGroup, setActiveGroup] = useState<FilterGroup>('pendientes')
   const [activeFilters, setActiveFilters] = useState<Set<FilterCategory>>(() => new Set<FilterCategory>(['disponibles', 'activos']))
   const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const [sortBy, setSortBy] = useState<SortOption>('discount')
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
   const [categoryCounts, setCategoryCounts] = useState<CategoryCounts>({
     disponibles: 0,
     activos: 0,
@@ -234,14 +276,14 @@ export default function DashboardPage() {
     loadSetupStatus()
   }, [supabase])
 
-  const loadMatches = useCallback(async (filters: Set<FilterCategory>) => {
+  const loadMatches = useCallback(async (filters: Set<FilterCategory>, sort: SortOption) => {
     try {
       setMatchesLoading(true)
 
       // Map UI categories to DB statuses
       const dbStatuses = Array.from(filters).flatMap(cat => filterCategories[cat].dbStatuses)
 
-      const res = await fetch(`/api/matches?status=${dbStatuses.join(',')}&counts=true`)
+      const res = await fetch(`/api/matches?status=${dbStatuses.join(',')}&counts=true&sort_by=${sort}`)
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Error al cargar trades')
@@ -276,12 +318,17 @@ export default function DashboardPage() {
         const data = await res.json()
         throw new Error(data.error || 'Error al calcular trades')
       }
-      await loadMatches(activeFilters)
+      await loadMatches(activeFilters, sortBy)
     } catch (err) {
       setMatchError(err instanceof Error ? err.message : 'Error al refrescar')
     } finally {
       setRefreshing(false)
     }
+  }
+
+  const handleSortChange = (newSort: SortOption) => {
+    setSortBy(newSort)
+    setSortDropdownOpen(false)
   }
 
   const switchGroup = (group: FilterGroup) => {
@@ -340,16 +387,16 @@ export default function DashboardPage() {
     }
   }
 
-  // Auto-compute trades on page load, then reload when filters change
+  // Auto-compute trades on page load, then reload when filters or sort change
   useEffect(() => {
     // Only compute once when fully setup
     if (isFullySetup && activeFilters.has('disponibles')) {
       refreshMatches()
     } else {
-      loadMatches(activeFilters)
+      loadMatches(activeFilters, sortBy)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilters, isFullySetup])
+  }, [activeFilters, sortBy, isFullySetup])
 
   if (loading) {
     return (
@@ -504,17 +551,74 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-100">Tus Trades</h2>
-          {/* Subtle refresh button */}
-          {activeFilters.has('disponibles') && isFullySetup && (
-            <button
-              onClick={refreshMatches}
-              disabled={refreshing}
-              className="p-2 text-gray-500 hover:text-gray-300 rounded-lg transition-colors"
-              title="Actualizar trades"
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Sort dropdown - only show for pendientes */}
+            {activeGroup === 'pendientes' && (
+              <div className="relative">
+                <button
+                  onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-400 hover:text-gray-200 bg-gray-800/50 hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                  {(() => {
+                    const SortIcon = sortOptions[sortBy].icon
+                    return <SortIcon className="w-4 h-4" />
+                  })()}
+                  <span className="hidden sm:inline">{sortOptions[sortBy].label}</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {sortDropdownOpen && (
+                  <>
+                    {/* Backdrop to close dropdown */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setSortDropdownOpen(false)}
+                    />
+                    {/* Dropdown menu */}
+                    <div className="absolute right-0 mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-20 py-1">
+                      {(Object.entries(sortOptions) as [SortOption, typeof sortOptions[SortOption]][]).map(([key, option]) => {
+                        const OptionIcon = option.icon
+                        const isSelected = sortBy === key
+
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => handleSortChange(key)}
+                            className={`
+                              w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors
+                              ${isSelected
+                                ? 'bg-mtg-green-600/20 text-mtg-green-400'
+                                : 'text-gray-300 hover:bg-gray-700/50'
+                              }
+                            `}
+                          >
+                            <OptionIcon className="w-4 h-4" />
+                            <div className="flex-1">
+                              <div className="font-medium">{option.label}</div>
+                              <div className="text-xs text-gray-500">{option.description}</div>
+                            </div>
+                            {isSelected && <Check className="w-4 h-4" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Refresh button */}
+            {activeFilters.has('disponibles') && isFullySetup && (
+              <button
+                onClick={refreshMatches}
+                disabled={refreshing}
+                className="p-2 text-gray-500 hover:text-gray-300 rounded-lg transition-colors"
+                title="Actualizar trades"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Simplified filter UI */}
