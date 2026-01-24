@@ -5,12 +5,40 @@
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
 - **Tareas completadas:** 15/15
+- **Status:** ✅ MVP Core completo - listo para merge a master
 
 ---
 
-## 🔴 Pendientes
+## 🔴 Pendientes (Phase 2 - Pre-Campaign)
 
-<!-- No hay tareas pendientes. El MVP está completo. -->
+### Push Notifications (HIGH)
+- [ ] Crear tabla `push_subscriptions` en Supabase
+- [ ] Generar VAPID keys y configurar en environment
+- [ ] Crear endpoint `/api/push/subscribe` para registrar suscripciones
+- [ ] Crear endpoint `/api/push/unsubscribe` para eliminar suscripciones
+- [ ] Configurar Service Worker para recibir push (next-pwa ya está)
+- [ ] Crear Supabase Edge Function para enviar notificaciones
+- [ ] Integrar envío de push en eventos: nuevo match, nuevo comentario, trade solicitado, trade confirmado
+- [ ] UI: Modal de permiso de notificaciones después del primer login
+
+### Analytics Setup (HIGH)
+- [ ] Elegir herramienta (PostHog vs Plausible vs Vercel Analytics)
+- [ ] Crear helper `trackEvent(name, properties)`
+- [ ] Agregar tracking a eventos del onboarding funnel
+- [ ] Agregar tracking a acciones core (import, match view, message, trade)
+- [ ] Configurar dashboard de métricas
+
+### Testing Structure (MEDIUM)
+- [ ] Setup Playwright para E2E tests
+- [ ] Test: flujo de registro + onboarding
+- [ ] Test: flujo de bulk import
+- [ ] Test: flujo de trade completo
+- [ ] Setup k6 para load testing
+
+### Rate Limiting (MEDIUM)
+- [ ] Investigar opciones (Vercel middleware vs Upstash Redis)
+- [ ] Implementar rate limiting en endpoints críticos
+- [ ] Configurar límites por endpoint
 
 ---
 
