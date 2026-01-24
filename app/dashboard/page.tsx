@@ -361,28 +361,54 @@ export default function DashboardPage() {
   }
 
   const dismissMatch = async (matchId: string) => {
+    // Optimistic update: remove immediately for instant feedback
+    const previousMatches = matches
+    const previousCounts = categoryCounts
+    setMatches(prev => prev.filter(m => m.id !== matchId))
+    setCategoryCounts(prev => ({
+      ...prev,
+      disponibles: Math.max(0, prev.disponibles - 1),
+      descartados: prev.descartados + 1,
+    }))
+    setMetrics(prev => ({ ...prev, matchesCount: Math.max(0, prev.matchesCount - 1) }))
+
     try {
-      await fetch('/api/matches', {
+      const res = await fetch('/api/matches', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matchId, status: 'dismissed' }),
       })
-      setMatches(prev => prev.filter(m => m.id !== matchId))
-      setMetrics(prev => ({ ...prev, matchesCount: prev.matchesCount - 1 }))
+      if (!res.ok) throw new Error('Failed to dismiss')
     } catch (err) {
+      // Rollback on error
+      setMatches(previousMatches)
+      setCategoryCounts(previousCounts)
       console.error('Error dismissing match:', err)
     }
   }
 
   const restoreMatch = async (matchId: string) => {
+    // Optimistic update: remove immediately for instant feedback
+    const previousMatches = matches
+    const previousCounts = categoryCounts
+    setMatches(prev => prev.filter(m => m.id !== matchId))
+    setCategoryCounts(prev => ({
+      ...prev,
+      descartados: Math.max(0, prev.descartados - 1),
+      disponibles: prev.disponibles + 1,
+    }))
+
     try {
-      await fetch('/api/matches', {
+      const res = await fetch('/api/matches', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matchId, status: 'active' }),
       })
-      setMatches(prev => prev.filter(m => m.id !== matchId))
+      if (!res.ok) throw new Error('Failed to restore')
     } catch (err) {
+      // Rollback on error
+      setMatches(previousMatches)
+      setCategoryCounts(previousCounts)
       console.error('Error restoring match:', err)
     }
   }
