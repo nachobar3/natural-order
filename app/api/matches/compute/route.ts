@@ -415,7 +415,7 @@ export async function POST(request: NextRequest) {
       // Skip if no matches
       if (cardsIWant.length === 0 && cardsTheyWant.length === 0) continue
 
-      // Determine match type
+      // Determine match type (will be adjusted after user normalization)
       let matchType: 'two_way' | 'one_way_buy' | 'one_way_sell'
       if (cardsIWant.length > 0 && cardsTheyWant.length > 0) {
         matchType = 'two_way'
@@ -467,6 +467,15 @@ export async function POST(request: NextRequest) {
       const [userAId, userBId] = user.id < otherUserId
         ? [user.id, otherUserId]
         : [otherUserId, user.id]
+
+      // Adjust match_type based on ordering
+      // match_type is relative to user_a:
+      // - one_way_buy = user_a wants to buy from user_b
+      // - one_way_sell = user_a wants to sell to user_b
+      // If current user is NOT user_a, we need to flip the one-way types
+      if (user.id > otherUserId && matchType !== 'two_way') {
+        matchType = matchType === 'one_way_buy' ? 'one_way_sell' : 'one_way_buy'
+      }
 
       // Adjust counts based on ordering
       const [aWantsCount, bWantsCount] = user.id < otherUserId

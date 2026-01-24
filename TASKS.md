@@ -18,13 +18,14 @@ Después de completar cada tarea, ejecuta los tests y verifica que la app funcio
 - El click en el header debería expandir/colapsar
 **Solución aplicada:** Se cambió de CSS (`max-h-0 opacity-0`) a renderizado condicional (`{expanded && ...}`) para garantizar que las listas solo se rendericen cuando están expandidas. Esto es más robusto que depender de CSS para ocultar contenido.
 
-### 2. [ ] Fix: Match type incorrecto (Venta vs Compra)
+### 2. [x] Fix: Match type incorrecto (Venta vs Compra)
 **Archivo:** `app/api/matches/compute/route.ts`
 **Problema:** El match_type se calcula antes de normalizar el orden de usuarios (líneas 420-426), causando que el tipo se muestre incorrectamente.
 **Solución:** Mover la lógica de match_type DESPUÉS de la normalización de usuarios (línea 467), o ajustar el tipo según quién es user_a.
 **Verificación:**
 - Si tengo cartas en mi wishlist que otro tiene, debería mostrar "Compra"
 - Si otro quiere cartas de mi colección y yo no quiero nada, debería mostrar "Venta"
+**Solución aplicada:** Se agregó lógica para ajustar el match_type DESPUÉS de la normalización de usuarios. Si el usuario actual tiene UUID mayor que el otro usuario (es decir, será user_b), se invierte el tipo one_way: `one_way_buy` ↔ `one_way_sell`. Esto asegura que el tipo siempre sea relativo a user_a.
 
 ### 3. [ ] Fix: Display name muestra "Usuario" en vez del nombre real
 **Archivos:**
