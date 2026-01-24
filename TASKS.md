@@ -10,44 +10,7 @@
 
 ## 🔴 Pendientes
 
-### Feature: PWA Install Prompt (MEDIUM) ✅
-- [x] Hook `useInstallPrompt` para detectar plataforma
-- [x] Modal/Banner component con instrucciones iOS/Android
-- [x] localStorage para tracking de dismissal (10 días)
-- [x] Solo mostrar en mobile después de login
-
-### Feature: Landing Page (MEDIUM) ✅
-- [x] Crear página `/app/page.tsx` para usuarios no logueados
-- [x] Hero section con propuesta de valor
-- [x] Sección "Cómo funciona" (3 pasos)
-- [x] FAQs embebidas (4 preguntas con acordeón usando `<details>`)
-- [x] CTA "Empezá gratis" → registro (múltiples CTAs en hero y final)
-
-### Validación: TypeScript Types ✅
-- [x] Verificar que `types/database.ts` está sincronizado con DB (ver notas)
-- [x] Correr `npx tsc --noEmit` sin errores
-- [x] Verificar tipos en componentes principales
-
-### Testing: Build & Lint ✅
-- [x] `npm run build` pasa sin errores
-- [x] `npm run lint` - ESLint no configurado (ver notas)
-- [x] Verificar que no hay console.log innecesarios - hay 5 de debug (ver notas)
-
-
-
-### Optimización: Performance ✅
-- [x] Verificar que queries tienen límites apropiados (ver notas)
-- [x] Verificar uso de índices en queries frecuentes (48 índices, bien cubierto)
-- [x] Identificar N+1 queries si existen (ninguno - usa batch fetching)
-
-### Documentación: API ✅
-- [x] Documentar endpoints principales en README o archivo separado
-- [x] Documentar estructura de respuestas
-
-### Cleanup: Technical Debt ✅
-- [x] Revisar TODOs en el código (ninguno encontrado)
-- [x] Identificar código duplicado (ver notas - duplicación estructural en API routes)
-- [x] Limpiar imports no usados (ya limpiados en commit anterior)
+<!-- No hay tareas pendientes. El MVP está completo. -->
 
 ---
 
@@ -58,6 +21,33 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Validación: TypeScript Types - 2026-01-23
+- [x] Verificar que `types/database.ts` está sincronizado con DB (ver notas)
+- [x] Correr `npx tsc --noEmit` sin errores
+- [x] Verificar tipos en componentes principales
+
+### Testing: Build & Lint - 2026-01-23
+- [x] `npm run build` pasa sin errores
+- [x] `npm run lint` - ESLint configurado (ver notas)
+- [x] Verificar que no hay console.log innecesarios - hay 5 de debug (ver notas)
+
+### Optimización: Performance - 2026-01-23
+- [x] Verificar que queries tienen límites apropiados (ver notas)
+- [x] Verificar uso de índices en queries frecuentes (48 índices, bien cubierto)
+- [x] Identificar N+1 queries si existen (ninguno - usa batch fetching)
+
+### Cleanup: Technical Debt - 2026-01-23
+- [x] Revisar TODOs en el código (ninguno encontrado)
+- [x] Identificar código duplicado (ver notas - duplicación estructural en API routes)
+- [x] Limpiar imports no usados (ya limpiados en commit anterior)
+
+### Feature: Landing Page (MEDIUM) - 2026-01-23
+- [x] Crear página `/app/page.tsx` para usuarios no logueados
+- [x] Hero section con propuesta de valor
+- [x] Sección "Cómo funciona" (3 pasos)
+- [x] FAQs embebidas (4 preguntas con acordeón usando `<details>`)
+- [x] CTA "Empezá gratis" → registro (múltiples CTAs en hero y final)
 
 ### Documentación: API - 2026-01-23
 - [x] Creado `/docs/API.md` con documentación de 22 endpoints
