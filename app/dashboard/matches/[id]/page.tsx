@@ -16,7 +16,6 @@ import {
   XCircle,
   TrendingUp,
   TrendingDown,
-  Minus,
   RotateCcw,
   RefreshCw,
   Save,
@@ -33,6 +32,10 @@ import {
   Eye,
   Trash2,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  Star,
 } from 'lucide-react'
 import { CounterpartCollectionDrawer } from '@/components/matches/counterpart-collection-drawer'
 import { LocationMap } from '@/components/ui/location-map'
@@ -348,6 +351,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Collapsible card lists state (start collapsed)
+  const [cardsIWantExpanded, setCardsIWantExpanded] = useState(false)
+  const [cardsTheyWantExpanded, setCardsTheyWantExpanded] = useState(false)
 
   // Get current user ID
   const fetchCurrentUser = useCallback(async () => {
@@ -905,142 +912,196 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         </div>
       )}
 
-      {/* Cards comparison - Two columns */}
+      {/* Trade Metrics - Prominent display */}
+      <div className="card bg-gradient-to-br from-gray-900 to-gray-900/80 border border-mtg-green-900/30">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Distance */}
+          <div className="text-center p-3 rounded-lg bg-gray-800/50">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <MapPin className="w-4 h-4 text-blue-400" />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Distancia</span>
+            </div>
+            <p className="text-xl font-bold text-blue-400">
+              {match.distanceKm !== null ? (match.distanceKm < 1 ? '<1' : Math.round(match.distanceKm)) : '—'}
+              <span className="text-sm font-normal text-gray-400 ml-1">km</span>
+            </p>
+          </div>
+
+          {/* Total Value */}
+          <div className="text-center p-3 rounded-lg bg-gray-800/50">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <DollarSign className="w-4 h-4 text-mtg-gold-400" />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Valor Total</span>
+            </div>
+            <p className="text-xl font-bold text-mtg-gold-400">
+              ${(totalValueIWant + totalValueTheyWant).toFixed(2)}
+            </p>
+          </div>
+
+          {/* Balance / Difference */}
+          <div className="text-center p-3 rounded-lg bg-gray-800/50">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              {balance >= 0 ? (
+                <TrendingUp className="w-4 h-4 text-green-400" />
+              ) : (
+                <TrendingDown className="w-4 h-4 text-red-400" />
+              )}
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Balance</span>
+            </div>
+            <p className={`text-xl font-bold ${Math.abs(balance) < 1 ? 'text-gray-400' : balance > 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {balance > 0 ? '+' : ''}{balance < 0 ? '' : ''}{Math.abs(balance) < 1 ? '±' : ''}${Math.abs(balance).toFixed(2)}
+            </p>
+            <p className="text-[10px] text-gray-500">
+              {Math.abs(balance) < 1 ? 'equilibrado' : balance > 0 ? 'a favor' : 'en contra'}
+            </p>
+          </div>
+
+          {/* Trade Score */}
+          <div className="text-center p-3 rounded-lg bg-gray-800/50">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Star className="w-4 h-4 text-yellow-400" />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Score</span>
+            </div>
+            <p className="text-xl font-bold text-yellow-400">
+              {match.matchScore?.toFixed(1) || '—'}
+              <span className="text-sm font-normal text-gray-400">/10</span>
+            </p>
+            <p className="text-[10px] text-gray-500">
+              {match.matchScore && match.matchScore >= 8 ? 'Excelente' : match.matchScore && match.matchScore >= 6 ? 'Bueno' : match.matchScore && match.matchScore >= 4 ? 'Regular' : 'Bajo'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Cards comparison - Two columns with collapsible lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Cards I want (they have) */}
         <div className="card">
-          <div className="flex items-center justify-between mb-4">
+          {/* Collapsible header */}
+          <button
+            onClick={() => setCardsIWantExpanded(!cardsIWantExpanded)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-80 transition-opacity"
+          >
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">Cartas que querés</h2>
               {canEdit && (
-                <button
-                  onClick={() => setDrawerOpen(true)}
-                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-gray-100 flex items-center gap-1 transition-colors"
+                <span
+                  onClick={(e) => { e.stopPropagation(); setDrawerOpen(true) }}
+                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-gray-100 flex items-center gap-1 transition-colors cursor-pointer"
                   title="Ver colección completa del otro usuario"
                 >
                   <Eye className="w-3 h-3" />
                   Ver colección
-                </button>
+                </span>
               )}
             </div>
-            <span className="text-xs text-gray-500">
-              {activeCardsIWant.length}/{match.cardsIWant.length} carta{match.cardsIWant.length !== 1 ? 's' : ''}
-            </span>
-          </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-green-400">${totalValueIWant.toFixed(2)}</span>
+              <span className="text-xs text-gray-500">
+                ({activeCardsIWant.length} carta{activeCardsIWant.length !== 1 ? 's' : ''})
+              </span>
+              {cardsIWantExpanded ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
+            </div>
+          </button>
 
-          {match.cardsIWant.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-500 mb-2">No tiene cartas de tu wishlist</p>
-              {canEdit && (
-                <button
-                  onClick={() => setDrawerOpen(true)}
-                  className="text-xs px-3 py-1.5 rounded bg-mtg-green-600 hover:bg-mtg-green-500 text-white flex items-center gap-1 mx-auto transition-colors"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  Explorar su colección
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {match.cardsIWant.map((card) => (
-                <CardItem
-                  key={card.id}
-                  card={card}
-                  isExcluded={localExclusions.has(card.id)}
-                  onToggleExclude={toggleCardExclusion}
-                  onDeleteCustom={deleteCustomCard}
-                  disabled={!canEdit}
-                  canDelete={canEdit}
-                  currentUserId={currentUserId || undefined}
-                />
-              ))}
+          {/* Collapsed summary */}
+          {!cardsIWantExpanded && match.cardsIWant.length > 0 && (
+            <div className="py-2 px-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
+              {activeCardsIWant.slice(0, 3).map(c => c.cardName).join(', ')}
+              {activeCardsIWant.length > 3 && ` y ${activeCardsIWant.length - 3} más...`}
             </div>
           )}
 
-          {/* Subtotal */}
-          <div className="mt-4 pt-3 border-t border-mtg-green-900/30 flex items-center justify-between">
-            <span className="text-sm text-gray-400">Subtotal</span>
-            <span className="text-lg font-semibold text-green-400">${totalValueIWant.toFixed(2)}</span>
+          {/* Expanded list */}
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${cardsIWantExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            {match.cardsIWant.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500 mb-2">No tiene cartas de tu wishlist</p>
+                {canEdit && (
+                  <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="text-xs px-3 py-1.5 rounded bg-mtg-green-600 hover:bg-mtg-green-500 text-white flex items-center gap-1 mx-auto transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Explorar su colección
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2 mt-3">
+                {match.cardsIWant.map((card) => (
+                  <CardItem
+                    key={card.id}
+                    card={card}
+                    isExcluded={localExclusions.has(card.id)}
+                    onToggleExclude={toggleCardExclusion}
+                    onDeleteCustom={deleteCustomCard}
+                    disabled={!canEdit}
+                    canDelete={canEdit}
+                    currentUserId={currentUserId || undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Cards they want (I have) */}
         <div className="card">
-          <div className="flex items-center justify-between mb-4">
+          {/* Collapsible header */}
+          <button
+            onClick={() => setCardsTheyWantExpanded(!cardsTheyWantExpanded)}
+            className="w-full flex items-center justify-between mb-2 hover:opacity-80 transition-opacity"
+          >
             <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Cartas que buscan</h2>
-            <span className="text-xs text-gray-500">
-              {activeCardsTheyWant.length}/{match.cardsTheyWant.length} carta{match.cardsTheyWant.length !== 1 ? 's' : ''}
-            </span>
-          </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-400">${totalValueTheyWant.toFixed(2)}</span>
+              <span className="text-xs text-gray-500">
+                ({activeCardsTheyWant.length} carta{activeCardsTheyWant.length !== 1 ? 's' : ''})
+              </span>
+              {cardsTheyWantExpanded ? (
+                <ChevronUp className="w-4 h-4 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              )}
+            </div>
+          </button>
 
-          {match.cardsTheyWant.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No buscan cartas de tu colección</p>
-          ) : (
-            <div className="space-y-2">
-              {match.cardsTheyWant.map((card) => (
-                <CardItem
-                  key={card.id}
-                  card={card}
-                  isExcluded={localExclusions.has(card.id)}
-                  onToggleExclude={toggleCardExclusion}
-                  onDeleteCustom={deleteCustomCard}
-                  disabled={!canEdit}
-                  canDelete={canEdit}
-                  currentUserId={currentUserId || undefined}
-                />
-              ))}
+          {/* Collapsed summary */}
+          {!cardsTheyWantExpanded && match.cardsTheyWant.length > 0 && (
+            <div className="py-2 px-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
+              {activeCardsTheyWant.slice(0, 3).map(c => c.cardName).join(', ')}
+              {activeCardsTheyWant.length > 3 && ` y ${activeCardsTheyWant.length - 3} más...`}
             </div>
           )}
 
-          {/* Subtotal */}
-          <div className="mt-4 pt-3 border-t border-mtg-green-900/30 flex items-center justify-between">
-            <span className="text-sm text-gray-400">Subtotal</span>
-            <span className="text-lg font-semibold text-blue-400">${totalValueTheyWant.toFixed(2)}</span>
+          {/* Expanded list */}
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${cardsTheyWantExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+            {match.cardsTheyWant.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No buscan cartas de tu colección</p>
+            ) : (
+              <div className="space-y-2 mt-3">
+                {match.cardsTheyWant.map((card) => (
+                  <CardItem
+                    key={card.id}
+                    card={card}
+                    isExcluded={localExclusions.has(card.id)}
+                    onToggleExclude={toggleCardExclusion}
+                    onDeleteCustom={deleteCustomCard}
+                    disabled={!canEdit}
+                    canDelete={canEdit}
+                    currentUserId={currentUserId || undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Trade balance */}
-      {match.matchType === 'two_way' && (
-        <div className={`card border-2 ${
-          Math.abs(balance) < 1
-            ? 'border-green-500/50 bg-green-500/5'
-            : balance > 0
-              ? 'border-green-500/30 bg-green-500/5'
-              : 'border-red-500/30 bg-red-500/5'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {Math.abs(balance) < 1 ? (
-                <div className="p-2 rounded-full bg-green-500/20"><Minus className="w-5 h-5 text-green-400" /></div>
-              ) : balance > 0 ? (
-                <div className="p-2 rounded-full bg-green-500/20"><TrendingUp className="w-5 h-5 text-green-400" /></div>
-              ) : (
-                <div className="p-2 rounded-full bg-red-500/20"><TrendingDown className="w-5 h-5 text-red-400" /></div>
-              )}
-              <div>
-                <h3 className="font-semibold text-gray-100">Balance del trade</h3>
-                <p className="text-sm text-gray-400">
-                  {Math.abs(balance) < 1
-                    ? 'Trade equilibrado'
-                    : balance > 0
-                      ? 'Tus cartas valen más, deberías recibir la diferencia'
-                      : 'Sus cartas valen más, deberías pagar la diferencia'}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className={`text-2xl font-bold ${Math.abs(balance) < 1 ? 'text-green-400' : balance > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                ${Math.abs(balance).toFixed(2)}
-              </p>
-              <p className="text-xs text-gray-500">
-                {Math.abs(balance) < 1 ? 'sin diferencia' : balance > 0 ? 'a recibir' : 'a pagar'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Comments section */}
       <div className="card">
