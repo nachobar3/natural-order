@@ -255,13 +255,9 @@ export default function CollectionPage() {
         onSettingsChange={(settings) => setMinimumPrice(settings.minimumPrice)}
       />
 
-      {/* Search */}
-      <div className="card overflow-visible relative z-20">
-        <div className="mb-3">
-          <h2 className="text-sm font-medium text-gray-200">Agregar carta</h2>
-          <p className="text-xs text-gray-500">Buscá una carta para agregarla a tu colección</p>
-        </div>
-        <CardSearch onSelect={handleCardSelect} placeholder="Buscar carta para agregar..." />
+      {/* Search - simplified, no wrapper card */}
+      <div className="relative z-20">
+        <CardSearch onSelect={handleCardSelect} placeholder="Agregar carta a colección..." />
       </div>
 
       {/* Collection display */}

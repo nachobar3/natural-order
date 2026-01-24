@@ -316,9 +316,9 @@ export function AddCardModal({
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
       {/* Modal - wider layout */}
-      <div className="relative bg-mtg-dark border border-mtg-green-900/30 rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-mtg-dark border border-mtg-green-900/20 rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-mtg-dark border-b border-mtg-green-900/30 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-mtg-dark/95 backdrop-blur-sm px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-lg font-semibold text-gray-100">
             {editItem ? 'Editar carta' : `Agregar a ${mode === 'collection' ? 'colección' : 'wishlist'}`}
           </h2>
@@ -335,7 +335,7 @@ export function AddCardModal({
           <div className="flex flex-col md:flex-row">
           {/* Left side - Card image */}
           {displayCard && (
-            <div className="md:w-1/3 p-6 flex flex-col items-center border-b md:border-b-0 md:border-r border-mtg-green-900/30">
+            <div className="md:w-1/3 p-6 flex flex-col items-center bg-gray-900/30">
               {displayCard.image_uri ? (
                 <Image
                   src={displayCard.image_uri}

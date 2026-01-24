@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
-import { Heart, Loader2, Trash2, Edit2, Plus, Upload, LayoutGrid, List } from 'lucide-react'
+import { Heart, Loader2, Trash2, Edit2, Upload, LayoutGrid, List } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { WishlistWithCard, CardCondition } from '@/types/database'
@@ -213,18 +213,9 @@ export default function WishlistPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="card overflow-visible relative z-20">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-mtg-green-600/20">
-            <Plus className="w-5 h-5 text-mtg-green-400" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-100">Agregar carta</h2>
-            <p className="text-sm text-gray-400">Buscá una carta para agregarla a tu wishlist</p>
-          </div>
-        </div>
-        <CardSearch onSelect={handleCardSelect} placeholder="Buscar carta para agregar..." />
+      {/* Search - simplified, no wrapper card */}
+      <div className="relative z-20">
+        <CardSearch onSelect={handleCardSelect} placeholder="Agregar carta a wishlist..." />
       </div>
 
       {/* Wishlist display */}

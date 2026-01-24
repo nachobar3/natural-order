@@ -32,11 +32,11 @@ const AddressAutocomplete = dynamic(
 
 type TabKey = 'datos' | 'ubicacion' | 'preferencias' | 'cuenta'
 
-const tabs: { key: TabKey; label: string; icon: typeof User }[] = [
-  { key: 'datos', label: 'Datos personales', icon: User },
-  { key: 'ubicacion', label: 'Ubicación', icon: MapPin },
-  { key: 'preferencias', label: 'Preferencias', icon: RefreshCcw },
-  { key: 'cuenta', label: 'Cuenta', icon: Bell },
+const tabs: { key: TabKey; label: string; shortLabel: string; icon: typeof User }[] = [
+  { key: 'datos', label: 'Datos personales', shortLabel: 'Datos', icon: User },
+  { key: 'ubicacion', label: 'Ubicación', shortLabel: 'Ubicación', icon: MapPin },
+  { key: 'preferencias', label: 'Preferencias', shortLabel: 'Prefs', icon: RefreshCcw },
+  { key: 'cuenta', label: 'Cuenta', shortLabel: 'Cuenta', icon: Bell },
 ]
 
 export default function ProfilePage() {
@@ -269,24 +269,24 @@ export default function ProfilePage() {
       )}
 
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Tabs - Mobile: horizontal at top, Desktop: vertical on left */}
+        {/* Tabs - Mobile: horizontal fixed grid at top, Desktop: vertical on left */}
         <div className="md:w-48 flex-shrink-0">
-          {/* Mobile tabs (horizontal) */}
-          <div className="flex md:hidden overflow-x-auto gap-1 pb-2 -mx-4 px-4">
+          {/* Mobile tabs (horizontal grid - no scroll) */}
+          <div className="grid grid-cols-4 gap-1 md:hidden pb-3 mb-3 border-b border-gray-800">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-xs font-medium transition-colors ${
                     activeTab === tab.key
                       ? 'bg-mtg-green-600/20 text-mtg-green-400'
                       : 'text-gray-400 hover:bg-mtg-green-900/20 hover:text-gray-300'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
+                  <Icon className="w-5 h-5" />
+                  <span className="truncate w-full text-center">{tab.shortLabel}</span>
                 </button>
               )
             })}

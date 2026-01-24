@@ -763,7 +763,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
 
       {/* Trade Status Banner */}
       {match.status === 'requested' && (
-        <div className={`card border-2 ${match.iRequested ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+        <div className={`rounded-2xl p-6 ${match.iRequested ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-green-500/10 border border-green-500/20'}`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               {match.iRequested ? (
@@ -820,7 +820,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {match.status === 'confirmed' && (
-        <div className="card border-2 border-purple-500/30 bg-purple-500/5">
+        <div className="rounded-2xl p-6 bg-purple-500/10 border border-purple-500/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Handshake className="w-6 h-6 text-purple-400" />
@@ -866,7 +866,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {match.status === 'completed' && (
-        <div className="card border-2 border-green-500/30 bg-green-500/5">
+        <div className="rounded-2xl p-6 bg-green-500/10 border border-green-500/20">
           <div className="flex items-center gap-3">
             <CheckCircle className="w-6 h-6 text-green-400" />
             <div>
@@ -878,7 +878,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {match.status === 'cancelled' && (
-        <div className="card border-2 border-red-500/30 bg-red-500/5">
+        <div className="rounded-2xl p-6 bg-red-500/10 border border-red-500/20">
           <div className="flex items-center gap-3">
             <XCircle className="w-6 h-6 text-red-400" />
             <div>
@@ -895,7 +895,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
 
       {/* Edit actions bar */}
       {canEdit && (
-        <div className="card bg-gray-900/50 border border-gray-800">
+        <div className="rounded-xl p-4 bg-gray-900/50">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <span>Podés excluir cartas del trade haciendo click en la</span>
@@ -956,7 +956,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {/* Trade Metrics - Prominent display */}
-      <div className="card bg-gradient-to-br from-gray-900 to-gray-900/80 border border-mtg-green-900/30">
+      <div className="card bg-gradient-to-br from-gray-900 to-gray-900/80">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Distance */}
           <div className="text-center p-3 rounded-lg bg-gray-800/50">
@@ -1178,7 +1178,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
 
         {/* New comment input */}
         {canComment ? (
-          <div className="flex gap-2 pt-3 border-t border-gray-800">
+          <div className="flex gap-2 pt-4 mt-2">
             <div className="flex-1 relative">
               <textarea
                 value={newComment}
@@ -1186,7 +1186,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                 placeholder="Escribí un mensaje..."
                 maxLength={300}
                 rows={2}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-mtg-green-500 resize-none"
+                className="w-full bg-gray-900/80 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-mtg-green-500 resize-none"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -1211,7 +1211,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
             </button>
           </div>
         ) : (
-          <div className="pt-3 border-t border-gray-800 text-center">
+          <div className="pt-4 mt-2 text-center">
             <p className="text-sm text-yellow-400">
               Alcanzaste el límite de {maxComments} mensajes por mes en este trade
             </p>
