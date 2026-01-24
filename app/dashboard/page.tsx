@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -38,7 +38,14 @@ import {
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
-import type { Match, MatchType } from '@/types/database'
+import {
+  useMatches,
+  optimisticDismiss,
+  optimisticRestore,
+  type FilterCategory,
+  type SortOption,
+} from '@/lib/hooks/use-matches'
+import type { MatchType } from '@/types/database'
 
 const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRightLeft; color: string }> = {
   two_way: { label: 'Intercambio', icon: ArrowRightLeft, color: 'text-green-400 bg-green-500/20' },
@@ -47,8 +54,6 @@ const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRigh
 }
 
 // Filter categories mapping UI categories to DB statuses
-type FilterCategory = 'disponibles' | 'activos' | 'confirmados' | 'realizados' | 'cancelados' | 'descartados'
-
 const filterCategories: Record<FilterCategory, {
   label: string
   icon: typeof Inbox
@@ -100,8 +105,6 @@ const filterCategories: Record<FilterCategory, {
   },
 }
 
-type CategoryCounts = Record<FilterCategory, number>
-
 // Group definitions for simplified UI
 type FilterGroup = 'pendientes' | 'historial'
 
@@ -121,9 +124,6 @@ const filterGroups: Record<FilterGroup, {
     categories: ['confirmados', 'realizados', 'cancelados', 'descartados'],
   },
 }
-
-// Sorting options for matches
-type SortOption = 'discount' | 'distance' | 'cards' | 'value' | 'score'
 
 const sortOptions: Record<SortOption, {
   label: string
@@ -193,23 +193,25 @@ export default function DashboardPage() {
     matchesCount: 0,
   })
 
-  // Matches state
-  const [matches, setMatches] = useState<Match[]>([])
-  const [matchesLoading, setMatchesLoading] = useState(true)
+  // Matches state (using SWR for caching and deduplication)
   const [refreshing, setRefreshing] = useState(false)
-  const [matchError, setMatchError] = useState<string | null>(null)
   const [activeGroup, setActiveGroup] = useState<FilterGroup>('pendientes')
   const [activeFilters, setActiveFilters] = useState<Set<FilterCategory>>(() => new Set<FilterCategory>(['disponibles', 'activos']))
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>('discount')
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
-  const [categoryCounts, setCategoryCounts] = useState<CategoryCounts>({
-    disponibles: 0,
-    activos: 0,
-    confirmados: 0,
-    realizados: 0,
-    cancelados: 0,
-    descartados: 0,
+
+  // Use SWR hook for matches data
+  const {
+    matches,
+    counts: categoryCounts,
+    isLoading: matchesLoading,
+    error: matchError,
+    mutate: mutateMatches,
+  } = useMatches({
+    filters: activeFilters,
+    sortBy,
+    enabled: !loading, // Only fetch when setup status is loaded
   })
 
   const completedSteps = Object.values(setupStatus).filter(Boolean).length
@@ -277,51 +279,18 @@ export default function DashboardPage() {
     loadSetupStatus()
   }, [supabase])
 
-  const loadMatches = useCallback(async (filters: Set<FilterCategory>, sort: SortOption) => {
-    try {
-      setMatchesLoading(true)
-
-      // Map UI categories to DB statuses
-      const dbStatuses = Array.from(filters).flatMap(cat => filterCategories[cat].dbStatuses)
-
-      const res = await fetch(`/api/matches?status=${dbStatuses.join(',')}&counts=true&sort_by=${sort}`)
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Error al cargar trades')
-      }
-      const data = await res.json()
-      setMatches(data.matches || [])
-
-      // Update category counts
-      if (data.counts) {
-        setCategoryCounts(data.counts)
-        // Update metrics with active matches count (disponibles + activos)
-        setMetrics(prev => ({
-          ...prev,
-          matchesCount: (data.counts.disponibles || 0) + (data.counts.activos || 0)
-        }))
-      }
-
-      setMatchError(null)
-    } catch (err) {
-      setMatchError(err instanceof Error ? err.message : 'Error desconocido')
-    } finally {
-      setMatchesLoading(false)
-    }
-  }, [])
-
   const refreshMatches = async () => {
     setRefreshing(true)
-    setMatchError(null)
     try {
       const res = await fetch('/api/matches/compute', { method: 'POST' })
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Error al calcular trades')
       }
-      await loadMatches(activeFilters, sortBy)
+      // Revalidate SWR cache after computing new matches
+      await mutateMatches()
     } catch (err) {
-      setMatchError(err instanceof Error ? err.message : 'Error al refrescar')
+      console.error('Error refreshing matches:', err)
     } finally {
       setRefreshing(false)
     }
@@ -362,18 +331,16 @@ export default function DashboardPage() {
   }
 
   const dismissMatch = async (matchId: string) => {
-    // Optimistic update: remove immediately for instant feedback
-    const previousMatches = matches
-    const previousCounts = categoryCounts
-    setMatches(prev => prev.filter(m => m.id !== matchId))
-    setCategoryCounts(prev => ({
-      ...prev,
-      disponibles: Math.max(0, prev.disponibles - 1),
-      descartados: prev.descartados + 1,
-    }))
-    setMetrics(prev => ({ ...prev, matchesCount: Math.max(0, prev.matchesCount - 1) }))
-
     trackEvent(AnalyticsEvents.MATCH_DISMISSED, { match_id: matchId })
+
+    // Optimistic update using SWR's mutate with rollback
+    await mutateMatches(
+      (currentData) => optimisticDismiss(currentData, matchId),
+      {
+        revalidate: false, // Don't revalidate immediately
+        rollbackOnError: true, // Rollback if the API call fails
+      }
+    )
 
     try {
       const res = await fetch('/api/matches', {
@@ -383,25 +350,23 @@ export default function DashboardPage() {
       })
       if (!res.ok) throw new Error('Failed to dismiss')
     } catch (err) {
-      // Rollback on error
-      setMatches(previousMatches)
-      setCategoryCounts(previousCounts)
+      // Revalidate to restore correct state on error
+      await mutateMatches()
       console.error('Error dismissing match:', err)
     }
   }
 
   const restoreMatch = async (matchId: string) => {
-    // Optimistic update: remove immediately for instant feedback
-    const previousMatches = matches
-    const previousCounts = categoryCounts
-    setMatches(prev => prev.filter(m => m.id !== matchId))
-    setCategoryCounts(prev => ({
-      ...prev,
-      descartados: Math.max(0, prev.descartados - 1),
-      disponibles: prev.disponibles + 1,
-    }))
-
     trackEvent(AnalyticsEvents.MATCH_RESTORED, { match_id: matchId })
+
+    // Optimistic update using SWR's mutate with rollback
+    await mutateMatches(
+      (currentData) => optimisticRestore(currentData, matchId),
+      {
+        revalidate: false,
+        rollbackOnError: true,
+      }
+    )
 
     try {
       const res = await fetch('/api/matches', {
@@ -411,23 +376,19 @@ export default function DashboardPage() {
       })
       if (!res.ok) throw new Error('Failed to restore')
     } catch (err) {
-      // Rollback on error
-      setMatches(previousMatches)
-      setCategoryCounts(previousCounts)
+      // Revalidate to restore correct state on error
+      await mutateMatches()
       console.error('Error restoring match:', err)
     }
   }
 
-  // Auto-compute trades on page load, then reload when filters or sort change
+  // Auto-compute trades on initial load when fully setup
   useEffect(() => {
-    // Only compute once when fully setup
-    if (isFullySetup && activeFilters.has('disponibles')) {
+    if (isFullySetup && activeFilters.has('disponibles') && !refreshing) {
       refreshMatches()
-    } else {
-      loadMatches(activeFilters, sortBy)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilters, sortBy, isFullySetup])
+  }, [isFullySetup])
 
   if (loading) {
     return (
@@ -750,7 +711,7 @@ export default function DashboardPage() {
               <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
               <div>
                 <h3 className="font-medium text-red-400">Error</h3>
-                <p className="text-sm text-red-300 mt-1">{matchError}</p>
+                <p className="text-sm text-red-300 mt-1">{matchError.message}</p>
               </div>
             </div>
           </div>
