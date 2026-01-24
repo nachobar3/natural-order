@@ -287,7 +287,7 @@ function CommentItem({ comment, onEdit }: CommentItemProps) {
       {/* Avatar */}
       <div className="w-8 h-8 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
         {comment.user.avatarUrl ? (
-          <img src={comment.user.avatarUrl} alt={comment.user.displayName} className="w-8 h-8 rounded-full object-cover" />
+          <Image src={comment.user.avatarUrl} alt={comment.user.displayName} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
         ) : (
           <span className="text-xs font-bold text-mtg-green-400">
             {comment.user.displayName.charAt(0).toUpperCase()}
@@ -719,7 +719,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           {/* Avatar */}
           <div className="w-14 h-14 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
             {match.otherUser.avatarUrl ? (
-              <img src={match.otherUser.avatarUrl} alt={match.otherUser.displayName} className="w-14 h-14 rounded-full object-cover" />
+              <Image src={match.otherUser.avatarUrl} alt={match.otherUser.displayName} width={56} height={56} className="w-14 h-14 rounded-full object-cover" />
             ) : (
               <span className="text-xl font-bold text-mtg-green-400">{match.otherUser.displayName.charAt(0).toUpperCase()}</span>
             )}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   User,
   MapPin,
@@ -759,9 +760,11 @@ export default function DashboardPage() {
                     {/* Avatar */}
                     <div className="w-10 h-10 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
                       {match.otherUser.avatarUrl ? (
-                        <img
+                        <Image
                           src={match.otherUser.avatarUrl}
                           alt={match.otherUser.displayName}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
