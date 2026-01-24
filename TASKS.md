@@ -4,17 +4,17 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 12/15
+- **Tareas completadas:** 13/15
 
 ---
 
 ## 🔴 Pendientes
 
-### Feature: PWA Install Prompt (MEDIUM)
-- [ ] Hook `useInstallPrompt` para detectar plataforma
-- [ ] Modal/Banner component con instrucciones iOS/Android
-- [ ] localStorage para tracking de dismissal (10 días)
-- [ ] Solo mostrar en mobile después de login
+### Feature: PWA Install Prompt (MEDIUM) ✅
+- [x] Hook `useInstallPrompt` para detectar plataforma
+- [x] Modal/Banner component con instrucciones iOS/Android
+- [x] localStorage para tracking de dismissal (10 días)
+- [x] Solo mostrar en mobile después de login
 
 ### Feature: Landing Page (MEDIUM) ✅
 - [x] Crear página `/app/page.tsx` para usuarios no logueados
@@ -58,6 +58,13 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Feature: PWA Install Prompt (MEDIUM) - 2026-01-23
+- [x] Hook `useInstallPrompt` detecta iOS/Android/Desktop
+- [x] Modal con instrucciones nativas para iOS (Share → Add to Home)
+- [x] Prompt nativo para Android/Chrome usando beforeinstallprompt
+- [x] localStorage dismiss con expiración de 10 días
+- [x] Integrado en dashboard layout (solo usuarios logueados)
 
 ### Feature: Match Sorting Options (HIGH) - 2026-01-23
 - [x] Agregar parámetro `sort_by` a `/api/matches`
