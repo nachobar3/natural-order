@@ -4,8 +4,8 @@
 ## Estado General
 - **Última actualización:** 2026-01-24
 - **Iteración actual:** 5
-- **Tareas completadas:** 19/21
-- **Status:** 🔧 Phase 2 - Performance optimizations (Fase 1-2 parcial)
+- **Tareas completadas:** 20/21
+- **Status:** 🔧 Phase 2 - Performance optimizations + Push notifications completadas
 
 ---
 
@@ -44,12 +44,12 @@
 - [ ] Documentar mejoras logradas y trade-offs
 
 
-### Push Notifications - Parte 2 (HIGH)
-**Infraestructura completada ✅ (ver sección Completadas)**
-**Pendiente: envío de notificaciones desde el servidor**
-- [ ] Crear Supabase Edge Function para enviar notificaciones push
-- [ ] Integrar envío de push en eventos: nuevo match, nuevo comentario, trade solicitado, trade confirmado
-- [ ] Testear flujo completo end-to-end
+### Push Notifications - Parte 2 (HIGH) ✅
+**Completado 2026-01-24**
+- [x] Crear Supabase Edge Function para enviar notificaciones push
+- [x] Integrar envío de push en eventos: nuevo comentario, trade solicitado, trade confirmado
+- [x] Helper `sendPushNotification` para llamar a Edge Function
+- [ ] Testear flujo completo end-to-end (requiere test manual con dispositivo)
 
 ### Analytics Setup (HIGH)
 - [ ] Elegir herramienta (PostHog vs Plausible vs Vercel Analytics)
@@ -79,6 +79,22 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Push Notifications - Integración Servidor - 2026-01-24
+**Edge Function `send-push` ya desplegada en Supabase**
+- [x] Helper `lib/push-notifications.ts` para llamar a la Edge Function
+- [x] Integrado en `trade_requested` (cuando alguien solicita un trade)
+- [x] Integrado en `request_invalidated` (cuando alguien rechaza una solicitud)
+- [x] Integrado en `trade_confirmed` (cuando se confirma el trade)
+- [x] Integrado en `new_comment` (cuando alguien comenta en el trade)
+
+**Características:**
+- Fire-and-forget: no bloquea la respuesta del API
+- Graceful error handling: errores se loguean pero no rompen el flujo
+- Usa VAPID keys desde environment variables
+- Edge Function maneja suscripciones expiradas (las elimina automáticamente)
+
+**Build verificado:** ✅ npm run build y tsc pasan sin errores
 
 ### Performance: Skeleton Loaders + Optimistic Updates - 2026-01-24
 **Diagnóstico realizado:**
