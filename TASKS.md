@@ -4,8 +4,8 @@
 ## Estado General
 - **Última actualización:** 2026-01-24
 - **Iteración actual:** 8
-- **Tareas completadas:** 23/24
-- **Status:** 🔧 Phase 3 - Rate limiting implementado
+- **Tareas completadas:** 24/25
+- **Status:** ✅ Phase 3 - Rate limiting + Testing structure implementados
 
 ---
 
@@ -63,12 +63,13 @@
 - [x] Tracking de PWA (install prompted, installed) y push notifications (subscribed/unsubscribed)
 - [ ] Configurar dashboard de métricas (requiere configuración en Vercel Dashboard)
 
-### Testing Structure (MEDIUM)
-- [ ] Setup Playwright para E2E tests
-- [ ] Test: flujo de registro + onboarding
-- [ ] Test: flujo de bulk import
-- [ ] Test: flujo de trade completo
-- [ ] Setup k6 para load testing
+### Testing Structure (MEDIUM) ✅
+**Completado 2026-01-24**
+- [x] Setup Playwright para E2E tests
+- [x] Test: flujo de registro + onboarding
+- [x] Test: flujo de bulk import
+- [x] Test: flujo de trade completo
+- [x] Setup k6 para load testing
 
 ### Rate Limiting (MEDIUM) ✅
 **Completado 2026-01-24**
@@ -85,6 +86,41 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Testing Structure - 2026-01-24
+**E2E Tests con Playwright:**
+- [x] Playwright configurado con `playwright.config.ts`
+- [x] Tests de auth flow: login, register, forgot password, protected routes
+- [x] Tests de bulk import: redirect sin auth, estructura de página
+- [x] Tests de trade flow: dashboard, match detail, navegación
+
+**Load Testing con k6:**
+- [x] Script `tests/load/stress-test.js` con escenarios de carga
+- [x] Test de card search (endpoint público más usado)
+- [x] Test de homepage (landing page)
+- [x] Configuración de thresholds: p95 < 500ms, error rate < 1%
+- [x] Métricas custom: api_response_time, error rate
+
+**Estructura creada:**
+```
+/tests
+  /e2e
+    auth.spec.ts          # 17 tests de flujos de autenticación
+    bulk-import.spec.ts   # Tests de importación de cartas
+    trade-flow.spec.ts    # Tests de flujo de trades
+  /load
+    stress-test.js        # k6 script para load testing
+    /results              # Directorio para resultados
+```
+
+**Scripts npm:**
+- `npm test` - Ejecutar todos los tests
+- `npm run test:ui` - Abrir UI de Playwright
+- `npm run test:headed` - Ejecutar tests con navegador visible
+
+**Nota:** Los tests E2E requieren servidor local (`npm run dev`) o configurar URL de producción.
+
+**Build verificado:** ✅ npm run build y tsc pasan sin errores
 
 ### Rate Limiting - 2026-01-24
 **Solución elegida: Upstash Redis + @upstash/ratelimit**
