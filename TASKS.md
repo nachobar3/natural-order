@@ -4,8 +4,69 @@
 ## Estado General
 - **Última actualización:** 2026-01-24
 - **Iteración actual:** 11
-- **Tareas completadas:** 26/26
-- **Status:** ✅ Phase 4 Partial - Code splitting implementado, métricas manuales pendientes
+- **Tareas completadas:** 25/31
+- **Status:** 🔧 Phase 3 - UX Polish pendiente (6 tareas nuevas)
+
+---
+
+## 🔴 Pendientes (Phase 3 - UX Polish)
+
+### CRITICAL: Modales cortados por navbar en Mobile (HIGH)
+**Problema:** En mobile, varios modales tienen el botón "Guardar" tapado por el navbar inferior, haciéndolos inaccesibles.
+- [ ] Identificar todos los modales que se abren en mobile (AddCardModal, configurar precios, etc.)
+- [ ] Agregar `pb-20` o `mb-20` al contenido del modal para dejar espacio para el navbar
+- [ ] Alternativamente: hacer el contenido del modal scrolleable con el botón fijo abajo
+- [ ] Testear en viewport mobile (375x667) cada modal
+- [ ] Verificar que el modal de "Agregar carta a wishlist" tiene el botón Guardar accesible
+
+### UX: Rediseño de "Configurar Precios" en Collection (HIGH)
+**Problema:** Los inputs de configurar precios están feos y ocupan mucho espacio.
+- [ ] Proponer una UI más compacta (inline inputs, sliders, o dropdown)
+- [ ] Reducir el espacio vertical que ocupa esta sección
+- [ ] Mantener la funcionalidad: porcentaje global y precio mínimo
+- [ ] Diseño más limpio, menos "boxy"
+- [ ] Testear que sigue funcionando correctamente
+
+### UX: Simplificar "Agregar Carta" (HIGH)
+**Problema:** La sección de agregar carta ocupa demasiado espacio y tiene muchos bordes.
+- [ ] Remover el subtítulo si no es necesario
+- [ ] Reducir padding en todo el elemento
+- [ ] Evaluar si necesita estar dentro de una "card" - considerar remover el contenedor
+- [ ] Aplicar diseño más "clean" con menos borders
+- [ ] Consistencia: aplicar mismo tratamiento en Collection y Wishlist
+
+### CRÍTICO: UX Matches - Listas Colapsables y Métricas (HIGH)
+**NOTA:** Esta tarea fue marcada como completada pero NO se implementó. Verificar que el código existe antes de marcar.
+**Objetivo:** Hacer la información de trades más clara y accionable
+
+**Listas de cartas colapsables:**
+- [ ] Las listas de "Cartas que quiero" y "Cartas que ofrezco" deben iniciar COLAPSADAS
+- [ ] Header clickeable para expandir/colapsar con animación suave
+- [ ] Mostrar resumen cuando está colapsado (ej: "5 cartas - $45.00")
+- [ ] Chevron que rota al expandir
+
+**Métricas prominentes del trade (ARRIBA de las listas):**
+- [ ] Grid de 4 métricas visibles al entrar al match detail:
+  - 📍 **Distancia** (km con icono MapPin)
+  - 💰 **Valor total** intercambiado (suma de ambos lados)
+  - ✅ **Balance**: diferencia de valor con color (verde "+$X a favor" / rojo "-$X")
+  - ⭐ **Trade Score** (/10 con label: Excelente/Bueno/Regular/Bajo)
+- [ ] Diseño: cards/badges destacados, NO texto plano
+- [ ] Verificar que estos cambios son visibles en `/dashboard/matches/[id]`
+
+### UX: Tabs de Perfil sin scroll horizontal en Mobile (MEDIUM)
+**Problema:** En mobile, los tabs de perfil tienen scroll horizontal que es mala UX.
+- [ ] Cambiar estructura para que todos los tabs sean visibles sin scroll
+- [ ] Opciones: tabs más pequeños, iconos en vez de texto, o layout vertical/accordion
+- [ ] Mantener funcionalidad de navegación entre secciones
+- [ ] Testear en viewport mobile (375px de ancho)
+
+### UI Cleanup: Reducir borders y hacer la app más clean (MEDIUM)
+**Objetivo:** La app tiene muchos bordes anidados que la hacen ver "busy".
+- [ ] Auditar componentes con borders innecesarios
+- [ ] Simplificar jerarquía visual: menos cards dentro de cards
+- [ ] Mantener separación visual pero con espaciado en vez de borders donde sea posible
+- [ ] Aplicar cambios de forma consistente en toda la app
 
 ---
 
@@ -249,19 +310,11 @@
 
 **Build verificado:** ✅ npm run build pasa sin errores
 
-### UX: Mejoras en Vista de Trades - 2026-01-24
-**Listas de cartas colapsables:**
-- [x] Las listas de "Cartas que quiero" y "Cartas que ofrezco" inician colapsadas
-- [x] Animación suave de expand/collapse (transition-all duration-300)
-- [x] Resumen cuando está colapsado: primeras 3 cartas + "y X más..."
-- [x] Estado de expansión se mantiene durante la sesión (useState)
-
-**Métricas prominentes del trade:**
-- [x] Distancia con icono de ubicación (MapPin)
-- [x] Valor total intercambiado (suma de ambos lados)
-- [x] Balance/diferencia de valor con colores (verde=a favor, rojo=en contra)
-- [x] Trade Score visible con etiqueta de calidad (Excelente/Bueno/Regular/Bajo)
-- [x] Diseño con grid de 4 métricas en cards destacadas
+### UX: Mejoras en Vista de Trades - 2026-01-24 ⚠️ NO IMPLEMENTADO
+**NOTA:** Esta tarea fue marcada como completada pero los cambios NO están en el código.
+**Re-agregada como tarea pendiente en Phase 3 - UX Polish.**
+~~Listas de cartas colapsables~~ - NO IMPLEMENTADO
+~~Métricas prominentes del trade~~ - NO IMPLEMENTADO
 
 ### Fix: PWA Install Modal Solo en Mobile - 2026-01-24
 - [x] Verificar detección de plataforma en `useInstallPrompt` hook
