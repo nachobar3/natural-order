@@ -3,9 +3,9 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 5
-- **Tareas completadas:** 20/21
-- **Status:** 🔧 Phase 2 - Performance optimizations + Push notifications completadas
+- **Iteración actual:** 6
+- **Tareas completadas:** 21/22
+- **Status:** 🔧 Phase 2 - Performance optimizations + Push notifications + Analytics completadas
 
 ---
 
@@ -51,12 +51,14 @@
 - [x] Helper `sendPushNotification` para llamar a Edge Function
 - [ ] Testear flujo completo end-to-end (requiere test manual con dispositivo)
 
-### Analytics Setup (HIGH)
-- [ ] Elegir herramienta (PostHog vs Plausible vs Vercel Analytics)
-- [ ] Crear helper `trackEvent(name, properties)`
-- [ ] Agregar tracking a eventos del onboarding funnel
-- [ ] Agregar tracking a acciones core (import, match view, message, trade)
-- [ ] Configurar dashboard de métricas
+### Analytics Setup (HIGH) ✅
+**Completado 2026-01-24**
+- [x] Elegir herramienta: Vercel Analytics + Speed Insights
+- [x] Crear helper `trackEvent(name, properties)` en `lib/analytics.ts`
+- [x] Agregar tracking a eventos del onboarding funnel (sign_up, sign_in)
+- [x] Agregar tracking a acciones core (import, match view, dismiss/restore, trade flow, comments)
+- [x] Tracking de PWA (install prompted, installed) y push notifications (subscribed/unsubscribed)
+- [ ] Configurar dashboard de métricas (requiere configuración en Vercel Dashboard)
 
 ### Testing Structure (MEDIUM)
 - [ ] Setup Playwright para E2E tests
@@ -79,6 +81,36 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Analytics Setup - 2026-01-24
+**Herramienta elegida: Vercel Analytics + Speed Insights**
+- [x] Dependencias instaladas: `@vercel/analytics`, `@vercel/speed-insights`
+- [x] Componentes `<Analytics />` y `<SpeedInsights />` agregados al layout
+- [x] Helper `trackEvent(name, properties)` creado en `lib/analytics.ts`
+- [x] Constantes de eventos centralizadas en `AnalyticsEvents`
+
+**Eventos trackeados:**
+- Auth: `sign_up`, `sign_in` (con método: email/google)
+- Import: `collection_import`, `wishlist_import` (con totales y formato)
+- Matches: `match_viewed`, `match_dismissed`, `match_restored`
+- Trades: `trade_requested`, `trade_confirmed`, `trade_completed`, `trade_cancelled`
+- Communication: `comment_sent`
+- PWA: `pwa_install_prompted`, `pwa_installed`
+- Push: `push_subscribed`, `push_unsubscribed`
+
+**Archivos modificados:**
+- `lib/analytics.ts` (nuevo)
+- `app/layout.tsx`
+- `app/(auth)/login/page.tsx`
+- `app/(auth)/register/page.tsx`
+- `app/dashboard/page.tsx`
+- `app/dashboard/collection/import/page.tsx`
+- `app/dashboard/wishlist/import/page.tsx`
+- `app/dashboard/matches/[id]/page.tsx`
+- `components/pwa/install-prompt.tsx`
+- `lib/hooks/use-push-notifications.ts`
+
+**Build verificado:** ✅ npm run build y tsc pasan sin errores
 
 ### Push Notifications - Integración Servidor - 2026-01-24
 **Edge Function `send-push` ya desplegada en Supabase**
