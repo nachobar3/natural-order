@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-24
 - **Iteración actual:** 4
-- **Tareas completadas:** 16/21
+- **Tareas completadas:** 17/21
 - **Status:** 🔧 Phase 2 - Push Notifications parcialmente completadas
 
 ---
@@ -43,11 +43,6 @@
 - [ ] Verificar en dispositivos móviles reales (no solo emulador)
 - [ ] Documentar mejoras logradas y trade-offs
 
-### Fix: PWA Install Modal Solo en Mobile (HIGH - Quick Fix)
-- [ ] El modal de instalación PWA aparece en desktop, debe ser solo mobile
-- [ ] Verificar detección de plataforma en `useInstallPrompt` hook
-- [ ] Agregar check `isMobile` antes de mostrar el modal
-- [ ] Testear en desktop (no debe aparecer) y mobile (debe aparecer)
 
 ### UX: Mejoras en Vista de Trades (HIGH)
 **Objetivo:** Hacer la información de trades más clara y accionable
@@ -104,6 +99,11 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Fix: PWA Install Modal Solo en Mobile - 2026-01-24
+- [x] Verificar detección de plataforma en `useInstallPrompt` hook
+- [x] Agregar check `isMobile` antes de mostrar el modal
+- [x] Build pasa correctamente
 
 ### Push Notifications - Infraestructura Frontend/API - 2026-01-24
 - [x] Crear tabla `push_subscriptions` en Supabase (con RLS policies)
