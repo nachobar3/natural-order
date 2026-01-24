@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { DashboardNav } from '@/components/ui/dashboard-nav'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { InstallPrompt } from '@/components/pwa/install-prompt'
+import { PushPrompt } from '@/components/pwa/push-prompt'
 
 export default async function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
       </main>
       <BottomNav />
       <InstallPrompt />
+      <PushPrompt />
     </div>
   )
 }
