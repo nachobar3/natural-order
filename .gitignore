@@ -48,3 +48,7 @@ public/workbox-*.js.map
 
 # Prompts
 prompts/
+
+# Test results
+test-results/
+playwright-report/
