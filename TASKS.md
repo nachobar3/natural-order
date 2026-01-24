@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 15/19
+- **Tareas completadas:** 15/21
 - **Status:** 🔧 Phase 2 - Performance crítica agregada
 
 ---
@@ -42,6 +42,32 @@
 - [ ] Comparar antes/después con screenshots de DevTools
 - [ ] Verificar en dispositivos móviles reales (no solo emulador)
 - [ ] Documentar mejoras logradas y trade-offs
+
+### Fix: PWA Install Modal Solo en Mobile (HIGH - Quick Fix)
+- [ ] El modal de instalación PWA aparece en desktop, debe ser solo mobile
+- [ ] Verificar detección de plataforma en `useInstallPrompt` hook
+- [ ] Agregar check `isMobile` antes de mostrar el modal
+- [ ] Testear en desktop (no debe aparecer) y mobile (debe aparecer)
+
+### UX: Mejoras en Vista de Trades (HIGH)
+**Objetivo:** Hacer la información de trades más clara y accionable
+
+**Listas de cartas colapsables:**
+- [ ] Las listas de "Cartas que quiero" y "Cartas que ofrezco" deben iniciar colapsadas
+- [ ] Implementar componente expandible con animación suave
+- [ ] Mostrar resumen cuando está colapsado (ej: "5 cartas - $45.00")
+- [ ] Mantener estado de expansión durante la sesión
+
+**Métricas prominentes del trade:**
+- [ ] Mostrar **Distancia** de forma visible (con icono de ubicación)
+- [ ] Mostrar **Valor total intercambiado** (suma de ambos lados)
+- [ ] Mostrar **Diferencia de valor**:
+  - Si mis cartas valen más → verde con texto "A favor" o "+$X.XX"
+  - Si sus cartas valen más → rojo/neutro con "-$X.XX"
+- [ ] Crear **Trade Score** compuesto visible:
+  - Factores: distancia, balance de valor, cantidad de cartas, descuento promedio
+  - Mostrar como badge o indicador (ej: ⭐ 8.5/10 o "Excelente trade")
+- [ ] Diseño: usar cards/badges destacados para estas métricas, no texto plano
 
 ### Push Notifications (HIGH)
 - [ ] Crear tabla `push_subscriptions` en Supabase
