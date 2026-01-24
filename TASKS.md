@@ -535,13 +535,10 @@ _Todas las tareas de UX Polish completadas._
 - `npm run build` pasa sin errores
 - **ESLint configurado** (`next/core-web-vitals` + `next/typescript`)
 - Lint reporta:
-  - 12 errores (principalmente unused imports/variables)
-  - 6 warnings (useEffect dependencies, img vs Image)
-  - No bloquean el build, son cleanup items
-- **console.log encontrados (5 ocurrencias de debug):**
-  - `app/api/matches/compute/route.ts`: 4 console.logs de debug para matching
-  - `app/api/matches/[id]/complete/route.ts`: 1 console.log de éxito
-  - Estos deberían removerse o convertirse en logging condicional para producción
+  - ~~12 errores (principalmente unused imports/variables)~~ Limpiados
+  - ~~6 warnings (useEffect dependencies, img vs Image)~~ Reducidos a 3 (solo useEffect deps intencionales)
+  - No bloquean el build
+- ~~**console.log encontrados (5 ocurrencias de debug)**~~ **Limpiados 2026-01-24**
 - console.error (99 ocurrencias) - aceptables para error logging
 
 ### 2026-01-23 - TypeScript Types Validation
