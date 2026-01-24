@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendPushNotification } from '@/lib/push-notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -181,12 +182,26 @@ export async function POST(
       .eq('id', user.id)
       .single()
 
+    const notificationContent = `${currentUser?.display_name || 'Un usuario'} comentó en el trade`
+
     await supabase.from('notifications').insert({
       user_id: otherUserId,
       type: 'new_comment',
       match_id: matchId,
       from_user_id: user.id,
-      content: `${currentUser?.display_name || 'Un usuario'} comentó en el trade`,
+      content: notificationContent,
+    })
+
+    // Send push notification (fire-and-forget)
+    sendPushNotification({
+      user_id: otherUserId,
+      title: 'Nuevo comentario',
+      body: notificationContent,
+      data: {
+        type: 'new_comment',
+        matchId,
+        url: `/dashboard/matches/${matchId}`,
+      },
     })
 
     return NextResponse.json({

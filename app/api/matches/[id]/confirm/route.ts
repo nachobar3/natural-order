@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendPushNotification } from '@/lib/push-notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,12 +80,26 @@ export async function POST(
       .eq('id', user.id)
       .single()
 
+    const notificationContent = `${currentUser?.display_name || 'Un usuario'} confirmó el trade. Tienen ${ESCROW_DAYS} días para completarlo.`
+
     await supabase.from('notifications').insert({
       user_id: otherUserId,
       type: 'trade_confirmed',
       match_id: matchId,
       from_user_id: user.id,
-      content: `${currentUser?.display_name || 'Un usuario'} confirmó el trade. Tienen ${ESCROW_DAYS} días para completarlo.`,
+      content: notificationContent,
+    })
+
+    // Send push notification (fire-and-forget)
+    sendPushNotification({
+      user_id: otherUserId,
+      title: '¡Trade confirmado!',
+      body: notificationContent,
+      data: {
+        type: 'trade_confirmed',
+        matchId,
+        url: `/dashboard/matches/${matchId}`,
+      },
     })
 
     return NextResponse.json({

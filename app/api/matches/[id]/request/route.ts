@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendPushNotification } from '@/lib/push-notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,12 +81,26 @@ export async function POST(
       .eq('id', user.id)
       .single()
 
+    const notificationContent = `${currentUser?.display_name || 'Un usuario'} te solicitó un trade`
+
     await supabase.from('notifications').insert({
       user_id: otherUserId,
       type: 'trade_requested',
       match_id: matchId,
       from_user_id: user.id,
-      content: `${currentUser?.display_name || 'Un usuario'} te solicitó un trade`,
+      content: notificationContent,
+    })
+
+    // Send push notification (fire-and-forget)
+    sendPushNotification({
+      user_id: otherUserId,
+      title: 'Nueva solicitud de trade',
+      body: notificationContent,
+      data: {
+        type: 'trade_requested',
+        matchId,
+        url: `/dashboard/matches/${matchId}`,
+      },
     })
 
     return NextResponse.json({ success: true })
@@ -161,12 +176,26 @@ export async function DELETE(
         .eq('id', user.id)
         .single()
 
+      const notificationContent = `${currentUser?.display_name || 'Un usuario'} rechazó tu solicitud de trade`
+
       await supabase.from('notifications').insert({
         user_id: match.requested_by,
         type: 'request_invalidated',
         match_id: matchId,
         from_user_id: user.id,
-        content: `${currentUser?.display_name || 'Un usuario'} rechazó tu solicitud de trade`,
+        content: notificationContent,
+      })
+
+      // Send push notification (fire-and-forget)
+      sendPushNotification({
+        user_id: match.requested_by,
+        title: 'Solicitud rechazada',
+        body: notificationContent,
+        data: {
+          type: 'trade_requested',
+          matchId,
+          url: `/dashboard/matches/${matchId}`,
+        },
       })
     }
 
