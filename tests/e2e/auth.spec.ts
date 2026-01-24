@@ -61,8 +61,8 @@ test.describe('Authentication Flow', () => {
       await expect(page.getByText('Creá tu cuenta')).toBeVisible()
       await expect(page.getByLabel('Nombre')).toBeVisible()
       await expect(page.getByLabel('Email')).toBeVisible()
-      await expect(page.getByLabel('Contraseña')).toBeVisible()
-      await expect(page.getByLabel('Confirmar contraseña')).toBeVisible()
+      await expect(page.locator('#password')).toBeVisible()
+      await expect(page.locator('#confirmPassword')).toBeVisible()
       await expect(page.getByRole('button', { name: 'Crear cuenta' })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Google' })).toBeVisible()
     })
@@ -73,8 +73,8 @@ test.describe('Authentication Flow', () => {
       // Fill form with mismatched passwords
       await page.getByLabel('Nombre').fill('Test User')
       await page.getByLabel('Email').fill('test@example.com')
-      await page.getByLabel('Contraseña').fill('password123')
-      await page.getByLabel('Confirmar contraseña').fill('differentpassword')
+      await page.locator('#password').fill('password123')
+      await page.locator('#confirmPassword').fill('differentpassword')
       await page.getByRole('button', { name: 'Crear cuenta' }).click()
 
       // Check error message
@@ -87,8 +87,8 @@ test.describe('Authentication Flow', () => {
       // Fill form with short password
       await page.getByLabel('Nombre').fill('Test User')
       await page.getByLabel('Email').fill('test@example.com')
-      await page.getByLabel('Contraseña').fill('12345')
-      await page.getByLabel('Confirmar contraseña').fill('12345')
+      await page.locator('#password').fill('12345')
+      await page.locator('#confirmPassword').fill('12345')
       await page.getByRole('button', { name: 'Crear cuenta' }).click()
 
       // Check error message
