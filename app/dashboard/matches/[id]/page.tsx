@@ -37,6 +37,7 @@ import {
   ChevronUp,
   DollarSign,
   Star,
+  Package,
 } from 'lucide-react'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import type { MatchDetail, MatchCard, MatchType, MatchStatus } from '@/types/database'
@@ -955,63 +956,91 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         </div>
       )}
 
-      {/* Trade Metrics - Prominent display */}
-      <div className="card bg-gradient-to-br from-gray-900 to-gray-900/80">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Distance */}
-          <div className="text-center p-3 rounded-lg bg-gray-800/50">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <MapPin className="w-4 h-4 text-blue-400" />
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Distancia</span>
+      {/* Trade Metrics - PROMINENT display */}
+      <div className="bg-gradient-to-r from-mtg-green-900/40 via-gray-900 to-mtg-green-900/40 rounded-2xl p-4 border border-mtg-green-600/30">
+        {/* Main Score Badge */}
+        <div className="flex items-center justify-center mb-4">
+          <div className={`px-6 py-2 rounded-full ${
+            match.matchScore && match.matchScore >= 8 ? 'bg-green-500/20 border-2 border-green-500/50' :
+            match.matchScore && match.matchScore >= 6 ? 'bg-yellow-500/20 border-2 border-yellow-500/50' :
+            match.matchScore && match.matchScore >= 4 ? 'bg-orange-500/20 border-2 border-orange-500/50' :
+            'bg-gray-500/20 border-2 border-gray-500/50'
+          }`}>
+            <div className="flex items-center gap-3">
+              <Star className={`w-6 h-6 ${
+                match.matchScore && match.matchScore >= 8 ? 'text-green-400' :
+                match.matchScore && match.matchScore >= 6 ? 'text-yellow-400' :
+                match.matchScore && match.matchScore >= 4 ? 'text-orange-400' :
+                'text-gray-400'
+              }`} />
+              <span className="text-2xl font-bold text-white">{match.matchScore?.toFixed(1) || '—'}</span>
+              <span className="text-sm text-gray-400">/10</span>
+              <span className={`text-sm font-medium ${
+                match.matchScore && match.matchScore >= 8 ? 'text-green-400' :
+                match.matchScore && match.matchScore >= 6 ? 'text-yellow-400' :
+                match.matchScore && match.matchScore >= 4 ? 'text-orange-400' :
+                'text-gray-400'
+              }`}>
+                {match.matchScore && match.matchScore >= 8 ? 'Excelente' : match.matchScore && match.matchScore >= 6 ? 'Bueno' : match.matchScore && match.matchScore >= 4 ? 'Regular' : 'Trade bajo'}
+              </span>
             </div>
-            <p className="text-xl font-bold text-blue-400">
+          </div>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {/* Distance */}
+          <div className="text-center p-3 rounded-xl bg-gray-800/60 border border-gray-700/50">
+            <MapPin className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-blue-400">
               {match.distanceKm !== null ? (match.distanceKm < 1 ? '<1' : Math.round(match.distanceKm)) : '—'}
-              <span className="text-sm font-normal text-gray-400 ml-1">km</span>
+              <span className="text-sm font-normal text-gray-500 ml-1">km</span>
+            </p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Distancia</p>
+          </div>
+
+          {/* Cards I want */}
+          <div className="text-center p-3 rounded-xl bg-green-900/30 border border-green-600/30">
+            <Package className="w-5 h-5 text-green-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-green-400">{activeCardsIWant.length}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Cartas quiero</p>
+            <p className="text-xs text-green-400/70">${totalValueIWant.toFixed(2)}</p>
+          </div>
+
+          {/* Cards they want */}
+          <div className="text-center p-3 rounded-xl bg-purple-900/30 border border-purple-600/30">
+            <Package className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-purple-400">{activeCardsTheyWant.length}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Cartas doy</p>
+            <p className="text-xs text-purple-400/70">${totalValueTheyWant.toFixed(2)}</p>
+          </div>
+
+          {/* Balance */}
+          <div className={`text-center p-3 rounded-xl border ${
+            Math.abs(balance) < 1 ? 'bg-gray-800/60 border-gray-600/50' :
+            balance > 0 ? 'bg-green-900/40 border-green-500/50' : 'bg-red-900/40 border-red-500/50'
+          }`}>
+            {balance >= 0 ? (
+              <TrendingUp className={`w-5 h-5 mx-auto mb-1 ${Math.abs(balance) < 1 ? 'text-gray-400' : 'text-green-400'}`} />
+            ) : (
+              <TrendingDown className="w-5 h-5 text-red-400 mx-auto mb-1" />
+            )}
+            <p className={`text-2xl font-bold ${Math.abs(balance) < 1 ? 'text-gray-400' : balance > 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {balance > 0 ? '+' : ''}{Math.abs(balance) < 1 ? '±' : ''}${Math.abs(balance).toFixed(0)}
+            </p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Balance</p>
+            <p className={`text-xs ${Math.abs(balance) < 1 ? 'text-gray-500' : balance > 0 ? 'text-green-400/70' : 'text-red-400/70'}`}>
+              {Math.abs(balance) < 1 ? 'equilibrado' : balance > 0 ? 'a tu favor' : 'en contra'}
             </p>
           </div>
 
           {/* Total Value */}
-          <div className="text-center p-3 rounded-lg bg-gray-800/50">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <DollarSign className="w-4 h-4 text-mtg-gold-400" />
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Valor Total</span>
-            </div>
-            <p className="text-xl font-bold text-mtg-gold-400">
-              ${(totalValueIWant + totalValueTheyWant).toFixed(2)}
+          <div className="text-center p-3 rounded-xl bg-mtg-gold-900/30 border border-mtg-gold-600/30">
+            <DollarSign className="w-5 h-5 text-mtg-gold-400 mx-auto mb-1" />
+            <p className="text-2xl font-bold text-mtg-gold-400">
+              ${(totalValueIWant + totalValueTheyWant).toFixed(0)}
             </p>
-          </div>
-
-          {/* Balance / Difference */}
-          <div className="text-center p-3 rounded-lg bg-gray-800/50">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              {balance >= 0 ? (
-                <TrendingUp className="w-4 h-4 text-green-400" />
-              ) : (
-                <TrendingDown className="w-4 h-4 text-red-400" />
-              )}
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Balance</span>
-            </div>
-            <p className={`text-xl font-bold ${Math.abs(balance) < 1 ? 'text-gray-400' : balance > 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {balance > 0 ? '+' : ''}{balance < 0 ? '' : ''}{Math.abs(balance) < 1 ? '±' : ''}${Math.abs(balance).toFixed(2)}
-            </p>
-            <p className="text-[10px] text-gray-500">
-              {Math.abs(balance) < 1 ? 'equilibrado' : balance > 0 ? 'a favor' : 'en contra'}
-            </p>
-          </div>
-
-          {/* Trade Score */}
-          <div className="text-center p-3 rounded-lg bg-gray-800/50">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <Star className="w-4 h-4 text-yellow-400" />
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Score</span>
-            </div>
-            <p className="text-xl font-bold text-yellow-400">
-              {match.matchScore?.toFixed(1) || '—'}
-              <span className="text-sm font-normal text-gray-400">/10</span>
-            </p>
-            <p className="text-[10px] text-gray-500">
-              {match.matchScore && match.matchScore >= 8 ? 'Excelente' : match.matchScore && match.matchScore >= 6 ? 'Bueno' : match.matchScore && match.matchScore >= 4 ? 'Regular' : 'Bajo'}
-            </p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Valor Total</p>
           </div>
         </div>
       </div>
@@ -1059,10 +1088,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          {/* Expanded list */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${cardsIWantExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            {match.cardsIWant.length === 0 ? (
-              <div className="text-center py-4">
+          {/* Expanded list - conditionally rendered for reliable collapse */}
+          {cardsIWantExpanded && (
+            match.cardsIWant.length === 0 ? (
+              <div className="text-center py-4 mt-2">
                 <p className="text-sm text-gray-500 mb-2">No tiene cartas de tu wishlist</p>
                 {canEdit && (
                   <button
@@ -1089,8 +1118,8 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   />
                 ))}
               </div>
-            )}
-          </div>
+            )
+          )}
         </div>
 
         {/* Cards they want (I have) */}
@@ -1122,10 +1151,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          {/* Expanded list */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${cardsTheyWantExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            {match.cardsTheyWant.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No buscan cartas de tu colección</p>
+          {/* Expanded list - conditionally rendered for reliable collapse */}
+          {cardsTheyWantExpanded && (
+            match.cardsTheyWant.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4 mt-2">No buscan cartas de tu colección</p>
             ) : (
               <div className="space-y-2 mt-3">
                 {match.cardsTheyWant.map((card) => (
@@ -1141,8 +1170,8 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   />
                 ))}
               </div>
-            )}
-          </div>
+            )
+          )}
         </div>
       </div>
 
