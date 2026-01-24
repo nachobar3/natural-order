@@ -428,6 +428,13 @@ _Todas las tareas de UX Polish completadas._
 
 ## 📝 Notas del Agente
 
+### 2026-01-24 - Image Optimization
+- **Avatares de usuario convertidos de `<img>` a `<Image />`:**
+  - `app/dashboard/page.tsx`: Avatar en lista de matches
+  - `app/dashboard/matches/[id]/page.tsx`: Avatar en header + avatares en comentarios
+- **Beneficio:** Optimización automática de imágenes (WebP/AVIF), mejor LCP
+- **ESLint warnings:** Reducidos de 6 a 3 (solo quedan useEffect deps intencionales)
+
 ### 2026-01-24 - Code Splitting Implementation
 - **Componentes con lazy loading implementado:**
   - `AddressAutocomplete`: Carga Google Maps Places API (~200KB) solo en tab "ubicacion"
