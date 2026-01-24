@@ -4,7 +4,7 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 13/15
+- **Tareas completadas:** 15/15
 
 ---
 
@@ -40,9 +40,9 @@
 - [x] Verificar uso de índices en queries frecuentes (48 índices, bien cubierto)
 - [x] Identificar N+1 queries si existen (ninguno - usa batch fetching)
 
-### Documentación: API
-- [ ] Documentar endpoints principales en README o archivo separado
-- [ ] Documentar estructura de respuestas
+### Documentación: API ✅
+- [x] Documentar endpoints principales en README o archivo separado
+- [x] Documentar estructura de respuestas
 
 ### Cleanup: Technical Debt ✅
 - [x] Revisar TODOs en el código (ninguno encontrado)
@@ -58,6 +58,11 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Documentación: API - 2026-01-23
+- [x] Creado `/docs/API.md` con documentación de 22 endpoints
+- [x] Incluye parámetros, request/response bodies, y códigos de error
+- [x] Endpoints públicos marcados, notas sobre rate limiting
 
 ### Feature: PWA Install Prompt (MEDIUM) - 2026-01-23
 - [x] Hook `useInstallPrompt` detecta iOS/Android/Desktop
