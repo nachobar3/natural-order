@@ -3,9 +3,9 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 8
-- **Tareas completadas:** 24/25
-- **Status:** ✅ Phase 3 - Rate limiting + Testing structure implementados
+- **Iteración actual:** 9
+- **Tareas completadas:** 25/25
+- **Status:** ✅ Phase 3 Complete - DB Performance optimizations applied
 
 ---
 
@@ -31,14 +31,15 @@
 - [ ] Implementar code splitting donde falte (nice to have)
 - [ ] Evaluar Server Components vs Client Components (nice to have)
 
-**Fase 3: Optimizaciones Backend/API** (parcial)
+**Fase 3: Optimizaciones Backend/API** ✅
 - [x] Agregar cache headers apropiados a responses
   - `/api/cards/search`: public, s-maxage=300 (5 min)
   - `/api/cards/printings`: public, s-maxage=600 (10 min)
   - `/api/matches`: private, max-age=10
-- [ ] Evaluar edge caching en Vercel para endpoints que lo permitan
-- [ ] Optimizar queries SQL si hay slowness en DB
-- [ ] Considerar ISR (Incremental Static Regeneration) donde aplique
+- [x] Evaluar edge caching en Vercel - No aplicable (endpoints usan auth/force-dynamic)
+- [x] Optimizar RLS policies - 40+ policies actualizadas con `(SELECT auth.uid())`
+- [x] Agregar índices faltantes en foreign keys (8 índices nuevos)
+- [x] ISR evaluado - No aplica (páginas requieren auth check o son client components)
 
 **Fase 4: Validación**
 - [ ] Re-medir todas las métricas post-optimización
@@ -335,6 +336,28 @@
 ---
 
 ## 📝 Notas del Agente
+
+### 2026-01-24 - Database Performance Optimization (Phase 3)
+- **RLS Policies optimizadas:**
+  - 40+ políticas actualizadas para usar `(SELECT auth.uid())` en lugar de `auth.uid()`
+  - Esto evita que la función se re-evalúe por cada fila (mejora significativa en tablas grandes)
+  - Tablas afectadas: users, locations, preferences, collections, wishlist, matches, match_cards, match_comments, notifications, push_subscriptions
+  - Referencia: https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select
+
+- **Índices agregados en foreign keys:**
+  - `match_cards_added_by_user_idx` - FK a users
+  - `match_cards_card_idx` - FK a cards
+  - `match_cards_collection_idx` - FK a collections
+  - `match_cards_wishlist_idx` - FK a wishlist
+  - `match_comments_user_idx` - FK a users
+  - `matches_requested_by_idx` - FK a users
+  - `notifications_from_user_idx` - FK a users
+  - `notifications_match_idx` - FK a matches
+
+- **Análisis de edge caching/ISR:**
+  - Edge Runtime no aplicable: endpoints usan `force-dynamic` para auth
+  - ISR no aplicable: landing hace auth check, FAQs es client component
+  - Cache headers ya implementados para endpoints públicos
 
 ### 2026-01-24 - Performance Optimization Phase 1-2
 - **Diagnóstico de bundle:**
