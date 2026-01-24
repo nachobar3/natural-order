@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Lock, Loader2 } from 'lucide-react'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 function LoginForm() {
   const router = useRouter()
@@ -37,6 +38,7 @@ function LoginForm() {
       return
     }
 
+    trackEvent(AnalyticsEvents.SIGN_IN, { method: 'email' })
     router.push(redirectTo)
     router.refresh()
   }
@@ -44,6 +46,8 @@ function LoginForm() {
   async function handleGoogleLogin() {
     setLoading(true)
     setError(null)
+
+    trackEvent(AnalyticsEvents.SIGN_IN, { method: 'google', initiated: true })
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

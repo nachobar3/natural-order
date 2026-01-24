@@ -37,6 +37,7 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import type { Match, MatchType } from '@/types/database'
 
 const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRightLeft; color: string }> = {
@@ -372,6 +373,8 @@ export default function DashboardPage() {
     }))
     setMetrics(prev => ({ ...prev, matchesCount: Math.max(0, prev.matchesCount - 1) }))
 
+    trackEvent(AnalyticsEvents.MATCH_DISMISSED, { match_id: matchId })
+
     try {
       const res = await fetch('/api/matches', {
         method: 'PATCH',
@@ -397,6 +400,8 @@ export default function DashboardPage() {
       descartados: Math.max(0, prev.descartados - 1),
       disponibles: prev.disponibles + 1,
     }))
+
+    trackEvent(AnalyticsEvents.MATCH_RESTORED, { match_id: matchId })
 
     try {
       const res = await fetch('/api/matches', {

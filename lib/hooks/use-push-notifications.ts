@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 type PushPermission = 'default' | 'granted' | 'denied'
 
@@ -117,6 +118,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
         throw new Error('Error al registrar la suscripción en el servidor')
       }
 
+      trackEvent(AnalyticsEvents.PUSH_SUBSCRIBED)
       setIsSubscribed(true)
       setIsLoading(false)
       return true
@@ -148,6 +150,7 @@ export function usePushNotifications(): UsePushNotificationsResult {
         })
       }
 
+      trackEvent(AnalyticsEvents.PUSH_UNSUBSCRIBED)
       setIsSubscribed(false)
       setIsLoading(false)
       return true

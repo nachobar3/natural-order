@@ -6,6 +6,7 @@ import { Upload, AlertCircle, CheckCircle2, XCircle, Loader2, ArrowLeft, HelpCir
 import Image from 'next/image'
 import Link from 'next/link'
 import { parseCSV, FORMAT_LABELS, type ParsedCard, type CsvFormat } from '@/lib/csv-parser'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 type ImportStep = 'upload' | 'preview' | 'importing' | 'complete'
 type ConflictMode = 'skip' | 'update' | 'add'
@@ -182,6 +183,15 @@ export default function ImportPage() {
     })
     setIsImporting(false)
     setStep('complete')
+
+    // Track import completion
+    trackEvent(AnalyticsEvents.COLLECTION_IMPORT, {
+      total: validCards.length,
+      inserted: allResults.inserted,
+      updated: allResults.updated,
+      errors: allResults.errors,
+      format: format,
+    })
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {

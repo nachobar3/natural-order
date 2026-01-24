@@ -1,10 +1,24 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useInstallPrompt } from '@/lib/hooks/use-install-prompt'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import { X, Download, Share, PlusSquare } from 'lucide-react'
 
 export function InstallPrompt() {
   const { canInstall, platform, promptInstall, dismiss } = useInstallPrompt()
+
+  // Track when install prompt is shown
+  useEffect(() => {
+    if (canInstall) {
+      trackEvent(AnalyticsEvents.PWA_INSTALL_PROMPTED, { platform })
+    }
+  }, [canInstall, platform])
+
+  const handleInstall = async () => {
+    await promptInstall()
+    trackEvent(AnalyticsEvents.PWA_INSTALLED, { platform })
+  }
 
   // Don't show if can't install
   if (!canInstall) return null
@@ -66,7 +80,7 @@ export function InstallPrompt() {
             </p>
             <div className="flex gap-2">
               <button
-                onClick={promptInstall}
+                onClick={handleInstall}
                 className="btn-primary text-sm py-2 px-4"
               >
                 <Download className="w-4 h-4" />

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Mail, Lock, User, Loader2 } from 'lucide-react'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -65,10 +66,12 @@ export default function RegisterPage() {
         console.error('Profile creation error:', profileError)
       }
 
+      trackEvent(AnalyticsEvents.SIGN_UP, { method: 'email' })
       router.push('/dashboard')
       router.refresh()
     } else {
       // Email confirmation is enabled
+      trackEvent(AnalyticsEvents.SIGN_UP, { method: 'email', needs_confirmation: true })
       setSuccess(true)
       setLoading(false)
     }
@@ -77,6 +80,8 @@ export default function RegisterPage() {
   async function handleGoogleSignup() {
     setLoading(true)
     setError(null)
+
+    trackEvent(AnalyticsEvents.SIGN_UP, { method: 'google', initiated: true })
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

@@ -39,6 +39,7 @@ import {
 } from 'lucide-react'
 import { CounterpartCollectionDrawer } from '@/components/matches/counterpart-collection-drawer'
 import { LocationMap } from '@/components/ui/location-map'
+import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import type { MatchDetail, MatchCard, MatchType, MatchStatus } from '@/types/database'
 
 const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRightLeft; color: string }> = {
@@ -486,7 +487,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     setActionLoading('request')
     try {
       const res = await fetch(`/api/matches/${id}/request`, { method: 'POST' })
-      if (res.ok) await loadMatch()
+      if (res.ok) {
+        trackEvent(AnalyticsEvents.TRADE_REQUESTED, { match_id: id })
+        await loadMatch()
+      }
     } catch (err) {
       console.error('Error requesting trade:', err)
     } finally {
@@ -498,7 +502,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     setActionLoading('cancel')
     try {
       const res = await fetch(`/api/matches/${id}/request`, { method: 'DELETE' })
-      if (res.ok) await loadMatch()
+      if (res.ok) {
+        trackEvent(AnalyticsEvents.TRADE_CANCELLED, { match_id: id, stage: 'request' })
+        await loadMatch()
+      }
     } catch (err) {
       console.error('Error canceling request:', err)
     } finally {
@@ -510,7 +517,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     setActionLoading('confirm')
     try {
       const res = await fetch(`/api/matches/${id}/confirm`, { method: 'POST' })
-      if (res.ok) await loadMatch()
+      if (res.ok) {
+        trackEvent(AnalyticsEvents.TRADE_CONFIRMED, { match_id: id })
+        await loadMatch()
+      }
     } catch (err) {
       console.error('Error confirming trade:', err)
     } finally {
@@ -526,7 +536,14 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed }),
       })
-      if (res.ok) await loadMatch()
+      if (res.ok) {
+        if (completed) {
+          trackEvent(AnalyticsEvents.TRADE_COMPLETED, { match_id: id })
+        } else {
+          trackEvent(AnalyticsEvents.TRADE_CANCELLED, { match_id: id, stage: 'completion' })
+        }
+        await loadMatch()
+      }
     } catch (err) {
       console.error('Error marking trade:', err)
     } finally {
@@ -536,6 +553,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
 
   const dismissMatch = async () => {
     setActionLoading('dismiss')
+    trackEvent(AnalyticsEvents.MATCH_DISMISSED, { match_id: id })
     try {
       const res = await fetch('/api/matches', {
         method: 'PATCH',
@@ -580,6 +598,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         body: JSON.stringify({ content: newComment.trim() }),
       })
       if (res.ok) {
+        trackEvent(AnalyticsEvents.COMMENT_SENT, { match_id: id })
         setNewComment('')
         await loadComments()
         // Scroll to bottom
@@ -610,10 +629,11 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   }
 
   useEffect(() => {
+    trackEvent(AnalyticsEvents.MATCH_VIEWED, { match_id: id })
     loadMatch()
     loadComments()
     fetchCurrentUser()
-  }, [loadMatch, loadComments, fetchCurrentUser])
+  }, [loadMatch, loadComments, fetchCurrentUser, id])
 
   // Calculate totals based on local exclusions
   const { activeCardsIWant, activeCardsTheyWant, totalValueIWant, totalValueTheyWant } = useMemo(() => {
