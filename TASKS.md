@@ -3,9 +3,9 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 7
-- **Tareas completadas:** 22/23
-- **Status:** 🔧 Phase 2 - SWR caching + Cache headers implementados
+- **Iteración actual:** 8
+- **Tareas completadas:** 23/24
+- **Status:** 🔧 Phase 3 - Rate limiting implementado
 
 ---
 
@@ -70,10 +70,11 @@
 - [ ] Test: flujo de trade completo
 - [ ] Setup k6 para load testing
 
-### Rate Limiting (MEDIUM)
-- [ ] Investigar opciones (Vercel middleware vs Upstash Redis)
-- [ ] Implementar rate limiting en endpoints críticos
-- [ ] Configurar límites por endpoint
+### Rate Limiting (MEDIUM) ✅
+**Completado 2026-01-24**
+- [x] Investigar opciones (Vercel middleware vs Upstash Redis)
+- [x] Implementar rate limiting en endpoints críticos
+- [x] Configurar límites por endpoint
 
 ---
 
@@ -84,6 +85,27 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Rate Limiting - 2026-01-24
+**Solución elegida: Upstash Redis + @upstash/ratelimit**
+- [x] Dependencias instaladas: `@upstash/ratelimit`, `@upstash/redis`
+- [x] Helper `lib/rate-limit.ts` con 4 niveles de límites
+- [x] Integrado en middleware.ts para todas las rutas `/api/*`
+- [x] Variables de entorno documentadas en `.env.local.example`
+
+**Límites configurados (sliding window):**
+- Públicos (`/api/cards/search`, `/api/cards/printings`): 60 req/min
+- Auth lectura (GET endpoints): 100 req/min
+- Auth escritura (POST/PUT/DELETE): 30 req/min
+- Intensivos (`compute`, `bulk-import`): 5 req/min
+
+**Características:**
+- Rate limiting basado en IP para requests no autenticados
+- Graceful degradation: si no hay Redis configurado, permite todas las requests
+- Headers estándar en responses: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- Respuesta 429 con mensaje amigable y `Retry-After` header
+
+**Build verificado:** ✅ npm run build y tsc pasan sin errores
 
 ### SWR Caching + Cache Headers - 2026-01-24
 **Frontend caching con SWR:**
