@@ -3,9 +3,9 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 6
-- **Tareas completadas:** 21/22
-- **Status:** 🔧 Phase 2 - Performance optimizations + Push notifications + Analytics completadas
+- **Iteración actual:** 7
+- **Tareas completadas:** 22/23
+- **Status:** 🔧 Phase 2 - SWR caching + Cache headers implementados
 
 ---
 
@@ -22,17 +22,20 @@
 - [x] Identificar re-renders innecesarios con React DevTools Profiler
 - [x] Medir tiempo de respuesta de API endpoints críticos
 
-**Fase 2: Optimizaciones Frontend** (parcial)
+**Fase 2: Optimizaciones Frontend** ✅
 - [x] Implementar skeleton loaders para percepción de velocidad (6 archivos loading.tsx)
 - [x] Revisar y optimizar bundle size (analizar con `next/bundle-analyzer`) - bundle OK
-- [ ] Implementar code splitting donde falte
-- [ ] Evaluar Server Components vs Client Components (minimizar JS enviado)
 - [x] Implementar optimistic updates para acciones del usuario (dismiss/restore)
-- [ ] Cachear datos con React Query o SWR si no está implementado
+- [x] Cachear datos con SWR - hook `useMatches` con deduplicación y revalidación
 - [x] Prefetch de rutas probables (next/link prefetch) - ya activo por defecto
+- [ ] Implementar code splitting donde falte (nice to have)
+- [ ] Evaluar Server Components vs Client Components (nice to have)
 
-**Fase 3: Optimizaciones Backend/API**
-- [ ] Agregar cache headers apropiados a responses
+**Fase 3: Optimizaciones Backend/API** (parcial)
+- [x] Agregar cache headers apropiados a responses
+  - `/api/cards/search`: public, s-maxage=300 (5 min)
+  - `/api/cards/printings`: public, s-maxage=600 (10 min)
+  - `/api/matches`: private, max-age=10
 - [ ] Evaluar edge caching en Vercel para endpoints que lo permitan
 - [ ] Optimizar queries SQL si hay slowness en DB
 - [ ] Considerar ISR (Incremental Static Regeneration) donde aplique
@@ -81,6 +84,26 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### SWR Caching + Cache Headers - 2026-01-24
+**Frontend caching con SWR:**
+- [x] Instalado SWR para caching client-side
+- [x] Hook `useMatches` con caching automático y deduplicación de requests
+- [x] Optimistic updates con rollback integrado en SWR
+- [x] Refactorizado dashboard para usar hook de SWR
+
+**Cache headers en API:**
+- [x] `/api/cards/search`: public, s-maxage=300, stale-while-revalidate=600
+- [x] `/api/cards/printings`: public, s-maxage=600, stale-while-revalidate=1200
+- [x] `/api/matches`: private, max-age=10, stale-while-revalidate=30
+
+**Beneficios:**
+- Deduplicación automática de requests en vuelo
+- Cache compartido entre componentes
+- Revalidación en background (stale-while-revalidate)
+- Rollback automático si mutaciones fallan
+
+**Build verificado:** ✅ npm run build y tsc pasan sin errores
 
 ### Analytics Setup - 2026-01-24
 **Herramienta elegida: Vercel Analytics + Speed Insights**
