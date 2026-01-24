@@ -3,9 +3,9 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 9
+- **Iteración actual:** 10
 - **Tareas completadas:** 25/25
-- **Status:** ✅ Phase 3 Complete - DB Performance optimizations applied
+- **Status:** ✅ Phase 4 Partial - Validación documentada, métricas manuales pendientes
 
 ---
 
@@ -41,11 +41,28 @@
 - [x] Agregar índices faltantes en foreign keys (8 índices nuevos)
 - [x] ISR evaluado - No aplica (páginas requieren auth check o son client components)
 
-**Fase 4: Validación**
-- [ ] Re-medir todas las métricas post-optimización
+**Fase 4: Validación** ⏳ (Requiere interacción manual)
+- [ ] Re-medir todas las métricas post-optimización (Lighthouse, DevTools)
 - [ ] Comparar antes/después con screenshots de DevTools
 - [ ] Verificar en dispositivos móviles reales (no solo emulador)
-- [ ] Documentar mejoras logradas y trade-offs
+- [x] Documentar mejoras logradas y trade-offs (ver notas abajo)
+
+**Resumen de mejoras implementadas:**
+| Área | Antes | Después | Mejora |
+|------|-------|---------|--------|
+| Skeleton loaders | No había | 6 rutas principales | Mejor percepción de velocidad |
+| Optimistic updates | No había | dismiss/restore instantáneos | ~0ms percibido vs ~200-500ms |
+| SWR caching | No había | useMatches hook | Deduplicación + revalidación |
+| RLS policies | auth.uid() directo | (SELECT auth.uid()) | Menos evaluaciones por fila |
+| DB índices | - | +8 en foreign keys | Joins más rápidos |
+| Cache headers | No había | 3 endpoints públicos | CDN caching activo |
+| Bundle size | 87.2 kB shared | 87.2 kB shared | Ya optimizado |
+
+**Verificaciones automatizadas pasadas (2026-01-24):**
+- ✅ `npm run build` - Sin errores
+- ✅ `npx tsc --noEmit` - Sin errores de tipos
+- ⚠️ ESLint: 6 warnings menores (useEffect deps, img vs Image)
+- ⚠️ Tests E2E: Requieren servidor local (`npm run dev`)
 
 
 ### Push Notifications - Parte 2 (HIGH) ✅
