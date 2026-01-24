@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import {
   User,
@@ -15,8 +16,19 @@ import {
   Check,
   AlertTriangle,
 } from 'lucide-react'
-import { AddressAutocomplete } from '@/components/ui/address-autocomplete'
 import type { User as UserType, Location, Preferences } from '@/types/database'
+
+// Lazy load AddressAutocomplete - only loaded when user visits "ubicacion" tab
+// This saves ~200KB of Google Maps Places API from being loaded on other tabs
+const AddressAutocomplete = dynamic(
+  () => import('@/components/ui/address-autocomplete').then(mod => mod.AddressAutocomplete),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="input animate-pulse bg-gray-700/50 h-10" />
+    ),
+  }
+)
 
 type TabKey = 'datos' | 'ubicacion' | 'preferencias' | 'cuenta'
 

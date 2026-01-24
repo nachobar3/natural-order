@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import {
   ArrowLeft,
   Loader2,
@@ -37,10 +38,32 @@ import {
   DollarSign,
   Star,
 } from 'lucide-react'
-import { CounterpartCollectionDrawer } from '@/components/matches/counterpart-collection-drawer'
-import { LocationMap } from '@/components/ui/location-map'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
 import type { MatchDetail, MatchCard, MatchType, MatchStatus } from '@/types/database'
+
+// Lazy load CounterpartCollectionDrawer - only loaded when user opens the drawer
+// This saves ~10KB from initial page load
+const CounterpartCollectionDrawer = dynamic(
+  () => import('@/components/matches/counterpart-collection-drawer').then(mod => mod.CounterpartCollectionDrawer),
+  {
+    ssr: false,
+    loading: () => null, // Drawer is hidden by default, no loading skeleton needed
+  }
+)
+
+// Lazy load LocationMap - only loaded when match has location data
+// This saves ~150KB of Google Maps Geometry API from being loaded on matches without location
+const LocationMap = dynamic(
+  () => import('@/components/ui/location-map').then(mod => mod.LocationMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-32 bg-gray-700/50 rounded-lg animate-pulse flex items-center justify-center">
+        <MapPin className="w-6 h-6 text-gray-500" />
+      </div>
+    ),
+  }
+)
 
 const matchTypeLabels: Record<MatchType, { label: string; icon: typeof ArrowRightLeft; color: string }> = {
   two_way: { label: 'Intercambio mutuo', icon: ArrowRightLeft, color: 'text-green-400 bg-green-500/20' },
