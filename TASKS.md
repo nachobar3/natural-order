@@ -4,8 +4,8 @@
 ## Estado General
 - **Última actualización:** 2026-01-24
 - **Iteración actual:** 4
-- **Tareas completadas:** 17/21
-- **Status:** 🔧 Phase 2 - Push Notifications parcialmente completadas
+- **Tareas completadas:** 18/21
+- **Status:** 🔧 Phase 2 - Trade view UX mejorada
 
 ---
 
@@ -44,26 +44,6 @@
 - [ ] Documentar mejoras logradas y trade-offs
 
 
-### UX: Mejoras en Vista de Trades (HIGH)
-**Objetivo:** Hacer la información de trades más clara y accionable
-
-**Listas de cartas colapsables:**
-- [ ] Las listas de "Cartas que quiero" y "Cartas que ofrezco" deben iniciar colapsadas
-- [ ] Implementar componente expandible con animación suave
-- [ ] Mostrar resumen cuando está colapsado (ej: "5 cartas - $45.00")
-- [ ] Mantener estado de expansión durante la sesión
-
-**Métricas prominentes del trade:**
-- [ ] Mostrar **Distancia** de forma visible (con icono de ubicación)
-- [ ] Mostrar **Valor total intercambiado** (suma de ambos lados)
-- [ ] Mostrar **Diferencia de valor**:
-  - Si mis cartas valen más → verde con texto "A favor" o "+$X.XX"
-  - Si sus cartas valen más → rojo/neutro con "-$X.XX"
-- [ ] Crear **Trade Score** compuesto visible:
-  - Factores: distancia, balance de valor, cantidad de cartas, descuento promedio
-  - Mostrar como badge o indicador (ej: ⭐ 8.5/10 o "Excelente trade")
-- [ ] Diseño: usar cards/badges destacados para estas métricas, no texto plano
-
 ### Push Notifications - Parte 2 (HIGH)
 **Infraestructura completada ✅ (ver sección Completadas)**
 **Pendiente: envío de notificaciones desde el servidor**
@@ -99,6 +79,20 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### UX: Mejoras en Vista de Trades - 2026-01-24
+**Listas de cartas colapsables:**
+- [x] Las listas de "Cartas que quiero" y "Cartas que ofrezco" inician colapsadas
+- [x] Animación suave de expand/collapse (transition-all duration-300)
+- [x] Resumen cuando está colapsado: primeras 3 cartas + "y X más..."
+- [x] Estado de expansión se mantiene durante la sesión (useState)
+
+**Métricas prominentes del trade:**
+- [x] Distancia con icono de ubicación (MapPin)
+- [x] Valor total intercambiado (suma de ambos lados)
+- [x] Balance/diferencia de valor con colores (verde=a favor, rojo=en contra)
+- [x] Trade Score visible con etiqueta de calidad (Excelente/Bueno/Regular/Bajo)
+- [x] Diseño con grid de 4 métricas en cards destacadas
 
 ### Fix: PWA Install Modal Solo en Mobile - 2026-01-24
 - [x] Verificar detección de plataforma en `useInstallPrompt` hook
@@ -191,6 +185,19 @@
 ---
 
 ## 📝 Notas del Agente
+
+### 2026-01-24 - Trade View UX Improvements
+- **Listas colapsables:**
+  - Estado inicial: colapsado para reducir scroll y mostrar lo importante primero
+  - Header clickeable muestra: título, valor total, cantidad de cartas, chevron
+  - Resumen colapsado: primeras 3 cartas + "y X más..."
+  - Animación suave con `transition-all duration-300 ease-in-out`
+- **Métricas prominentes:**
+  - Grid de 4 métricas en la parte superior del trade view
+  - Distancia (km), Valor Total ($), Balance (+/-), Score (/10)
+  - Cada métrica con icono, valor grande, y etiqueta descriptiva
+  - Colors: azul (distancia), dorado (valor), verde/rojo (balance), amarillo (score)
+- **Trade Score labels:** Excelente (>=8), Bueno (>=6), Regular (>=4), Bajo (<4)
 
 ### 2026-01-23 - Database Schema Validation
 - 48 índices verificados en todas las tablas
