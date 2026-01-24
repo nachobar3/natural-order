@@ -4,12 +4,44 @@
 ## Estado General
 - **Última actualización:** 2026-01-23
 - **Iteración actual:** 3
-- **Tareas completadas:** 15/15
-- **Status:** ✅ MVP Core completo - listo para merge a master
+- **Tareas completadas:** 15/19
+- **Status:** 🔧 Phase 2 - Performance crítica agregada
 
 ---
 
 ## 🔴 Pendientes (Phase 2 - Pre-Campaign)
+
+### Performance Critical: App Speed Optimization (CRITICAL)
+**Objetivo:** Alcanzar velocidades comparables con apps de primer nivel (< 200ms para navegación, < 100ms para interacciones)
+
+**Fase 1: Diagnóstico**
+- [ ] Medir tiempos actuales con Lighthouse y Web Vitals (LCP, FID, CLS, TTFB)
+- [ ] Identificar bottlenecks en cambio de tabs (Collection, Wishlist, Matches)
+- [ ] Analizar performance de sorting en matches (client vs server)
+- [ ] Revisar network waterfall en Chrome DevTools para cada página
+- [ ] Identificar re-renders innecesarios con React DevTools Profiler
+- [ ] Medir tiempo de respuesta de API endpoints críticos
+
+**Fase 2: Optimizaciones Frontend**
+- [ ] Implementar skeleton loaders para percepción de velocidad
+- [ ] Revisar y optimizar bundle size (analizar con `next/bundle-analyzer`)
+- [ ] Implementar code splitting donde falte
+- [ ] Evaluar Server Components vs Client Components (minimizar JS enviado)
+- [ ] Implementar optimistic updates para acciones del usuario
+- [ ] Cachear datos con React Query o SWR si no está implementado
+- [ ] Prefetch de rutas probables (next/link prefetch)
+
+**Fase 3: Optimizaciones Backend/API**
+- [ ] Agregar cache headers apropiados a responses
+- [ ] Evaluar edge caching en Vercel para endpoints que lo permitan
+- [ ] Optimizar queries SQL si hay slowness en DB
+- [ ] Considerar ISR (Incremental Static Regeneration) donde aplique
+
+**Fase 4: Validación**
+- [ ] Re-medir todas las métricas post-optimización
+- [ ] Comparar antes/después con screenshots de DevTools
+- [ ] Verificar en dispositivos móviles reales (no solo emulador)
+- [ ] Documentar mejoras logradas y trade-offs
 
 ### Push Notifications (HIGH)
 - [ ] Crear tabla `push_subscriptions` en Supabase
