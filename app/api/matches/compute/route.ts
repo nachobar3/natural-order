@@ -193,8 +193,6 @@ export async function POST(request: NextRequest) {
       sampleTheirCollection: theirCollections?.[0] || null,
     }
 
-    console.log('Debug matching:', debugInfo)
-
     // In debug mode, return diagnostic info without saving matches
     if (debugMode) {
       return NextResponse.json({
@@ -320,12 +318,6 @@ export async function POST(request: NextRequest) {
 
       // Check what I want from their collection
       if (myWishlist && theirCollection.length > 0) {
-        // Debug: log first items to see structure
-        if (myWishlist.length > 0 && theirCollection.length > 0) {
-          console.log('Debug wishItem structure:', JSON.stringify(myWishlist[0], null, 2))
-          console.log('Debug collItem structure:', JSON.stringify(theirCollection[0], null, 2))
-        }
-
         for (const wishItem of myWishlist) {
           for (const collItem of theirCollection) {
             // Match by oracle_id (same card, any edition by default)
@@ -333,7 +325,6 @@ export async function POST(request: NextRequest) {
             const collOracleId = collItem.cards?.oracle_id
 
             if (!wishOracleId || !collOracleId) {
-              console.log('Missing oracle_id:', { wishOracleId, collOracleId, wishItem, collItem })
               continue
             }
 

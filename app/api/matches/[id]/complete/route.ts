@@ -220,7 +220,6 @@ async function handleTradeCompletion(supabase: ReturnType<typeof createClient> e
       }
     }
 
-    console.log(`Trade ${matchId} completed - cards moved successfully`)
   } catch (error) {
     console.error('Error handling trade completion:', error)
     // Don't throw - the trade status is already updated
