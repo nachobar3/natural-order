@@ -3,21 +3,13 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 11
-- **Tareas completadas:** 25/31
-- **Status:** 🔧 Phase 3 - UX Polish pendiente (6 tareas nuevas)
+- **Iteración actual:** 12
+- **Tareas completadas:** 26/31
+- **Status:** 🔧 Phase 3 - UX Polish pendiente (5 tareas restantes)
 
 ---
 
 ## 🔴 Pendientes (Phase 3 - UX Polish)
-
-### CRITICAL: Modales cortados por navbar en Mobile (HIGH)
-**Problema:** En mobile, varios modales tienen el botón "Guardar" tapado por el navbar inferior, haciéndolos inaccesibles.
-- [ ] Identificar todos los modales que se abren en mobile (AddCardModal, configurar precios, etc.)
-- [ ] Agregar `pb-20` o `mb-20` al contenido del modal para dejar espacio para el navbar
-- [ ] Alternativamente: hacer el contenido del modal scrolleable con el botón fijo abajo
-- [ ] Testear en viewport mobile (375x667) cada modal
-- [ ] Verificar que el modal de "Agregar carta a wishlist" tiene el botón Guardar accesible
 
 ### UX: Rediseño de "Configurar Precios" en Collection (HIGH)
 **Problema:** Los inputs de configurar precios están feos y ocupan mucho espacio.
@@ -166,6 +158,23 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Fix: Modales cortados por navbar en Mobile - 2026-01-24
+**Problema resuelto:** Los modales tenían z-index 50 (igual que el BottomNav), causando que los botones de acción quedaran tapados.
+
+**Cambios realizados:**
+- [x] `AddCardModal`: z-index elevado a z-[60], contenido scrolleable, botones en footer sticky
+- [x] `ConfirmModal`: z-index elevado a z-[60], padding-bottom para mobile
+- [x] `EditionSelectorModal`: z-index elevado a z-[60], altura ajustada para mobile
+- [x] `CounterpartCollectionDrawer`: z-index elevado a z-[60], padding-bottom para mobile
+
+**Archivos modificados:**
+- `components/cards/add-card-modal.tsx`
+- `components/ui/confirm-modal.tsx`
+- `components/cards/edition-selector-modal.tsx`
+- `components/matches/counterpart-collection-drawer.tsx`
+
+**Build verificado:** ✅ npm run build y tsc pasan sin errores
 
 ### Testing Structure - 2026-01-24
 **E2E Tests con Playwright:**

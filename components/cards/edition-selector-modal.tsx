@@ -83,7 +83,7 @@ export function EditionSelectorModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pb-20 md:pb-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
@@ -91,7 +91,7 @@ export function EditionSelectorModal({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[80vh] bg-mtg-dark border border-mtg-green-900/50 rounded-xl shadow-2xl flex flex-col">
+      <div className="relative w-full max-w-2xl max-h-[75vh] md:max-h-[80vh] bg-mtg-dark border border-mtg-green-900/50 rounded-xl shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-mtg-green-900/30">
           <div>

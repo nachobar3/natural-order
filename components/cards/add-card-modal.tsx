@@ -311,12 +311,12 @@ export function AddCardModal({
   const currentPrice = foil ? displayCard?.prices_usd_foil : displayCard?.prices_usd
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pb-20 md:pb-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
       {/* Modal - wider layout */}
-      <div className="relative bg-mtg-dark border border-mtg-green-900/30 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-mtg-dark border border-mtg-green-900/30 rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="sticky top-0 bg-mtg-dark border-b border-mtg-green-900/30 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-lg font-semibold text-gray-100">
@@ -330,8 +330,9 @@ export function AddCardModal({
           </button>
         </div>
 
-        {/* Content - two column layout */}
-        <div className="flex flex-col md:flex-row">
+        {/* Content - two column layout (scrollable) */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col md:flex-row">
           {/* Left side - Card image */}
           {displayCard && (
             <div className="md:w-1/3 p-6 flex flex-col items-center border-b md:border-b-0 md:border-r border-mtg-green-900/30">
@@ -378,7 +379,7 @@ export function AddCardModal({
 
           {/* Right side - Form */}
           <div className="md:w-2/3 p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form id="add-card-form" onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-400 text-sm">
                   {error}
@@ -695,34 +696,37 @@ export function AddCardModal({
                 </>
               )}
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-mtg-green-900/30">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn-primary"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : editItem ? (
-                    'Guardar cambios'
-                  ) : (
-                    'Agregar'
-                  )}
-                </button>
-              </div>
             </form>
           </div>
+        </div>
+        </div>
+
+        {/* Actions - sticky footer for mobile accessibility */}
+        <div className="sticky bottom-0 bg-mtg-dark border-t border-mtg-green-900/30 px-6 py-4 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="add-card-form"
+            disabled={saving}
+            className="btn-primary"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Guardando...
+              </>
+            ) : editItem ? (
+              'Guardar cambios'
+            ) : (
+              'Agregar'
+            )}
+          </button>
         </div>
       </div>
 

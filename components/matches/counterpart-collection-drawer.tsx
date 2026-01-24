@@ -135,12 +135,12 @@ export function CounterpartCollectionDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/60 z-[55] transition-opacity"
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-mtg-dark-950 z-50 shadow-2xl flex flex-col">
+      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-mtg-dark-950 z-[60] shadow-2xl flex flex-col pb-16 md:pb-0">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div>
