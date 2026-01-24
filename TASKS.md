@@ -2,10 +2,10 @@
 <!-- Este archivo es actualizado por el agente para trackear progreso -->
 
 ## Estado General
-- **Última actualización:** 2026-01-23
-- **Iteración actual:** 3
-- **Tareas completadas:** 15/21
-- **Status:** 🔧 Phase 2 - Performance crítica agregada
+- **Última actualización:** 2026-01-24
+- **Iteración actual:** 4
+- **Tareas completadas:** 16/21
+- **Status:** 🔧 Phase 2 - Push Notifications parcialmente completadas
 
 ---
 
@@ -69,15 +69,12 @@
   - Mostrar como badge o indicador (ej: ⭐ 8.5/10 o "Excelente trade")
 - [ ] Diseño: usar cards/badges destacados para estas métricas, no texto plano
 
-### Push Notifications (HIGH)
-- [ ] Crear tabla `push_subscriptions` en Supabase
-- [ ] Generar VAPID keys y configurar en environment
-- [ ] Crear endpoint `/api/push/subscribe` para registrar suscripciones
-- [ ] Crear endpoint `/api/push/unsubscribe` para eliminar suscripciones
-- [ ] Configurar Service Worker para recibir push (next-pwa ya está)
-- [ ] Crear Supabase Edge Function para enviar notificaciones
+### Push Notifications - Parte 2 (HIGH)
+**Infraestructura completada ✅ (ver sección Completadas)**
+**Pendiente: envío de notificaciones desde el servidor**
+- [ ] Crear Supabase Edge Function para enviar notificaciones push
 - [ ] Integrar envío de push en eventos: nuevo match, nuevo comentario, trade solicitado, trade confirmado
-- [ ] UI: Modal de permiso de notificaciones después del primer login
+- [ ] Testear flujo completo end-to-end
 
 ### Analytics Setup (HIGH)
 - [ ] Elegir herramienta (PostHog vs Plausible vs Vercel Analytics)
@@ -107,6 +104,16 @@
 
 ## 🟢 Completadas
 <!-- Mover tareas aquí cuando se terminen, con fecha -->
+
+### Push Notifications - Infraestructura Frontend/API - 2026-01-24
+- [x] Crear tabla `push_subscriptions` en Supabase (con RLS policies)
+- [x] Generar VAPID keys y configurar en environment (.env.local.example)
+- [x] Crear endpoint `/api/push/subscribe` para registrar suscripciones
+- [x] Crear endpoint `/api/push/unsubscribe` para eliminar suscripciones
+- [x] Configurar Service Worker para recibir push (push-sw.js + importScripts)
+- [x] UI: Modal de permiso de notificaciones (PushPrompt component)
+- [x] Hook usePushNotifications para gestionar suscripciones
+- [x] Integración en dashboard layout
 
 ### Validación: TypeScript Types - 2026-01-23
 - [x] Verificar que `types/database.ts` está sincronizado con DB (ver notas)
@@ -271,6 +278,18 @@
 - **Recomendaciones futuras:**
   - Considerar paginación para `/api/matches` cuando usuarios tengan 100+ matches
   - Evaluar background jobs para el cálculo de matches cuando la base crezca
+
+### 2026-01-24 - Push Notifications Infrastructure
+- **Tabla `push_subscriptions`:** Creada con índices (user_id, endpoint) y RLS policies completas
+- **Endpoints API:**
+  - `POST /api/push/subscribe` - Registra suscripción con upsert (actualiza si existe)
+  - `GET /api/push/subscribe` - Lista suscripciones del usuario
+  - `POST /api/push/unsubscribe` - Elimina suscripción por endpoint
+  - `DELETE /api/push/unsubscribe` - Elimina todas las suscripciones del usuario
+- **Service Worker:** `push-sw.js` maneja eventos push, click de notificación, y cambio de suscripción
+- **Hook `usePushNotifications`:** Gestiona soporte, permisos, estado de suscripción, y subscribe/unsubscribe
+- **PushPrompt component:** Modal para solicitar permisos con dismiss de 30 días
+- **Pendiente:** Edge Function para enviar notificaciones desde eventos del servidor
 
 ### 2026-01-23 - Landing Page Implementation
 - **Implementación completa** de landing page para usuarios no logueados
