@@ -23,7 +23,11 @@ export async function GET(request: NextRequest) {
     const searchRes = await fetch(searchUrl)
 
     if (searchRes.status === 404) {
-      return NextResponse.json({ printings: [] })
+      return NextResponse.json({ printings: [] }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+        },
+      })
     }
 
     if (!searchRes.ok) {
@@ -54,7 +58,12 @@ export async function GET(request: NextRequest) {
       released_at: card.released_at,
     }))
 
-    return NextResponse.json({ printings })
+    // Cache printings for 10 minutes (card printings data rarely changes)
+    return NextResponse.json({ printings }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+      },
+    })
   } catch (error) {
     console.error('Printings fetch error:', error)
     return NextResponse.json(

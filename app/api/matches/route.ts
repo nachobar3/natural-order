@@ -225,9 +225,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Private cache for authenticated user - brief cache for navigation
     return NextResponse.json({
       matches: sortedMatches,
       ...(categoryCounts && { counts: categoryCounts })
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+      },
     })
   } catch (error) {
     console.error('Get matches error:', error)

@@ -72,11 +72,16 @@ export async function GET(request: NextRequest) {
         released_at: card.released_at,
       }))
 
+      // Cache card search results for 5 minutes (data from Scryfall doesn't change often)
       return NextResponse.json({
         cards,
         suggestions: autocompleteData.data,
         has_more: searchData.has_more || false,
         total_cards: searchData.total_cards || cards.length,
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
       })
     }
 
@@ -85,6 +90,10 @@ export async function GET(request: NextRequest) {
       suggestions: [],
       has_more: false,
       total_cards: 0,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
     })
   } catch (error) {
     console.error('Card search error:', error)
