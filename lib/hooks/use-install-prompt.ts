@@ -106,7 +106,10 @@ export function useInstallPrompt(): UseInstallPromptResult {
     }
   }, [])
 
-  const canInstall = !isStandalone && !isDismissed && (
+  // Only show install prompt on mobile devices (not desktop)
+  const isMobile = platform === 'ios' || platform === 'android'
+
+  const canInstall = !isStandalone && !isDismissed && isMobile && (
     // Can show native prompt (Android Chrome)
     deferredPrompt !== null ||
     // iOS needs manual instructions
