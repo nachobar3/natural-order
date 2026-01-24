@@ -3,9 +3,9 @@
 
 ## Estado General
 - **Última actualización:** 2026-01-24
-- **Iteración actual:** 10
-- **Tareas completadas:** 25/25
-- **Status:** ✅ Phase 4 Partial - Validación documentada, métricas manuales pendientes
+- **Iteración actual:** 11
+- **Tareas completadas:** 26/26
+- **Status:** ✅ Phase 4 Partial - Code splitting implementado, métricas manuales pendientes
 
 ---
 
@@ -28,7 +28,7 @@
 - [x] Implementar optimistic updates para acciones del usuario (dismiss/restore)
 - [x] Cachear datos con SWR - hook `useMatches` con deduplicación y revalidación
 - [x] Prefetch de rutas probables (next/link prefetch) - ya activo por defecto
-- [ ] Implementar code splitting donde falte (nice to have)
+- [x] Implementar code splitting con dynamic imports (~375KB diferido)
 - [ ] Evaluar Server Components vs Client Components (nice to have)
 
 **Fase 3: Optimizaciones Backend/API** ✅
@@ -56,7 +56,8 @@
 | RLS policies | auth.uid() directo | (SELECT auth.uid()) | Menos evaluaciones por fila |
 | DB índices | - | +8 en foreign keys | Joins más rápidos |
 | Cache headers | No había | 3 endpoints públicos | CDN caching activo |
-| Bundle size | 87.2 kB shared | 87.2 kB shared | Ya optimizado |
+| Bundle size | 87.2 kB shared | 87.3 kB shared | Ya optimizado |
+| Code splitting | - | 4 componentes lazy | ~375KB diferido (Google Maps + modales) |
 
 **Verificaciones automatizadas pasadas (2026-01-24):**
 - ✅ `npm run build` - Sin errores
@@ -353,6 +354,26 @@
 ---
 
 ## 📝 Notas del Agente
+
+### 2026-01-24 - Code Splitting Implementation
+- **Componentes con lazy loading implementado:**
+  - `AddressAutocomplete`: Carga Google Maps Places API (~200KB) solo en tab "ubicacion"
+  - `LocationMap`: Carga Google Maps Geometry API (~150KB) solo si match tiene ubicación
+  - `AddCardModal`: Carga modal (~15-20KB) solo al abrir para agregar/editar carta
+  - `CounterpartCollectionDrawer`: Carga drawer (~10KB) solo al abrir colección del otro usuario
+
+- **Técnica usada:** `next/dynamic` con `ssr: false` y loading skeletons donde apropiado
+- **Ahorro estimado:** ~375KB de JavaScript diferido de la carga inicial
+- **Archivos modificados:**
+  - `app/dashboard/profile/page.tsx`
+  - `app/dashboard/matches/[id]/page.tsx`
+  - `app/dashboard/collection/page.tsx`
+  - `app/dashboard/wishlist/page.tsx`
+
+- **Bundle sizes post-optimización:**
+  - `/dashboard/collection`: 162KB (era 165KB)
+  - `/dashboard/wishlist`: 161KB (era 164KB)
+  - `/dashboard/matches/[id]`: 112KB (era 113KB)
 
 ### 2026-01-24 - Database Performance Optimization (Phase 3)
 - **RLS Policies optimizadas:**
