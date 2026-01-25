@@ -80,18 +80,25 @@ export function AddressAutocomplete({
 
   return (
     <div className="relative">
-      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+      <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
+        <MapPin className="w-5 h-5 text-gray-500" />
+      </div>
       <input
         ref={inputRef}
         type="text"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         className="input pl-10 pr-10"
-        placeholder={placeholder}
-        disabled={disabled || !isLoaded}
+        placeholder={isLoaded ? placeholder : 'Cargando...'}
+        disabled={disabled}
+        readOnly={!isLoaded}
+        inputMode="text"
+        autoComplete="off"
       />
       {!isLoaded && (
-        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 animate-spin" />
+        <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+          <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+        </div>
       )}
     </div>
   )

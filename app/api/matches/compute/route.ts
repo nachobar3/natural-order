@@ -88,6 +88,15 @@ export async function POST(request: NextRequest) {
 
     const myRadius = myLocation.radius_km || DEFAULT_RADIUS_KM
 
+    // Get current user's trade mode preference
+    const { data: myPreferences } = await supabase
+      .from('preferences')
+      .select('trade_mode')
+      .eq('user_id', user.id)
+      .single()
+
+    const myTradeMode = myPreferences?.trade_mode || 'both'
+
     // Get my wishlist
     const { data: myWishlist, error: wishlistError } = await supabase
       .from('wishlist')
@@ -423,6 +432,23 @@ export async function POST(request: NextRequest) {
         matchType = 'one_way_buy'
       } else {
         matchType = 'one_way_sell'
+      }
+
+      // Filter by user's trade mode preference
+      // trade: only two-way matches
+      // sell: one_way_sell or two_way (I'm selling)
+      // buy: one_way_buy or two_way (I'm buying)
+      // both: all matches
+      if (myTradeMode === 'trade' && matchType !== 'two_way') {
+        continue
+      }
+      if (myTradeMode === 'sell' && matchType === 'one_way_buy') {
+        // one_way_buy means I want to buy, but user only wants to sell
+        continue
+      }
+      if (myTradeMode === 'buy' && matchType === 'one_way_sell') {
+        // one_way_sell means they want to buy, but user only wants to buy
+        continue
       }
 
       // Calculate values

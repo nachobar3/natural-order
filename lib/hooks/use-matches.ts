@@ -49,7 +49,7 @@ export function useMatches({ filters, sortBy, enabled = true }: UseMatchesOption
     enabled ? url : null,
     matchesFetcher,
     {
-      revalidateOnFocus: false,
+      revalidateOnFocus: true, // Refresh data when user returns to the tab
       dedupingInterval: 5000, // Dedupe requests within 5 seconds
       keepPreviousData: true, // Keep showing old data while revalidating
     }

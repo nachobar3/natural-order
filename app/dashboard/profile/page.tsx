@@ -65,7 +65,7 @@ export default function ProfilePage() {
   const [radiusKm, setRadiusKm] = useState(10)
 
   // Preferences form state
-  const [tradeMode, setTradeMode] = useState<'trade' | 'sell' | 'both'>('both')
+  const [tradeMode, setTradeMode] = useState<'trade' | 'sell' | 'buy' | 'both'>('both')
   const [minMatchThreshold, setMinMatchThreshold] = useState(1)
   const [notifyNewMatches, setNotifyNewMatches] = useState(true)
   const [notifyMessages, setNotifyMessages] = useState(true)
@@ -216,6 +216,7 @@ export default function ProfilePage() {
         min_match_threshold: minMatchThreshold,
         notify_new_matches: notifyNewMatches,
         notify_messages: notifyMessages,
+        has_been_configured: true, // Mark as explicitly configured by user
       }, {
         onConflict: 'user_id'
       })
@@ -488,23 +489,31 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div>
                     <label className="label">Modo de intercambio</label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {[
-                        { value: 'trade', label: 'Solo trade' },
-                        { value: 'sell', label: 'Solo venta' },
-                        { value: 'both', label: 'Ambos' },
+                        { value: 'both', label: 'Todos', description: 'Trade, compra y venta' },
+                        { value: 'trade', label: 'Solo trade', description: 'Solo intercambios mutuos' },
+                        { value: 'buy', label: 'Solo compra', description: 'Comprar cartas que buscás' },
+                        { value: 'sell', label: 'Solo venta', description: 'Vender cartas de tu colección' },
                       ].map((option) => (
                         <button
                           key={option.value}
                           type="button"
                           onClick={() => setTradeMode(option.value as typeof tradeMode)}
-                          className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                          className={`p-3 rounded-lg border text-left transition-colors ${
                             tradeMode === option.value
-                              ? 'border-mtg-green-500 bg-mtg-green-600/20 text-mtg-green-400'
-                              : 'border-mtg-green-900/30 text-gray-400 hover:border-mtg-green-600/50 hover:text-gray-300'
+                              ? 'border-mtg-green-500 bg-mtg-green-600/20'
+                              : 'border-mtg-green-900/30 hover:border-mtg-green-600/50'
                           }`}
                         >
-                          {option.label}
+                          <div className={`text-sm font-medium ${
+                            tradeMode === option.value ? 'text-mtg-green-400' : 'text-gray-300'
+                          }`}>
+                            {option.label}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {option.description}
+                          </div>
                         </button>
                       ))}
                     </div>

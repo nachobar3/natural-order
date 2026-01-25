@@ -1,125 +1,94 @@
 # Natural Order 🌿
 
-Landing page y waitlist para plataforma de trading de Magic: The Gathering con matching basado en ubicación.
+Plataforma de trading de cartas Magic: The Gathering con matching basado en ubicación.
 
 ## Stack
 
-- HTML5 + CSS3 + JavaScript vanilla
-- Tailwind CSS (via CDN)
-- Supabase (PostgreSQL)
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
+- **APIs**: Scryfall (cartas), Google Maps (ubicación)
+- **Hosting**: Vercel
 
 ## Setup local
 
-1. Clonar el repositorio
-2. Abrir `index.html` en el navegador (o usar Live Server en VS Code)
-
-## Setup Supabase
-
-### 1. Crear proyecto
-
-1. Ir a [supabase.com](https://supabase.com) y crear cuenta
-2. Click en "New Project"
-3. Elegir nombre (ej: `natural-order`) y password
-4. Seleccionar región más cercana (ej: South America - São Paulo)
-
-### 2. Crear tabla
-
-En el SQL Editor de Supabase, ejecutar:
-
-```sql
-CREATE TABLE waitlist_responses (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    trades_frequency TEXT NOT NULL,
-    search_method TEXT NOT NULL,
-    coordination_pain INTEGER NOT NULL CHECK (coordination_pain BETWEEN 1 AND 5),
-    abandoned_trade BOOLEAN NOT NULL,
-    would_use_app TEXT NOT NULL,
-    most_valuable_benefit TEXT NOT NULL,
-    monetization_preference TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Índice para búsquedas por email
-CREATE INDEX idx_waitlist_email ON waitlist_responses(email);
-
--- Habilitar RLS (Row Level Security)
-ALTER TABLE waitlist_responses ENABLE ROW LEVEL SECURITY;
-
--- Política para permitir inserts desde el frontend
-CREATE POLICY "Allow public inserts" ON waitlist_responses
-    FOR INSERT
-    WITH CHECK (true);
-```
-
-### 3. Obtener credenciales
-
-1. Ir a Settings → API
-2. Copiar:
-   - **Project URL** (ej: `https://xxxxx.supabase.co`)
-   - **anon public** key
-
-### 4. Configurar app.js
-
-Abrir `app.js` y reemplazar:
-
-```javascript
-const SUPABASE_URL = 'https://tu-proyecto.supabase.co';
-const SUPABASE_ANON_KEY = 'tu-anon-key-aqui';
-```
-
-## Deploy en Vercel
-
-### Opción 1: Desde GitHub
-
-1. Subir código a GitHub
-2. Ir a [vercel.com](https://vercel.com)
-3. "Import Project" → seleccionar repo
-4. Click en "Deploy"
-
-### Opción 2: Vercel CLI
+### 1. Clonar y instalar dependencias
 
 ```bash
-npm i -g vercel
-vercel
+git clone https://github.com/[user]/NaturalOrder.git
+cd NaturalOrder
+npm install
 ```
 
-## Deploy en Netlify
+### 2. Configurar variables de entorno
 
-### Opción 1: Drag & drop
+Crear `.env.local` con:
 
-1. Ir a [netlify.com](https://netlify.com)
-2. Arrastrar la carpeta del proyecto al área de deploy
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-maps-key
 
-### Opción 2: Netlify CLI
+# Push Notifications (VAPID)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-public-key
+VAPID_PRIVATE_KEY=your-private-key
+```
+
+### 3. Ejecutar migraciones
+
+En Supabase SQL Editor, ejecutar los archivos en `/supabase/migrations/` en orden.
+
+### 4. Iniciar servidor de desarrollo
 
 ```bash
-npm i -g netlify-cli
-netlify deploy --prod
+npm run dev
 ```
 
-## Estructura
+## Comandos
+
+```bash
+npm run dev      # Desarrollo (http://localhost:3000)
+npm run build    # Build de producción
+npm run start    # Servidor de producción
+npm run lint     # Linting
+npm run test:e2e # Tests E2E con Playwright
+```
+
+## Estructura del proyecto
 
 ```
 NaturalOrder/
-├── index.html      # Landing page con formulario
-├── styles.css      # Estilos custom
-├── app.js          # Lógica del formulario + Supabase
-├── README.md       # Este archivo
-└── CLAUDE.md       # Guía para Claude Code
+├── app/                    # Páginas Next.js (App Router)
+│   ├── (auth)/            # Páginas de autenticación
+│   ├── api/               # API routes
+│   └── dashboard/         # Dashboard autenticado
+├── components/            # Componentes React
+│   ├── cards/            # Componentes de cartas
+│   ├── matches/          # Componentes de trades
+│   ├── pwa/              # Componentes PWA
+│   └── ui/               # Componentes UI generales
+├── lib/                   # Utilidades y servicios
+│   ├── hooks/            # React hooks
+│   └── supabase/         # Clientes Supabase
+├── public/               # Assets estáticos
+├── supabase/             # Migraciones y config
+├── tests/                # Tests E2E
+└── types/                # Tipos TypeScript
 ```
 
-## Ver respuestas
+## Documentación
 
-En Supabase:
-1. Ir a Table Editor → waitlist_responses
-2. O ejecutar: `SELECT * FROM waitlist_responses ORDER BY created_at DESC;`
+- `MVP_STATUS.md` - Estado actual del MVP
+- `TASKS.md` - Tareas pendientes
+- `CLAUDE.md` - Instrucciones para Claude Code
 
-## Exportar datos
+## Deploy
 
-```sql
--- CSV desde SQL Editor
-COPY (SELECT * FROM waitlist_responses) TO STDOUT WITH CSV HEADER;
-```
+El proyecto está configurado para deploy automático en Vercel desde la rama `master`.
 
-O usar el botón "Export" en Table Editor.
+### Variables de entorno en Vercel
+
+Configurar las mismas variables de `.env.local` en el dashboard de Vercel.
+
+## Licencia
+
+Privado - Todos los derechos reservados.

@@ -133,14 +133,14 @@ export function CounterpartCollectionDrawer({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - only visible on desktop */}
       <div
-        className="fixed inset-0 bg-black/60 z-[55] transition-opacity"
+        className="hidden lg:block fixed inset-0 bg-black/80 z-[55]"
         onClick={onClose}
       />
 
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-mtg-dark-950 z-[60] shadow-2xl flex flex-col pb-16 md:pb-0">
+      {/* Modal - full screen solid on mobile, centered modal on desktop */}
+      <div className="fixed inset-0 z-[60] bg-[#0a0a0a] lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[90vw] lg:max-w-5xl lg:h-[85vh] lg:rounded-2xl lg:bg-[#0d0d0d] shadow-2xl flex flex-col lg:border lg:border-gray-800">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <div>
@@ -197,7 +197,7 @@ export function CounterpartCollectionDrawer({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {cards.map((card) => (
                 <div
                   key={card.collectionId}

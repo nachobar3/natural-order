@@ -300,13 +300,18 @@ export default function WishlistPage() {
                   } • Min: {item.min_condition}
                 </p>
                 <div className="flex items-center justify-between mt-1">
-                  {item.max_price ? (
-                    <span className="text-sm font-medium text-mtg-green-400">
-                      Máx ${item.max_price.toFixed(2)}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-500">Sin límite</span>
-                  )}
+                  <div className="flex flex-col">
+                    {item.cards?.prices_usd && (
+                      <span className="text-xs text-gray-400">
+                        CK: ${item.cards.prices_usd.toFixed(2)}
+                      </span>
+                    )}
+                    {item.max_price ? (
+                      <span className="text-xs font-medium text-mtg-green-400">
+                        Máx: ${item.max_price.toFixed(2)}
+                      </span>
+                    ) : null}
+                  </div>
                   <span className={`text-xs px-1.5 py-0.5 rounded ${
                     item.priority >= 8 ? 'bg-red-500/20 text-red-300' :
                     item.priority >= 5 ? 'bg-yellow-500/20 text-yellow-300' :

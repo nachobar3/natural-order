@@ -162,3 +162,69 @@ export async function GET(
     return NextResponse.json({ error: 'Error al obtener trade' }, { status: 500 })
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = await createClient()
+    const { id } = params
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    // Verify user is part of this match
+    const { data: match, error: matchError } = await supabase
+      .from('matches')
+      .select('id, user_a_id, user_b_id, status')
+      .eq('id', id)
+      .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+      .single()
+
+    if (matchError || !match) {
+      return NextResponse.json({ error: 'Trade no encontrado' }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const { status } = body
+
+    // Validate status transition
+    const allowedStatuses = ['active', 'contacted', 'dismissed', 'requested', 'confirmed', 'completed', 'cancelled']
+    if (!status || !allowedStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
+    }
+
+    // Don't allow changing completed/cancelled matches
+    if (['completed', 'cancelled'].includes(match.status)) {
+      return NextResponse.json({ error: 'No se puede modificar un trade finalizado' }, { status: 400 })
+    }
+
+    // Update match status
+    const { error: updateError } = await supabase
+      .from('matches')
+      .update({
+        status,
+        updated_at: new Date().toISOString(),
+        // Clear request tracking when reverting to active
+        ...(status === 'active' ? {
+          requested_by_user_id: null,
+          requested_at: null,
+          confirmed_at: null,
+        } : {}),
+      })
+      .eq('id', id)
+
+    if (updateError) {
+      console.error('Error updating match status:', updateError)
+      return NextResponse.json({ error: 'Error al actualizar estado' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, status })
+  } catch (error) {
+    console.error('Patch match error:', error)
+    return NextResponse.json({ error: 'Error al actualizar trade' }, { status: 500 })
+  }
+}
