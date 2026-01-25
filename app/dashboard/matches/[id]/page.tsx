@@ -33,10 +33,6 @@ import {
   Eye,
   Trash2,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
-  DollarSign,
-  Star,
   Package,
 } from 'lucide-react'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
@@ -203,6 +199,123 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
           </p>
         ) : (
           <p className="text-xs text-gray-500">-</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Desktop card view - larger cards with image, details below, and action button overlay on hover
+function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
+  const isMyCustomCard = card.isCustom && card.addedByUserId === currentUserId
+
+  return (
+    <div
+      className={`relative group rounded-lg overflow-hidden transition-all ${
+        isExcluded
+          ? 'opacity-50'
+          : card.priceExceedsMax
+            ? 'ring-2 ring-yellow-500/50'
+            : card.isCustom
+              ? 'ring-2 ring-purple-500/30'
+              : ''
+      }`}
+    >
+      {/* Card image */}
+      <div className="relative aspect-[5/7] bg-gray-800">
+        {card.cardImageUri ? (
+          <Image
+            src={card.cardImageUri}
+            alt={card.cardName}
+            fill
+            className={`object-cover ${isExcluded ? 'grayscale' : ''}`}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+            ?
+          </div>
+        )}
+
+        {/* Hover overlay with actions */}
+        <div className={`absolute inset-0 bg-black/60 flex items-center justify-center gap-2 transition-opacity ${
+          disabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+        }`}>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (!disabled) {
+                onToggleExclude(card.id)
+              }
+            }}
+            className={`p-3 rounded-full transition-colors ${
+              isExcluded
+                ? 'bg-green-500 hover:bg-green-400 text-white'
+                : 'bg-red-500 hover:bg-red-400 text-white'
+            }`}
+            title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
+          >
+            {isExcluded ? (
+              <Check className="w-6 h-6" />
+            ) : (
+              <X className="w-6 h-6" />
+            )}
+          </button>
+
+          {canDelete && isMyCustomCard && onDeleteCustom && (
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (!disabled) {
+                  onDeleteCustom(card.id)
+                }
+              }}
+              className="p-3 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"
+              title="Eliminar carta"
+            >
+              <Trash2 className="w-6 h-6" />
+            </button>
+          )}
+        </div>
+
+        {/* Custom badge */}
+        {card.isCustom && (
+          <div className="absolute top-1 right-1 bg-purple-500/90 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5">
+            <Sparkles className="w-2.5 h-2.5" />
+          </div>
+        )}
+
+        {/* Price warning badge */}
+        {card.priceExceedsMax && (
+          <div className="absolute top-1 left-1 bg-yellow-500/90 text-black text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5">
+            <AlertTriangle className="w-2.5 h-2.5" />
+          </div>
+        )}
+
+        {/* Excluded indicator - shown when not hovering */}
+        {isExcluded && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
+            <X className="w-10 h-10 text-red-400/80" />
+          </div>
+        )}
+      </div>
+
+      {/* Card details */}
+      <div className="p-2 bg-gray-900/80">
+        <h4 className={`text-xs font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+          {card.cardName}
+        </h4>
+        <p className="text-[10px] text-gray-500 truncate">
+          {card.cardSetCode.toUpperCase()} • {card.condition}
+          {card.isFoil && <span className="text-purple-400 ml-1">✨</span>}
+        </p>
+        {card.askingPrice !== null && (
+          <p className={`text-xs font-medium mt-0.5 ${
+            isExcluded ? 'text-gray-500' : card.priceExceedsMax ? 'text-yellow-400' : 'text-green-400'
+          }`}>
+            ${card.askingPrice.toFixed(2)}
+          </p>
         )}
       </div>
     </div>
@@ -377,9 +490,11 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
-  // Collapsible card lists state (start collapsed)
-  const [cardsIWantExpanded, setCardsIWantExpanded] = useState(false)
-  const [cardsTheyWantExpanded, setCardsTheyWantExpanded] = useState(false)
+  // Edit confirmation modal state
+  const [editConfirmModal, setEditConfirmModal] = useState<{
+    isOpen: boolean
+    pendingAction: (() => void) | null
+  }>({ isOpen: false, pendingAction: null })
 
   // Get current user ID
   const fetchCurrentUser = useCallback(async () => {
@@ -442,7 +557,31 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     }
   }, [id])
 
-  const toggleCardExclusion = (cardId: string) => {
+  // Check if editing requires confirmation (will change match status)
+  const needsEditConfirmation = match?.status && ['requested', 'confirmed'].includes(match.status)
+
+  // Revert match status to 'active' when editing in protected states
+  const revertMatchStatus = async () => {
+    if (!match) return false
+    try {
+      const res = await fetch(`/api/matches/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      })
+      if (res.ok) {
+        setMatch(prev => prev ? { ...prev, status: 'active' } : null)
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Error reverting match status:', err)
+      return false
+    }
+  }
+
+  // Execute card exclusion toggle
+  const executeToggleExclusion = (cardId: string) => {
     setLocalExclusions(prev => {
       const newSet = new Set(prev)
       if (newSet.has(cardId)) {
@@ -453,6 +592,24 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       return newSet
     })
     setHasLocalChanges(true)
+  }
+
+  // Handle edit attempt - may require confirmation
+  const toggleCardExclusion = (cardId: string) => {
+    if (needsEditConfirmation) {
+      setEditConfirmModal({
+        isOpen: true,
+        pendingAction: async () => {
+          const success = await revertMatchStatus()
+          if (success) {
+            executeToggleExclusion(cardId)
+          }
+          setEditConfirmModal({ isOpen: false, pendingAction: null })
+        },
+      })
+    } else {
+      executeToggleExclusion(cardId)
+    }
   }
 
   const saveChanges = async () => {
@@ -675,8 +832,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   }, [match, localExclusions])
 
   const balance = totalValueTheyWant - totalValueIWant
-  const canEdit = match?.status && ['active', 'contacted', 'dismissed'].includes(match.status)
-  const canRequest = canEdit && activeCardsIWant.length + activeCardsTheyWant.length > 0 && !hasLocalChanges
+  // canEdit: allow editing in all states except completed/cancelled
+  // (for requested/confirmed, a confirmation modal will be shown first)
+  const canEdit = match?.status && !['completed', 'cancelled'].includes(match.status)
+  const canRequest = canEdit && activeCardsIWant.length + activeCardsTheyWant.length > 0 && !hasLocalChanges && !needsEditConfirmation
   const canComment = myCommentCount < maxComments
 
   if (loading) {
@@ -740,6 +899,14 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
               {match.isUserModified && (
                 <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400">Modificado</span>
               )}
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="text-xs px-2 py-1 rounded-full bg-mtg-green-600/20 text-mtg-green-400 hover:bg-mtg-green-600/30 flex items-center gap-1 transition-colors"
+                title="Ver colección completa del otro usuario"
+              >
+                <Eye className="w-3 h-3" />
+                Ver colección
+              </button>
             </div>
             <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-400">
               {match.distanceKm !== null && (
@@ -956,39 +1123,10 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         </div>
       )}
 
-      {/* Trade Metrics - PROMINENT display */}
+      {/* Trade Metrics */}
       <div className="bg-gradient-to-r from-mtg-green-900/40 via-gray-900 to-mtg-green-900/40 rounded-2xl p-4 border border-mtg-green-600/30">
-        {/* Main Score Badge */}
-        <div className="flex items-center justify-center mb-4">
-          <div className={`px-6 py-2 rounded-full ${
-            match.matchScore && match.matchScore >= 8 ? 'bg-green-500/20 border-2 border-green-500/50' :
-            match.matchScore && match.matchScore >= 6 ? 'bg-yellow-500/20 border-2 border-yellow-500/50' :
-            match.matchScore && match.matchScore >= 4 ? 'bg-orange-500/20 border-2 border-orange-500/50' :
-            'bg-gray-500/20 border-2 border-gray-500/50'
-          }`}>
-            <div className="flex items-center gap-3">
-              <Star className={`w-6 h-6 ${
-                match.matchScore && match.matchScore >= 8 ? 'text-green-400' :
-                match.matchScore && match.matchScore >= 6 ? 'text-yellow-400' :
-                match.matchScore && match.matchScore >= 4 ? 'text-orange-400' :
-                'text-gray-400'
-              }`} />
-              <span className="text-2xl font-bold text-white">{match.matchScore?.toFixed(1) || '—'}</span>
-              <span className="text-sm text-gray-400">/10</span>
-              <span className={`text-sm font-medium ${
-                match.matchScore && match.matchScore >= 8 ? 'text-green-400' :
-                match.matchScore && match.matchScore >= 6 ? 'text-yellow-400' :
-                match.matchScore && match.matchScore >= 4 ? 'text-orange-400' :
-                'text-gray-400'
-              }`}>
-                {match.matchScore && match.matchScore >= 8 ? 'Excelente' : match.matchScore && match.matchScore >= 6 ? 'Bueno' : match.matchScore && match.matchScore >= 4 ? 'Regular' : 'Trade bajo'}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Metrics Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Distance */}
           <div className="text-center p-3 rounded-xl bg-gray-800/60 border border-gray-700/50">
             <MapPin className="w-5 h-5 text-blue-400 mx-auto mb-1" />
@@ -1033,146 +1171,118 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
               {Math.abs(balance) < 1 ? 'equilibrado' : balance > 0 ? 'a tu favor' : 'en contra'}
             </p>
           </div>
-
-          {/* Total Value */}
-          <div className="text-center p-3 rounded-xl bg-mtg-gold-900/30 border border-mtg-gold-600/30">
-            <DollarSign className="w-5 h-5 text-mtg-gold-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-mtg-gold-400">
-              ${(totalValueIWant + totalValueTheyWant).toFixed(0)}
-            </p>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Valor Total</p>
-          </div>
         </div>
       </div>
 
-      {/* Cards comparison - Two columns with collapsible lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Cards I want (they have) */}
-        <div className="card">
-          {/* Collapsible header */}
-          <button
-            onClick={() => setCardsIWantExpanded(!cardsIWantExpanded)}
-            className="w-full flex items-center justify-between mb-2 hover:opacity-80 transition-opacity"
-          >
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">Cartas que querés</h2>
-              {canEdit && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); setDrawerOpen(true) }}
-                  className="text-xs px-2 py-1 rounded bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-gray-100 flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Ver colección completa del otro usuario"
-                >
-                  <Eye className="w-3 h-3" />
-                  Ver colección
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-green-400">${totalValueIWant.toFixed(2)}</span>
-              <span className="text-xs text-gray-500">
-                ({activeCardsIWant.length} carta{activeCardsIWant.length !== 1 ? 's' : ''})
-              </span>
-              {cardsIWantExpanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              )}
-            </div>
-          </button>
-
-          {/* Collapsed summary */}
-          {!cardsIWantExpanded && match.cardsIWant.length > 0 && (
-            <div className="py-2 px-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
-              {activeCardsIWant.slice(0, 3).map(c => c.cardName).join(', ')}
-              {activeCardsIWant.length > 3 && ` y ${activeCardsIWant.length - 3} más...`}
-            </div>
-          )}
-
-          {/* Expanded list - conditionally rendered for reliable collapse */}
-          {cardsIWantExpanded && (
-            match.cardsIWant.length === 0 ? (
-              <div className="text-center py-4 mt-2">
-                <p className="text-sm text-gray-500 mb-2">No tiene cartas de tu wishlist</p>
-                {canEdit && (
-                  <button
-                    onClick={() => setDrawerOpen(true)}
-                    className="text-xs px-3 py-1.5 rounded bg-mtg-green-600 hover:bg-mtg-green-500 text-white flex items-center gap-1 mx-auto transition-colors"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    Explorar su colección
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2 mt-3">
-                {match.cardsIWant.map((card) => (
-                  <CardItem
-                    key={card.id}
-                    card={card}
-                    isExcluded={localExclusions.has(card.id)}
-                    onToggleExclude={toggleCardExclusion}
-                    onDeleteCustom={deleteCustomCard}
-                    disabled={!canEdit}
-                    canDelete={canEdit}
-                    currentUserId={currentUserId || undefined}
-                  />
-                ))}
-              </div>
-            )
-          )}
+      {/* Cards I want (they have) */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-green-400 uppercase tracking-wide">Querés</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-green-400">${totalValueIWant.toFixed(2)}</span>
+            <span className="text-xs text-gray-500">
+              ({activeCardsIWant.length} carta{activeCardsIWant.length !== 1 ? 's' : ''})
+            </span>
+          </div>
         </div>
 
-        {/* Cards they want (I have) */}
-        <div className="card">
-          {/* Collapsible header */}
-          <button
-            onClick={() => setCardsTheyWantExpanded(!cardsTheyWantExpanded)}
-            className="w-full flex items-center justify-between mb-2 hover:opacity-80 transition-opacity"
-          >
-            <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Cartas que buscan</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-400">${totalValueTheyWant.toFixed(2)}</span>
-              <span className="text-xs text-gray-500">
-                ({activeCardsTheyWant.length} carta{activeCardsTheyWant.length !== 1 ? 's' : ''})
-              </span>
-              {cardsTheyWantExpanded ? (
-                <ChevronUp className="w-4 h-4 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              )}
+        {match.cardsIWant.length === 0 ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500 mb-2">No tiene cartas de tu wishlist</p>
+            {canEdit && (
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="text-xs px-3 py-1.5 rounded bg-mtg-green-600 hover:bg-mtg-green-500 text-white flex items-center gap-1 mx-auto transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Explorar su colección
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Mobile: List view */}
+            <div className="space-y-2 lg:hidden">
+              {match.cardsIWant.map((card) => (
+                <CardItem
+                  key={card.id}
+                  card={card}
+                  isExcluded={localExclusions.has(card.id)}
+                  onToggleExclude={toggleCardExclusion}
+                  onDeleteCustom={deleteCustomCard}
+                  disabled={!canEdit}
+                  canDelete={canEdit}
+                  currentUserId={currentUserId || undefined}
+                />
+              ))}
             </div>
-          </button>
-
-          {/* Collapsed summary */}
-          {!cardsTheyWantExpanded && match.cardsTheyWant.length > 0 && (
-            <div className="py-2 px-3 bg-gray-800/30 rounded-lg text-sm text-gray-400">
-              {activeCardsTheyWant.slice(0, 3).map(c => c.cardName).join(', ')}
-              {activeCardsTheyWant.length > 3 && ` y ${activeCardsTheyWant.length - 3} más...`}
+            {/* Desktop: Grid view with larger cards */}
+            <div className="hidden lg:grid lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {match.cardsIWant.map((card) => (
+                <CardItemDesktop
+                  key={card.id}
+                  card={card}
+                  isExcluded={localExclusions.has(card.id)}
+                  onToggleExclude={toggleCardExclusion}
+                  onDeleteCustom={deleteCustomCard}
+                  disabled={!canEdit}
+                  canDelete={canEdit}
+                  currentUserId={currentUserId || undefined}
+                />
+              ))}
             </div>
-          )}
+          </>
+        )}
+      </div>
 
-          {/* Expanded list - conditionally rendered for reliable collapse */}
-          {cardsTheyWantExpanded && (
-            match.cardsTheyWant.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4 mt-2">No buscan cartas de tu colección</p>
-            ) : (
-              <div className="space-y-2 mt-3">
-                {match.cardsTheyWant.map((card) => (
-                  <CardItem
-                    key={card.id}
-                    card={card}
-                    isExcluded={localExclusions.has(card.id)}
-                    onToggleExclude={toggleCardExclusion}
-                    onDeleteCustom={deleteCustomCard}
-                    disabled={!canEdit}
-                    canDelete={canEdit}
-                    currentUserId={currentUserId || undefined}
-                  />
-                ))}
-              </div>
-            )
-          )}
+      {/* Cards they want (I have) */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">Buscan</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-blue-400">${totalValueTheyWant.toFixed(2)}</span>
+            <span className="text-xs text-gray-500">
+              ({activeCardsTheyWant.length} carta{activeCardsTheyWant.length !== 1 ? 's' : ''})
+            </span>
+          </div>
         </div>
+
+        {match.cardsTheyWant.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-4">No buscan cartas de tu colección</p>
+        ) : (
+          <>
+            {/* Mobile: List view */}
+            <div className="space-y-2 lg:hidden">
+              {match.cardsTheyWant.map((card) => (
+                <CardItem
+                  key={card.id}
+                  card={card}
+                  isExcluded={localExclusions.has(card.id)}
+                  onToggleExclude={toggleCardExclusion}
+                  onDeleteCustom={deleteCustomCard}
+                  disabled={!canEdit}
+                  canDelete={canEdit}
+                  currentUserId={currentUserId || undefined}
+                />
+              ))}
+            </div>
+            {/* Desktop: Grid view with larger cards */}
+            <div className="hidden lg:grid lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {match.cardsTheyWant.map((card) => (
+                <CardItemDesktop
+                  key={card.id}
+                  card={card}
+                  isExcluded={localExclusions.has(card.id)}
+                  onToggleExclude={toggleCardExclusion}
+                  onDeleteCustom={deleteCustomCard}
+                  disabled={!canEdit}
+                  canDelete={canEdit}
+                  currentUserId={currentUserId || undefined}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Comments section */}
@@ -1269,6 +1379,46 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         onClose={() => setDrawerOpen(false)}
         onCardAdded={loadMatch}
       />
+
+      {/* Edit Confirmation Modal */}
+      {editConfirmModal.isOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/70 z-[70]"
+            onClick={() => setEditConfirmModal({ isOpen: false, pendingAction: null })}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[75] w-[90vw] max-w-md bg-gray-900 rounded-xl border border-gray-700 p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-gray-100 mb-3">
+              ¿Modificar este trade?
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              {match.status === 'requested' && match.iRequested && (
+                <>Se cancelará la solicitud que enviaste. Deberás volver a enviar la solicitud de trade después de guardar los cambios.</>
+              )}
+              {match.status === 'requested' && !match.iRequested && (
+                <>Se rechazará la solicitud de <span className="text-gray-200">{match.otherUser.displayName}</span>. Deberás volver a enviar la solicitud de trade después de guardar los cambios.</>
+              )}
+              {match.status === 'confirmed' && (
+                <>Se cancelará el trade confirmado. Deberás volver a enviar la solicitud de trade después de guardar los cambios.</>
+              )}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setEditConfirmModal({ isOpen: false, pendingAction: null })}
+                className="btn-secondary text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => editConfirmModal.pendingAction?.()}
+                className="btn-primary text-sm"
+              >
+                Sí, modificar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

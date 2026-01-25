@@ -174,6 +174,7 @@ export async function GET(request: NextRequest) {
         matchScore: match.match_score,
         avgDiscountPercent,
         hasPriceWarnings: match.has_price_warnings,
+        isFavorite: isUserA ? match.is_favorite_a : match.is_favorite_b,
         status: match.status,
         createdAt: match.created_at,
         updatedAt: match.updated_at,
@@ -240,7 +241,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Update match status
+// Update match status or favorite
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -250,10 +251,46 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { matchId, status } = await request.json()
+    const body = await request.json()
+    const { matchId, status, isFavorite } = body
 
-    if (!matchId || !status) {
-      return NextResponse.json({ error: 'matchId y status requeridos' }, { status: 400 })
+    if (!matchId) {
+      return NextResponse.json({ error: 'matchId requerido' }, { status: 400 })
+    }
+
+    // Handle favorite toggle
+    if (typeof isFavorite === 'boolean') {
+      // First get the match to determine if user is A or B
+      const { data: match, error: fetchError } = await supabase
+        .from('matches')
+        .select('user_a_id, user_b_id')
+        .eq('id', matchId)
+        .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+        .single()
+
+      if (fetchError || !match) {
+        return NextResponse.json({ error: 'Trade no encontrado' }, { status: 404 })
+      }
+
+      const isUserA = match.user_a_id === user.id
+      const updateField = isUserA ? 'is_favorite_a' : 'is_favorite_b'
+
+      const { error } = await supabase
+        .from('matches')
+        .update({ [updateField]: isFavorite, updated_at: new Date().toISOString() })
+        .eq('id', matchId)
+
+      if (error) {
+        console.error('Error updating favorite:', error)
+        return NextResponse.json({ error: 'Error al actualizar favorito' }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true, isFavorite })
+    }
+
+    // Handle status update
+    if (!status) {
+      return NextResponse.json({ error: 'status o isFavorite requerido' }, { status: 400 })
     }
 
     if (!['active', 'dismissed', 'contacted'].includes(status)) {

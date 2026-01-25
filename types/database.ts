@@ -409,6 +409,7 @@ export interface Match {
   matchScore: number
   avgDiscountPercent: number | null
   hasPriceWarnings: boolean
+  isFavorite: boolean
   status: MatchStatus
   createdAt: string
   updatedAt: string

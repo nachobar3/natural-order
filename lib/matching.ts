@@ -71,9 +71,9 @@ export function calculateMatchScore(params: {
     score += Math.max(0, 15 - (params.distanceKm / 3.33))
   }
 
-  // Price efficiency bonus (0-10 points)
+  // Price efficiency bonus (0-25 points)
   // Lower prices relative to max = better
-  score += (1 - params.priceEfficiency) * 10
+  score += (1 - params.priceEfficiency) * 25
 
   // Price warning penalty
   if (params.hasPriceWarnings) {

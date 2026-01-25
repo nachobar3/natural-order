@@ -36,6 +36,7 @@ import {
   Ruler,
   Layers,
   DollarSign,
+  Star,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
@@ -201,6 +202,12 @@ export default function DashboardPage() {
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>('discount')
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false)
+  // Track which match cards have their card lists expanded (collapsed by default)
+  const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set())
+  // Filter to show only favorites
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  // Track optimistic favorite updates
+  const [optimisticFavorites, setOptimisticFavorites] = useState<Map<string, boolean>>(new Map())
 
   // Use SWR hook for matches data
   const {
@@ -240,10 +247,10 @@ export default function DashboardPage() {
         .eq('is_active', true)
         .single()
 
-      // Load preferences
+      // Load preferences (include has_been_configured to check if user explicitly saved)
       const { data: preferences } = await supabase
         .from('preferences')
-        .select('id')
+        .select('id, has_been_configured')
         .eq('user_id', user.id)
         .single()
 
@@ -259,10 +266,15 @@ export default function DashboardPage() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
 
+      // Check if display_name is different from the default (email prefix)
+      // The trigger sets display_name to the email prefix on signup
+      const emailPrefix = user.email?.split('@')[0] || ''
+      const hasCustomDisplayName = profile?.display_name && profile.display_name !== emailPrefix
+
       setSetupStatus({
-        profile: !!profile?.display_name,
+        profile: hasCustomDisplayName,
         location: !!location,
-        preferences: !!preferences,
+        preferences: !!preferences?.has_been_configured,
         collection: (collectionCount || 0) > 0,
         wishlist: (wishlistCount || 0) > 0,
       })
@@ -382,6 +394,46 @@ export default function DashboardPage() {
       console.error('Error restoring match:', err)
     }
   }
+
+  const toggleFavorite = async (matchId: string, currentIsFavorite: boolean) => {
+    const newValue = !currentIsFavorite
+
+    // Optimistic update
+    setOptimisticFavorites(prev => new Map(prev).set(matchId, newValue))
+
+    try {
+      const res = await fetch('/api/matches', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, isFavorite: newValue }),
+      })
+      if (!res.ok) throw new Error('Failed to toggle favorite')
+
+      // Update the SWR cache with the new favorite status
+      await mutateMatches()
+    } catch (err) {
+      // Revert optimistic update on error
+      setOptimisticFavorites(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(matchId)
+        return newMap
+      })
+      console.error('Error toggling favorite:', err)
+    }
+  }
+
+  // Get effective favorite status (optimistic or from data)
+  const getIsFavorite = (match: typeof matches[0]) => {
+    if (optimisticFavorites.has(match.id)) {
+      return optimisticFavorites.get(match.id)!
+    }
+    return match.isFavorite || false
+  }
+
+  // Filter matches by favorites if enabled
+  const displayedMatches = showFavoritesOnly
+    ? matches.filter(m => getIsFavorite(m))
+    : matches
 
   // Auto-compute trades on initial load when fully setup
   useEffect(() => {
@@ -545,6 +597,22 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-100">Tus Trades</h2>
           <div className="flex items-center gap-2">
+            {/* Favorites filter */}
+            <button
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors
+                ${showFavoritesOnly
+                  ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50'
+                  : 'text-gray-400 hover:text-gray-200 bg-gray-800/50 hover:bg-gray-800'
+                }
+              `}
+              title={showFavoritesOnly ? 'Mostrar todos' : 'Mostrar favoritos'}
+            >
+              <Star className={`w-4 h-4 ${showFavoritesOnly ? 'fill-yellow-400' : ''}`} />
+              <span className="hidden sm:inline">Favoritos</span>
+            </button>
+
             {/* Sort dropdown - only show for pendientes */}
             {activeGroup === 'pendientes' && (
               <div className="relative">
@@ -726,26 +794,28 @@ export default function DashboardPage() {
         )}
 
         {/* Empty state */}
-        {!matchesLoading && !matchError && matches.length === 0 && (
+        {!matchesLoading && !matchError && displayedMatches.length === 0 && (
           <div className="card text-center py-12">
             <Users className="w-16 h-16 mx-auto mb-4 text-gray-600" />
             <h3 className="text-lg font-medium text-gray-300 mb-2">
               No hay trades en esta vista
             </h3>
             <p className="text-gray-500 max-w-md mx-auto">
-              {activeFilters.has('disponibles') && !isFullySetup
-                ? 'Completá los pasos de configuración arriba para empezar a encontrar trades.'
-                : activeFilters.has('disponibles')
-                  ? 'No encontramos usuarios cercanos con cartas que coincidan. Agregá más cartas a tu colección o wishlist.'
-                  : `No hay trades con los filtros seleccionados. Probá cambiando los filtros.`}
+              {showFavoritesOnly
+                ? 'No tenés trades marcados como favoritos. Hacé click en la estrella de un trade para agregarlo a favoritos.'
+                : activeFilters.has('disponibles') && !isFullySetup
+                  ? 'Completá los pasos de configuración arriba para empezar a encontrar trades.'
+                  : activeFilters.has('disponibles')
+                    ? 'No encontramos usuarios cercanos con cartas que coincidan. Agregá más cartas a tu colección o wishlist.'
+                    : `No hay trades con los filtros seleccionados. Probá cambiando los filtros.`}
             </p>
           </div>
         )}
 
         {/* Match list */}
-        {!matchesLoading && matches.length > 0 && (
-          <div className="space-y-4">
-            {matches.map((match) => {
+        {!matchesLoading && displayedMatches.length > 0 && (
+          <div className="space-y-3">
+            {displayedMatches.map((match) => {
               const typeInfo = matchTypeLabels[match.matchType]
               const TypeIcon = typeInfo.icon
               const valueDiff = (match.valueIWant || 0) - (match.valueTheyWant || 0)
@@ -753,38 +823,38 @@ export default function DashboardPage() {
               return (
                 <div
                   key={match.id}
-                  className="card hover:border-mtg-green-500/30 transition-colors"
+                  onClick={() => router.push(`/dashboard/matches/${match.id}`)}
+                  className="card hover:border-mtg-green-500/30 transition-colors p-4 cursor-pointer"
                 >
-                  {/* Header */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-mtg-green-900/30">
+                  {/* Top row: Avatar + Name + Badges + Actions */}
+                  <div className="flex items-center gap-3 mb-4">
                     {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
                       {match.otherUser.avatarUrl ? (
                         <Image
                           src={match.otherUser.avatarUrl}
                           alt={match.otherUser.displayName}
-                          width={40}
-                          height={40}
-                          className="w-10 h-10 rounded-full object-cover"
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (
-                        <span className="text-lg font-bold text-mtg-green-400">
+                        <span className="text-xl font-bold text-mtg-green-400">
                           {match.otherUser.displayName.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
 
-                    {/* User info */}
+                    {/* Name + Badges */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-gray-100">
-                          {match.otherUser.displayName}
-                        </h3>
+                      <h3 className="font-semibold text-gray-100 text-lg truncate">
+                        {match.otherUser.displayName}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${typeInfo.color}`}>
                           <TypeIcon className="w-3 h-3" />
                           {typeInfo.label}
                         </span>
-                        {/* Status badge for non-active statuses */}
                         {match.status !== 'active' && (
                           <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
                             match.status === 'contacted' ? 'text-blue-400 bg-blue-500/20' :
@@ -803,28 +873,50 @@ export default function DashboardPage() {
                             {match.status === 'dismissed' && <><Archive className="w-3 h-3" />Descartado</>}
                           </span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                        {match.distanceKm !== null && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {match.distanceKm < 1 ? '<1' : Math.round(match.distanceKm)} km
+                        {match.hasPriceWarnings && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Precio
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Dismiss/Restore button - only for active/dismissed status */}
+                    {/* Score + Favorite star */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-mtg-green-600/20 rounded-lg">
+                        <span className="text-lg font-bold text-mtg-green-400">
+                          {Math.round(match.matchScore)}
+                        </span>
+                        <span className="text-xs text-mtg-green-500/70">pts</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFavorite(match.id, getIsFavorite(match))
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          getIsFavorite(match)
+                            ? 'text-yellow-400 hover:text-yellow-300'
+                            : 'text-gray-500 hover:text-yellow-400'
+                        }`}
+                        title={getIsFavorite(match) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                      >
+                        <Star className={`w-5 h-5 ${getIsFavorite(match) ? 'fill-yellow-400' : ''}`} />
+                      </button>
+                    </div>
+
+                    {/* Dismiss/Restore button */}
                     {match.status === 'active' && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           dismissMatch(match.id)
                         }}
-                        className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                         title="Descartar"
                       >
-                        <XCircle className="w-4 h-4" />
+                        <XCircle className="w-5 h-5" />
                       </button>
                     )}
                     {match.status === 'dismissed' && (
@@ -833,93 +925,136 @@ export default function DashboardPage() {
                           e.stopPropagation()
                           restoreMatch(match.id)
                         }}
-                        className="p-1.5 text-gray-500 hover:text-mtg-green-400 hover:bg-mtg-green-500/10 rounded-lg transition-colors"
+                        className="p-2 text-gray-500 hover:text-mtg-green-400 hover:bg-mtg-green-500/10 rounded-lg transition-colors"
                         title="Restaurar"
                       >
-                        <RotateCcw className="w-4 h-4" />
+                        <RotateCcw className="w-5 h-5" />
                       </button>
                     )}
                   </div>
 
-                  {/* Cards table */}
-                  <div className="grid grid-cols-2 gap-4 py-3">
-                    {/* Cards they have (that I want) */}
-                    <div>
-                      <h4 className="text-xs font-semibold text-green-400 uppercase tracking-wide mb-2 flex items-center gap-1">
-                        <Heart className="w-3 h-3" />
-                        Tiene ({match.cardsIWant})
-                      </h4>
-                      <div className="space-y-1.5">
-                        {match.cardsIWantList.length > 0 ? (
-                          match.cardsIWantList.map((card, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-2 text-sm">
-                              <span className="text-gray-300 truncate">{card.name}</span>
-                              <span className="text-xs text-gray-500 flex-shrink-0">
-                                {card.setCode.toUpperCase()}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-600">-</span>
-                        )}
-                      </div>
+                  {/* KPI Cards Row */}
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    {/* Ofrece */}
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Ofrece</p>
+                      <p className="text-2xl font-bold text-green-400">{match.cardsIWant}</p>
+                      <p className="text-[10px] text-gray-600">cartas</p>
                     </div>
 
-                    {/* Cards I have (that they want) */}
-                    <div>
-                      <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wide mb-2 flex items-center gap-1">
-                        <Package className="w-3 h-3" />
-                        Busca ({match.cardsTheyWant})
-                      </h4>
-                      <div className="space-y-1.5">
-                        {match.cardsTheyWantList.length > 0 ? (
-                          match.cardsTheyWantList.map((card, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-2 text-sm">
-                              <span className="text-gray-300 truncate">{card.name}</span>
-                              <span className="text-xs text-gray-500 flex-shrink-0">
-                                {card.setCode.toUpperCase()}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-xs text-gray-600">-</span>
-                        )}
-                      </div>
+                    {/* Busca */}
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Busca</p>
+                      <p className="text-2xl font-bold text-blue-400">{match.cardsTheyWant}</p>
+                      <p className="text-[10px] text-gray-600">cartas</p>
                     </div>
-                  </div>
 
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-3 border-t border-mtg-green-900/30">
-                    <div className="flex items-center gap-3">
-                      {match.hasPriceWarnings && (
-                        <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" />
-                          Precio excedido
-                        </span>
-                      )}
-                      {match.matchType === 'two_way' && (
-                        <span className={`text-xs font-medium ${
-                          Math.abs(valueDiff) < 1
+                    {/* Distancia */}
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Distancia</p>
+                      <p className="text-2xl font-bold text-gray-300">
+                        {match.distanceKm !== null
+                          ? match.distanceKm < 1 ? '<1' : Math.round(match.distanceKm)
+                          : '—'}
+                      </p>
+                      <p className="text-[10px] text-gray-600">km</p>
+                    </div>
+
+                    {/* Balance */}
+                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                      <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Balance</p>
+                      <p className={`text-2xl font-bold ${
+                        Math.abs(valueDiff) < 1
+                          ? 'text-gray-300'
+                          : valueDiff > 0
                             ? 'text-green-400'
-                            : valueDiff > 0
-                              ? 'text-green-400'
-                              : 'text-red-400'
-                        }`}>
-                          {Math.abs(valueDiff) < 1
-                            ? 'Trade justo'
-                            : valueDiff > 0
-                              ? `+$${valueDiff.toFixed(2)} a favor`
-                              : `-$${Math.abs(valueDiff).toFixed(2)} diferencia`}
-                        </span>
-                      )}
+                            : 'text-red-400'
+                      }`}>
+                        {Math.abs(valueDiff) < 1
+                          ? '$0'
+                          : valueDiff > 0
+                            ? `+$${Math.round(valueDiff)}`
+                            : `-$${Math.round(Math.abs(valueDiff))}`}
+                      </p>
+                      <p className="text-[10px] text-gray-600">USD</p>
                     </div>
-                    <button
-                      onClick={() => router.push(`/dashboard/matches/${match.id}`)}
-                      className="btn-primary text-sm py-1.5 px-4"
-                    >
-                      Ver detalles
-                    </button>
                   </div>
+
+                  {/* Expandable cards section */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedMatches(prev => {
+                        const next = new Set(prev)
+                        if (next.has(match.id)) {
+                          next.delete(match.id)
+                        } else {
+                          next.add(match.id)
+                        }
+                        return next
+                      })
+                    }}
+                    className="w-full flex items-center justify-between py-2 px-3 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-800/30 rounded-lg transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Layers className="w-4 h-4" />
+                      <span>Ver listado de cartas</span>
+                    </span>
+                    {expandedMatches.has(match.id) ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* Cards table - only render when expanded */}
+                  {expandedMatches.has(match.id) && (
+                    <div className="grid grid-cols-2 gap-4 pt-3 mt-2 border-t border-gray-800">
+                      {/* Cards they have (that I want) */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-green-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                          <Heart className="w-3 h-3" />
+                          Tiene ({match.cardsIWant})
+                        </h4>
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {match.cardsIWantList.length > 0 ? (
+                            match.cardsIWantList.map((card, idx) => (
+                              <div key={idx} className="flex items-center justify-between gap-2 text-sm">
+                                <span className="text-gray-300 truncate">{card.name}</span>
+                                <span className="text-xs text-gray-500 flex-shrink-0">
+                                  {card.setCode.toUpperCase()}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-600">—</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cards I have (that they want) */}
+                      <div>
+                        <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                          <Package className="w-3 h-3" />
+                          Busca ({match.cardsTheyWant})
+                        </h4>
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {match.cardsTheyWantList.length > 0 ? (
+                            match.cardsTheyWantList.map((card, idx) => (
+                              <div key={idx} className="flex items-center justify-between gap-2 text-sm">
+                                <span className="text-gray-300 truncate">{card.name}</span>
+                                <span className="text-xs text-gray-500 flex-shrink-0">
+                                  {card.setCode.toUpperCase()}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-600">—</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}

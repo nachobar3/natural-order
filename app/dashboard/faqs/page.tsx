@@ -20,6 +20,33 @@ const faqs: FAQ[] = [
 El sistema prioriza matches cercanos geográficamente y con mayor cantidad de cartas coincidentes.`
   },
   {
+    question: '¿Cómo se calcula el Score de un trade?',
+    answer: `El Score es un puntaje de 0 a 100 que indica qué tan conveniente es un trade. Se calcula considerando varios factores:
+
+• **Tipo de match (hasta 30 pts):** Los intercambios mutuos tienen mayor puntaje que compras o ventas unilaterales
+• **Eficiencia de precio (hasta 25 pts):** Mientras más descuento ofrezca el vendedor respecto al precio de mercado, mayor puntaje
+• **Cantidad de cartas (hasta 25 pts):** Más cartas en el trade = mayor puntaje
+• **Valor total (hasta 20 pts):** Trades de mayor valor en USD tienen más peso
+• **Distancia (hasta 15 pts):** Usuarios más cercanos suman más puntos (0km = 15pts, 50km+ = 0pts)
+• **Alertas de precio (-5 pts):** Si hay cartas con precios que exceden tu máximo configurado, se resta puntaje
+
+Un score de 70+ se considera excelente, 50-70 es bueno, y menos de 50 es un trade regular.`
+  },
+  {
+    question: '¿Qué significan los estados de un trade?',
+    answer: `Cada trade pasa por diferentes estados durante su ciclo de vida:
+
+• **Disponible:** Match recién encontrado, aún no contactaste al usuario
+• **Contactado:** Dejaste un comentario o iniciaste conversación
+• **Solicitado:** Una de las partes solicitó formalizar el trade
+• **Confirmado:** Ambas partes confirmaron el trade y acordaron encontrarse
+• **Realizado:** El trade se completó exitosamente
+• **Cancelado:** El trade fue cancelado por alguna de las partes
+• **Descartado:** Decidiste no continuar con este match (podés restaurarlo después)
+
+Los trades en estado "Solicitado" o "Confirmado" pueden volver a "Disponible" si se editan las cartas del trade.`
+  },
+  {
     question: '¿Cómo se calculan los precios?',
     answer: `Usamos Card Kingdom como referencia de mercado. Cuando listás una carta en tu colección, elegís un porcentaje sobre ese precio de referencia (por ejemplo, 80% significa un 20% de descuento).
 
