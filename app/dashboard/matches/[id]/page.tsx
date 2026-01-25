@@ -17,11 +17,7 @@ import {
   XCircle,
   TrendingUp,
   TrendingDown,
-  RotateCcw,
-  RefreshCw,
-  Save,
   X,
-  Check,
   Send,
   Clock,
   Ban,
@@ -95,61 +91,34 @@ interface Comment {
 
 interface CardItemProps {
   card: MatchCard
-  isExcluded: boolean
-  onToggleExclude: (cardId: string) => void
   onDeleteCustom?: (cardId: string) => void
-  disabled?: boolean
   canDelete?: boolean
   currentUserId?: string
 }
 
-function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
+function CardItem({ card, onDeleteCustom, canDelete, currentUserId }: CardItemProps) {
   const isMyCustomCard = card.isCustom && card.addedByUserId === currentUserId
 
   return (
     <div
       className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-        isExcluded
-          ? 'bg-gray-900/20 opacity-50'
-          : card.priceExceedsMax
-            ? 'bg-gray-900/30 border border-yellow-500/30'
-            : card.isCustom
-              ? 'bg-purple-900/10 border border-purple-500/20'
-              : 'bg-gray-900/30'
+        card.priceExceedsMax
+          ? 'bg-gray-900/30 border border-yellow-500/30'
+          : card.isCustom
+            ? 'bg-purple-900/10 border border-purple-500/20'
+            : 'bg-gray-900/30'
       }`}
     >
-      {/* Action buttons */}
-      <div className="flex flex-col gap-1 flex-shrink-0">
-        {/* Exclude/Include button */}
+      {/* Delete button for custom cards */}
+      {canDelete && isMyCustomCard && onDeleteCustom && (
         <button
-          onClick={() => onToggleExclude(card.id)}
-          disabled={disabled}
-          className={`p-1.5 rounded-full transition-colors ${
-            isExcluded
-              ? 'bg-gray-700 hover:bg-gray-600 text-gray-400'
-              : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
+          onClick={() => onDeleteCustom(card.id)}
+          className="p-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors flex-shrink-0"
+          title="Eliminar carta agregada manualmente"
         >
-          {isExcluded ? (
-            <Check className="w-3.5 h-3.5" />
-          ) : (
-            <X className="w-3.5 h-3.5" />
-          )}
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
-
-        {/* Delete button for custom cards */}
-        {canDelete && isMyCustomCard && onDeleteCustom && (
-          <button
-            onClick={() => onDeleteCustom(card.id)}
-            disabled={disabled}
-            className="p-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors disabled:opacity-50"
-            title="Eliminar carta agregada manualmente"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Card image */}
       {card.cardImageUri ? (
@@ -158,7 +127,7 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
           alt={card.cardName}
           width={40}
           height={56}
-          className={`rounded object-cover flex-shrink-0 ${isExcluded ? 'grayscale' : ''}`}
+          className="rounded object-cover flex-shrink-0"
         />
       ) : (
         <div className="w-[40px] h-[56px] bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
@@ -169,7 +138,7 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
       {/* Card info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <h4 className={`text-sm font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+          <h4 className="text-sm font-medium truncate text-gray-100">
             {card.cardName}
           </h4>
           {card.isCustom && (
@@ -188,13 +157,7 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
       {/* Price */}
       <div className="text-right flex-shrink-0">
         {card.askingPrice !== null ? (
-          <p className={`text-sm font-medium ${
-            isExcluded
-              ? 'text-gray-500 line-through'
-              : card.priceExceedsMax
-                ? 'text-yellow-400'
-                : 'text-gray-200'
-          }`}>
+          <p className={`text-sm font-medium ${card.priceExceedsMax ? 'text-yellow-400' : 'text-gray-200'}`}>
             ${card.askingPrice.toFixed(2)}
           </p>
         ) : (
@@ -205,20 +168,19 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
   )
 }
 
-// Desktop card view - larger cards with image, details below, and action button overlay on hover
-function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
+// Desktop card view - larger cards with image, details below, and delete button overlay on hover for custom cards
+function CardItemDesktop({ card, onDeleteCustom, canDelete, currentUserId }: CardItemProps) {
   const isMyCustomCard = card.isCustom && card.addedByUserId === currentUserId
+  const showOverlay = canDelete && isMyCustomCard && onDeleteCustom
 
   return (
     <div
       className={`relative group rounded-lg overflow-hidden transition-all ${
-        isExcluded
-          ? 'opacity-50'
-          : card.priceExceedsMax
-            ? 'ring-2 ring-yellow-500/50'
-            : card.isCustom
-              ? 'ring-2 ring-purple-500/30'
-              : ''
+        card.priceExceedsMax
+          ? 'ring-2 ring-yellow-500/50'
+          : card.isCustom
+            ? 'ring-2 ring-purple-500/30'
+            : ''
       }`}
     >
       {/* Card image */}
@@ -228,7 +190,7 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
             src={card.cardImageUri}
             alt={card.cardName}
             fill
-            className={`object-cover ${isExcluded ? 'grayscale' : ''}`}
+            className="object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
@@ -236,48 +198,22 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
           </div>
         )}
 
-        {/* Hover overlay with actions */}
-        <div className={`absolute inset-0 bg-black/60 flex items-center justify-center gap-2 transition-opacity ${
-          disabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
-        }`}>
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (!disabled) {
-                onToggleExclude(card.id)
-              }
-            }}
-            className={`p-3 rounded-full transition-colors ${
-              isExcluded
-                ? 'bg-green-500 hover:bg-green-400 text-white'
-                : 'bg-red-500 hover:bg-red-400 text-white'
-            }`}
-            title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
-          >
-            {isExcluded ? (
-              <Check className="w-6 h-6" />
-            ) : (
-              <X className="w-6 h-6" />
-            )}
-          </button>
-
-          {canDelete && isMyCustomCard && onDeleteCustom && (
+        {/* Hover overlay with delete action for custom cards */}
+        {showOverlay && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 transition-opacity opacity-0 group-hover:opacity-100">
             <button
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                if (!disabled) {
-                  onDeleteCustom(card.id)
-                }
+                onDeleteCustom(card.id)
               }}
               className="p-3 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"
               title="Eliminar carta"
             >
               <Trash2 className="w-6 h-6" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Custom badge */}
         {card.isCustom && (
@@ -292,18 +228,11 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
             <AlertTriangle className="w-2.5 h-2.5" />
           </div>
         )}
-
-        {/* Excluded indicator - shown when not hovering */}
-        {isExcluded && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
-            <X className="w-10 h-10 text-red-400/80" />
-          </div>
-        )}
       </div>
 
       {/* Card details */}
       <div className="p-2 bg-gray-900/80">
-        <h4 className={`text-xs font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+        <h4 className="text-xs font-medium truncate text-gray-100">
           {card.cardName}
         </h4>
         <p className="text-[10px] text-gray-500 truncate">
@@ -311,9 +240,7 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
           {card.isFoil && <span className="text-purple-400 ml-1">✨</span>}
         </p>
         {card.askingPrice !== null && (
-          <p className={`text-xs font-medium mt-0.5 ${
-            isExcluded ? 'text-gray-500' : card.priceExceedsMax ? 'text-yellow-400' : 'text-green-400'
-          }`}>
+          <p className={`text-xs font-medium mt-0.5 ${card.priceExceedsMax ? 'text-yellow-400' : 'text-green-400'}`}>
             ${card.askingPrice.toFixed(2)}
           </p>
         )}
@@ -473,10 +400,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  // Track local exclusions (card IDs that are excluded)
-  const [localExclusions, setLocalExclusions] = useState<Set<string>>(new Set())
-  const [hasLocalChanges, setHasLocalChanges] = useState(false)
-
   // Comments state
   const [comments, setComments] = useState<Comment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
@@ -489,12 +412,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-
-  // Edit confirmation modal state
-  const [editConfirmModal, setEditConfirmModal] = useState<{
-    isOpen: boolean
-    pendingAction: (() => void) | null
-  }>({ isOpen: false, pendingAction: null })
 
   // Get current user ID
   const fetchCurrentUser = useCallback(async () => {
@@ -522,17 +439,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       const data = await res.json()
       setMatch(data)
       setError(null)
-
-      // Initialize local exclusions from server state
-      const excludedIds = new Set<string>()
-      data.cardsIWant?.forEach((c: MatchCard) => {
-        if (c.isExcluded) excludedIds.add(c.id)
-      })
-      data.cardsTheyWant?.forEach((c: MatchCard) => {
-        if (c.isExcluded) excludedIds.add(c.id)
-      })
-      setLocalExclusions(excludedIds)
-      setHasLocalChanges(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -557,111 +463,8 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     }
   }, [id])
 
-  // Check if editing requires confirmation (will change match status)
+  // Check if trade is in protected state (can't request again)
   const needsEditConfirmation = match?.status && ['requested', 'confirmed'].includes(match.status)
-
-  // Revert match status to 'active' when editing in protected states
-  const revertMatchStatus = async () => {
-    if (!match) return false
-    try {
-      const res = await fetch(`/api/matches/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'active' }),
-      })
-      if (res.ok) {
-        setMatch(prev => prev ? { ...prev, status: 'active' } : null)
-        return true
-      }
-      return false
-    } catch (err) {
-      console.error('Error reverting match status:', err)
-      return false
-    }
-  }
-
-  // Execute card exclusion toggle
-  const executeToggleExclusion = (cardId: string) => {
-    setLocalExclusions(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(cardId)) {
-        newSet.delete(cardId)
-      } else {
-        newSet.add(cardId)
-      }
-      return newSet
-    })
-    setHasLocalChanges(true)
-  }
-
-  // Handle edit attempt - may require confirmation
-  const toggleCardExclusion = (cardId: string) => {
-    if (needsEditConfirmation) {
-      setEditConfirmModal({
-        isOpen: true,
-        pendingAction: async () => {
-          const success = await revertMatchStatus()
-          if (success) {
-            executeToggleExclusion(cardId)
-          }
-          setEditConfirmModal({ isOpen: false, pendingAction: null })
-        },
-      })
-    } else {
-      executeToggleExclusion(cardId)
-    }
-  }
-
-  const saveChanges = async () => {
-    setActionLoading('save')
-    try {
-      const res = await fetch(`/api/matches/${id}/cards`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ excludedCardIds: Array.from(localExclusions) }),
-      })
-      if (res.ok) {
-        setHasLocalChanges(false)
-        await loadMatch()
-      }
-    } catch (err) {
-      console.error('Error saving changes:', err)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const restoreMatch = async () => {
-    setActionLoading('restore')
-    try {
-      const res = await fetch(`/api/matches/${id}/restore`, { method: 'POST' })
-      if (res.ok) await loadMatch()
-    } catch (err) {
-      console.error('Error restoring match:', err)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const recalculateMatch = async () => {
-    setActionLoading('recalculate')
-    try {
-      const res = await fetch(`/api/matches/${id}/recalculate`, { method: 'POST' })
-      if (res.ok) await loadMatch()
-    } catch (err) {
-      console.error('Error recalculating match:', err)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const discardChanges = () => {
-    const excludedIds = new Set<string>()
-    match?.cardsIWant?.forEach(c => { if (c.isExcluded) excludedIds.add(c.id) })
-    match?.cardsTheyWant?.forEach(c => { if (c.isExcluded) excludedIds.add(c.id) })
-    setLocalExclusions(excludedIds)
-    setHasLocalChanges(false)
-  }
 
   // Trade flow actions
   const requestTrade = async () => {
@@ -816,26 +619,23 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     fetchCurrentUser()
   }, [loadMatch, loadComments, fetchCurrentUser, id])
 
-  // Calculate totals based on local exclusions
+  // Calculate totals
   const { activeCardsIWant, activeCardsTheyWant, totalValueIWant, totalValueTheyWant } = useMemo(() => {
     if (!match) return { activeCardsIWant: [], activeCardsTheyWant: [], totalValueIWant: 0, totalValueTheyWant: 0 }
 
-    const activeIWant = match.cardsIWant.filter(c => !localExclusions.has(c.id))
-    const activeTheyWant = match.cardsTheyWant.filter(c => !localExclusions.has(c.id))
-
     return {
-      activeCardsIWant: activeIWant,
-      activeCardsTheyWant: activeTheyWant,
-      totalValueIWant: activeIWant.reduce((sum, c) => sum + (c.askingPrice || 0), 0),
-      totalValueTheyWant: activeTheyWant.reduce((sum, c) => sum + (c.askingPrice || 0), 0),
+      activeCardsIWant: match.cardsIWant,
+      activeCardsTheyWant: match.cardsTheyWant,
+      totalValueIWant: match.cardsIWant.reduce((sum, c) => sum + (c.askingPrice || 0), 0),
+      totalValueTheyWant: match.cardsTheyWant.reduce((sum, c) => sum + (c.askingPrice || 0), 0),
     }
-  }, [match, localExclusions])
+  }, [match])
 
   const balance = totalValueTheyWant - totalValueIWant
   // canEdit: allow editing in all states except completed/cancelled
   // (for requested/confirmed, a confirmation modal will be shown first)
   const canEdit = match?.status && !['completed', 'cancelled'].includes(match.status)
-  const canRequest = canEdit && activeCardsIWant.length + activeCardsTheyWant.length > 0 && !hasLocalChanges && !needsEditConfirmation
+  const canRequest = canEdit && activeCardsIWant.length + activeCardsTheyWant.length > 0 && !needsEditConfirmation
   const canComment = myCommentCount < maxComments
 
   if (loading) {
@@ -1061,65 +861,17 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         </div>
       )}
 
-      {/* Edit actions bar */}
-      {canEdit && (
-        <div className="rounded-xl p-4 bg-gray-900/50">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <span>Podés excluir cartas del trade haciendo click en la</span>
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500/20 text-red-400">
-                <X className="w-3 h-3" />
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={recalculateMatch}
-                disabled={actionLoading !== null}
-                className="btn-secondary flex items-center gap-2 text-sm"
-                title="Recalcular match con las colecciones actuales"
-              >
-                <RefreshCw className={`w-4 h-4 ${actionLoading === 'recalculate' ? 'animate-spin' : ''}`} />
-                Recalcular
-              </button>
-              <button
-                onClick={restoreMatch}
-                disabled={actionLoading !== null}
-                className="btn-secondary flex items-center gap-2 text-sm"
-                title="Restaurar todas las cartas"
-              >
-                <RotateCcw className={`w-4 h-4 ${actionLoading === 'restore' ? 'animate-spin' : ''}`} />
-                Restaurar
-              </button>
-              {hasLocalChanges && (
-                <>
-                  <button onClick={discardChanges} disabled={actionLoading !== null} className="btn-secondary text-gray-400 text-sm">
-                    Descartar
-                  </button>
-                  <button onClick={saveChanges} disabled={actionLoading !== null} className="btn-primary flex items-center gap-2 text-sm">
-                    <Save className={`w-4 h-4 ${actionLoading === 'save' ? 'animate-pulse' : ''}`} />
-                    Guardar
-                  </button>
-                </>
-              )}
-              {!hasLocalChanges && canRequest && (
-                <button
-                  onClick={requestTrade}
-                  disabled={actionLoading !== null}
-                  className="btn-primary flex items-center gap-2 text-sm"
-                >
-                  {actionLoading === 'request' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Solicitar trade
-                </button>
-              )}
-              <button
-                onClick={dismissMatch}
-                disabled={actionLoading !== null}
-                className="btn-secondary text-red-400 hover:text-red-300 text-sm"
-              >
-                Descartar
-              </button>
-            </div>
-          </div>
+      {/* Request trade action */}
+      {canRequest && (
+        <div className="flex justify-center">
+          <button
+            onClick={requestTrade}
+            disabled={actionLoading !== null}
+            className="btn-primary flex items-center gap-2 px-6 py-3 text-base"
+          >
+            {actionLoading === 'request' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            Solicitar trade
+          </button>
         </div>
       )}
 
@@ -1207,10 +959,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                 <CardItem
                   key={card.id}
                   card={card}
-                  isExcluded={localExclusions.has(card.id)}
-                  onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
-                  disabled={!canEdit}
                   canDelete={canEdit}
                   currentUserId={currentUserId || undefined}
                 />
@@ -1222,10 +971,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                 <CardItemDesktop
                   key={card.id}
                   card={card}
-                  isExcluded={localExclusions.has(card.id)}
-                  onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
-                  disabled={!canEdit}
                   canDelete={canEdit}
                   currentUserId={currentUserId || undefined}
                 />
@@ -1257,10 +1003,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                 <CardItem
                   key={card.id}
                   card={card}
-                  isExcluded={localExclusions.has(card.id)}
-                  onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
-                  disabled={!canEdit}
                   canDelete={canEdit}
                   currentUserId={currentUserId || undefined}
                 />
@@ -1272,10 +1015,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                 <CardItemDesktop
                   key={card.id}
                   card={card}
-                  isExcluded={localExclusions.has(card.id)}
-                  onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
-                  disabled={!canEdit}
                   canDelete={canEdit}
                   currentUserId={currentUserId || undefined}
                 />
@@ -1379,46 +1119,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
         onClose={() => setDrawerOpen(false)}
         onCardAdded={loadMatch}
       />
-
-      {/* Edit Confirmation Modal */}
-      {editConfirmModal.isOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/70 z-[70]"
-            onClick={() => setEditConfirmModal({ isOpen: false, pendingAction: null })}
-          />
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[75] w-[90vw] max-w-md bg-gray-900 rounded-xl border border-gray-700 p-6 shadow-2xl">
-            <h3 className="text-lg font-semibold text-gray-100 mb-3">
-              ¿Modificar este trade?
-            </h3>
-            <p className="text-sm text-gray-400 mb-4">
-              {match.status === 'requested' && match.iRequested && (
-                <>Se cancelará la solicitud que enviaste. Deberás volver a enviar la solicitud de trade después de guardar los cambios.</>
-              )}
-              {match.status === 'requested' && !match.iRequested && (
-                <>Se rechazará la solicitud de <span className="text-gray-200">{match.otherUser.displayName}</span>. Deberás volver a enviar la solicitud de trade después de guardar los cambios.</>
-              )}
-              {match.status === 'confirmed' && (
-                <>Se cancelará el trade confirmado. Deberás volver a enviar la solicitud de trade después de guardar los cambios.</>
-              )}
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setEditConfirmModal({ isOpen: false, pendingAction: null })}
-                className="btn-secondary text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => editConfirmModal.pendingAction?.()}
-                className="btn-primary text-sm"
-              >
-                Sí, modificar
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   )
 }
