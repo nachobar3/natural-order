@@ -818,7 +818,8 @@ export default function DashboardPage() {
             {displayedMatches.map((match) => {
               const typeInfo = matchTypeLabels[match.matchType]
               const TypeIcon = typeInfo.icon
-              const valueDiff = (match.valueIWant || 0) - (match.valueTheyWant || 0)
+              // Balance: positive = I receive cash, negative = I pay cash
+              const valueDiff = (match.valueTheyWant || 0) - (match.valueIWant || 0)
 
               return (
                 <div
