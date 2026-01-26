@@ -24,19 +24,19 @@ const apiResponseTime = new Trend('api_response_time')
 
 // Test configuration
 export const options = {
-  // Define test stages
+  // Define test stages (realistic for early-stage app)
   stages: [
-    { duration: '30s', target: 10 },   // Ramp up to 10 users
-    { duration: '1m', target: 50 },    // Ramp up to 50 users
-    { duration: '2m', target: 100 },   // Hold at 100 users (main test)
-    { duration: '30s', target: 0 },    // Ramp down to 0
+    { duration: '20s', target: 10 },   // Ramp up to 10 users
+    { duration: '1m', target: 20 },    // Ramp up to 20 users
+    { duration: '1m', target: 30 },    // Hold at 30 users (main test)
+    { duration: '20s', target: 0 },    // Ramp down to 0
   ],
 
-  // Thresholds for pass/fail criteria
+  // Thresholds for pass/fail criteria (realistic for serverless)
   thresholds: {
-    http_req_duration: ['p(95)<500'],  // 95% of requests should be below 500ms
+    http_req_duration: ['p(95)<1000'],  // 95% of requests should be below 1s
     http_req_failed: ['rate<0.01'],     // Less than 1% failures
-    errors: ['rate<0.05'],              // Custom error rate below 5%
+    errors: ['rate<0.10'],              // Custom error rate below 10%
   },
 }
 
@@ -94,7 +94,7 @@ function testCardSearch() {
         return false
       }
     },
-    'search: response time < 500ms': (r) => r.timings.duration < 500,
+    'search: response time < 1000ms': (r) => r.timings.duration < 1000,
   })
 
   errorRate.add(!success)

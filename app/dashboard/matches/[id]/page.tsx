@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
@@ -17,7 +16,6 @@ import {
   XCircle,
   TrendingUp,
   TrendingDown,
-  RotateCcw,
   RefreshCw,
   Save,
   X,
@@ -467,7 +465,6 @@ function CommentItem({ comment, onEdit }: CommentItemProps) {
 
 export default function MatchDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
-  const router = useRouter()
   const [match, setMatch] = useState<MatchDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -631,30 +628,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     }
   }
 
-  const restoreMatch = async () => {
-    setActionLoading('restore')
-    try {
-      const res = await fetch(`/api/matches/${id}/restore`, { method: 'POST' })
-      if (res.ok) await loadMatch()
-    } catch (err) {
-      console.error('Error restoring match:', err)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const recalculateMatch = async () => {
-    setActionLoading('recalculate')
-    try {
-      const res = await fetch(`/api/matches/${id}/recalculate`, { method: 'POST' })
-      if (res.ok) await loadMatch()
-    } catch (err) {
-      console.error('Error recalculating match:', err)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
   const discardChanges = () => {
     const excludedIds = new Set<string>()
     match?.cardsIWant?.forEach(c => { if (c.isExcluded) excludedIds.add(c.id) })
@@ -727,23 +700,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       }
     } catch (err) {
       console.error('Error marking trade:', err)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const dismissMatch = async () => {
-    setActionLoading('dismiss')
-    trackEvent(AnalyticsEvents.MATCH_DISMISSED, { match_id: id })
-    try {
-      const res = await fetch('/api/matches', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: id, status: 'dismissed' }),
-      })
-      if (res.ok) router.push('/dashboard')
-    } catch (err) {
-      console.error('Error dismissing match:', err)
     } finally {
       setActionLoading(null)
     }
@@ -847,6 +803,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
   }
 
   if (error || !match) {
+    const isNotFound = error === 'Trade no encontrado'
     return (
       <div className="space-y-6">
         <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-400 hover:text-gray-200">
@@ -854,8 +811,22 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           Volver al inicio
         </Link>
         <div className="card text-center py-12">
-          <XCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
-          <h3 className="text-lg font-medium text-gray-300 mb-2">{error || 'Trade no encontrado'}</h3>
+          {isNotFound ? (
+            <>
+              <RefreshCw className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+              <h3 className="text-lg font-medium text-gray-300 mb-2">Trade desactualizado</h3>
+              <p className="text-sm text-gray-500 mb-4">Este trade fue recalculado. Volvé al inicio para ver la lista actualizada.</p>
+              <Link href="/dashboard" className="btn-primary inline-flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al inicio
+              </Link>
+            </>
+          ) : (
+            <>
+              <XCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+              <h3 className="text-lg font-medium text-gray-300 mb-2">{error || 'Trade no encontrado'}</h3>
+            </>
+          )}
         </div>
       </div>
     )

@@ -254,34 +254,23 @@ export async function POST(request: NextRequest) {
       collectionByUser.get(c.user_id)!.push(c)
     })
 
-    // Get existing matches that should be preserved (user-modified or in progress)
+    // Get ALL existing matches for this user (we'll update instead of delete/recreate)
     const { data: existingMatches } = await supabase
       .from('matches')
       .select('id, user_a_id, user_b_id, is_user_modified, status')
       .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
 
-    // Track which user pairs have preserved matches
-    const preservedPairs = new Set<string>()
-    const matchesToDelete: string[] = []
-
+    // Map existing matches by user pair for quick lookup
+    const existingMatchesByPair = new Map<string, { id: string; isProtected: boolean; status: string }>()
     existingMatches?.forEach(m => {
-      // Preserve matches that are user-modified or have active trade flow
-      const shouldPreserve = m.is_user_modified ||
+      const pairKey = [m.user_a_id, m.user_b_id].sort().join('-')
+      const isProtected = m.is_user_modified ||
         ['requested', 'confirmed', 'completed', 'cancelled'].includes(m.status)
-
-      if (shouldPreserve) {
-        // Create a consistent key for the pair
-        const pairKey = [m.user_a_id, m.user_b_id].sort().join('-')
-        preservedPairs.add(pairKey)
-      } else {
-        matchesToDelete.push(m.id)
-      }
+      existingMatchesByPair.set(pairKey, { id: m.id, isProtected, status: m.status })
     })
 
-    // Delete only non-preserved matches
-    if (matchesToDelete.length > 0) {
-      await supabase.from('matches').delete().in('id', matchesToDelete)
-    }
+    // Track which pairs we process (to know which old matches to delete later)
+    const processedPairs = new Set<string>()
 
     // Get collection IDs that are in escrow (confirmed matches)
     const { data: escrowedCards } = await supabase
@@ -297,10 +286,16 @@ export async function POST(request: NextRequest) {
 
     for (const otherUser of nearbyUsers) {
       const otherUserId = otherUser.user_id
-
-      // Skip if we already have a preserved match with this user
       const pairKey = [user.id, otherUserId].sort().join('-')
-      if (preservedPairs.has(pairKey)) {
+
+      // Mark this pair as processed
+      processedPairs.add(pairKey)
+
+      // Check if we have an existing match for this pair
+      const existingMatch = existingMatchesByPair.get(pairKey)
+
+      // Skip if the existing match is protected (user-modified or in trade flow)
+      if (existingMatch?.isProtected) {
         continue
       }
 
@@ -512,28 +507,65 @@ export async function POST(request: NextRequest) {
         ? [valueIWant, valueTheyWant]
         : [valueTheyWant, valueIWant]
 
-      // Insert match
-      const { data: match, error: matchError } = await supabase
-        .from('matches')
-        .insert({
-          user_a_id: userAId,
-          user_b_id: userBId,
-          match_type: matchType,
-          distance_km: distance,
-          cards_a_wants_count: aWantsCount,
-          cards_b_wants_count: bWantsCount,
-          value_a_wants: valueAWants,
-          value_b_wants: valueBWants,
-          match_score: matchScore,
-          has_price_warnings: hasPriceWarnings,
-          status: 'active',
-        })
-        .select()
-        .single()
+      let matchId: string
 
-      if (matchError) {
-        console.error('Error inserting match:', matchError)
-        continue
+      if (existingMatch) {
+        // UPDATE existing match (preserves the ID)
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update({
+            match_type: matchType,
+            distance_km: distance,
+            cards_a_wants_count: aWantsCount,
+            cards_b_wants_count: bWantsCount,
+            value_a_wants: valueAWants,
+            value_b_wants: valueBWants,
+            match_score: matchScore,
+            has_price_warnings: hasPriceWarnings,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingMatch.id)
+
+        if (updateError) {
+          console.error('Error updating match:', updateError)
+          continue
+        }
+
+        matchId = existingMatch.id
+
+        // Delete old match_cards (non-excluded, non-custom) and insert new ones
+        await supabase
+          .from('match_cards')
+          .delete()
+          .eq('match_id', matchId)
+          .eq('is_excluded', false)
+          .eq('is_custom', false)
+      } else {
+        // INSERT new match
+        const { data: match, error: matchError } = await supabase
+          .from('matches')
+          .insert({
+            user_a_id: userAId,
+            user_b_id: userBId,
+            match_type: matchType,
+            distance_km: distance,
+            cards_a_wants_count: aWantsCount,
+            cards_b_wants_count: bWantsCount,
+            value_a_wants: valueAWants,
+            value_b_wants: valueBWants,
+            match_score: matchScore,
+            has_price_warnings: hasPriceWarnings,
+            status: 'active',
+          })
+          .select()
+          .single()
+
+        if (matchError) {
+          console.error('Error inserting match:', matchError)
+          continue
+        }
+
+        matchId = match.id
       }
 
       // Insert match cards
@@ -541,7 +573,7 @@ export async function POST(request: NextRequest) {
 
       for (const card of cardsIWant) {
         matchCards.push({
-          match_id: match.id,
+          match_id: matchId,
           direction: user.id < otherUserId ? 'a_wants' : 'b_wants',
           wishlist_id: card.wishlistItem.id,
           collection_id: card.collectionItem.id,
@@ -562,7 +594,7 @@ export async function POST(request: NextRequest) {
 
       for (const card of cardsTheyWant) {
         matchCards.push({
-          match_id: match.id,
+          match_id: matchId,
           direction: user.id < otherUserId ? 'b_wants' : 'a_wants',
           wishlist_id: card.wishlistItem.id,
           collection_id: card.collectionItem.id,
@@ -586,7 +618,7 @@ export async function POST(request: NextRequest) {
       }
 
       newMatches.push({
-        id: match.id,
+        id: matchId,
         otherUserId,
         matchType,
         cardsIWant: cardsIWant.length,
@@ -594,6 +626,18 @@ export async function POST(request: NextRequest) {
         distance,
         score: matchScore,
       })
+    }
+
+    // Delete matches that no longer have any card overlap (and are not protected)
+    const matchesToDelete: string[] = []
+    existingMatchesByPair.forEach((match, pairKey) => {
+      if (!processedPairs.has(pairKey) && !match.isProtected) {
+        matchesToDelete.push(match.id)
+      }
+    })
+
+    if (matchesToDelete.length > 0) {
+      await supabase.from('matches').delete().in('id', matchesToDelete)
     }
 
     // Sort by score
