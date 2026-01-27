@@ -111,7 +111,7 @@ export function DashboardNav({ user }: { user: UserType | null }) {
                 height={40}
                 className="object-contain"
               />
-              <span className="logo-text text-xl hidden sm:block">
+              <span className="logo-text text-[2rem] hidden sm:block">
                 Natural Order
               </span>
             </Link>

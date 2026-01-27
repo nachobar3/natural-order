@@ -15,6 +15,7 @@ import {
   Trash2,
   Check,
   AlertTriangle,
+  LogOut,
 } from 'lucide-react'
 import type { User as UserType, Location, Preferences } from '@/types/database'
 
@@ -30,19 +31,18 @@ const AddressAutocomplete = dynamic(
   }
 )
 
-type TabKey = 'datos' | 'ubicacion' | 'preferencias' | 'cuenta'
+type TabKey = 'cuenta' | 'ubicacion' | 'preferencias'
 
 const tabs: { key: TabKey; label: string; shortLabel: string; icon: typeof User }[] = [
-  { key: 'datos', label: 'Datos personales', shortLabel: 'Datos', icon: User },
+  { key: 'cuenta', label: 'Cuenta', shortLabel: 'Cuenta', icon: User },
   { key: 'ubicacion', label: 'Ubicación', shortLabel: 'Ubicación', icon: MapPin },
   { key: 'preferencias', label: 'Preferencias', shortLabel: 'Prefs', icon: RefreshCcw },
-  { key: 'cuenta', label: 'Cuenta', shortLabel: 'Cuenta', icon: Bell },
 ]
 
 export default function ProfilePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialTab = (searchParams.get('tab') as TabKey) || 'datos'
+  const initialTab = (searchParams.get('tab') as TabKey) || 'cuenta'
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
   const [profile, setProfile] = useState<UserType | null>(null)
@@ -232,6 +232,12 @@ export default function ProfilePage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
   async function handleDeleteAccount() {
     setDeleting(true)
     await supabase.auth.signOut()
@@ -273,7 +279,7 @@ export default function ProfilePage() {
         {/* Tabs - Mobile: horizontal fixed grid at top, Desktop: vertical on left */}
         <div className="md:w-48 flex-shrink-0">
           {/* Mobile tabs (horizontal grid - no scroll) */}
-          <div className="grid grid-cols-4 gap-1 md:hidden pb-3 mb-3 border-b border-gray-800">
+          <div className="grid grid-cols-3 gap-1 md:hidden pb-3 mb-3 border-b border-gray-800">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -317,85 +323,6 @@ export default function ProfilePage() {
 
         {/* Tab content */}
         <div className="flex-1">
-          {/* Datos personales */}
-          {activeTab === 'datos' && (
-            <div className="space-y-6">
-              <div className="card">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">
-                  Información básica
-                </h2>
-
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="label">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input
-                        id="email"
-                        type="email"
-                        value={profile?.email || ''}
-                        className="input pl-10 opacity-60"
-                        disabled
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      El email no se puede cambiar
-                    </p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="displayName" className="label">Nombre para mostrar</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <input
-                        id="displayName"
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        className="input pl-10"
-                        placeholder="Tu nombre"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="language" className="label">Idioma preferido</label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                      <select
-                        id="language"
-                        value={preferredLanguage}
-                        onChange={(e) => setPreferredLanguage(e.target.value)}
-                        className="input pl-10 appearance-none cursor-pointer"
-                      >
-                        <option value="es">Español</option>
-                        <option value="en">English</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="btn-primary"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    'Guardar cambios'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Ubicación */}
           {activeTab === 'ubicacion' && (
             <div className="space-y-6">
@@ -608,23 +535,114 @@ export default function ProfilePage() {
           {/* Cuenta */}
           {activeTab === 'cuenta' && (
             <div className="space-y-6">
-              {/* Account info */}
+              {/* Personal info */}
               <div className="card">
                 <h2 className="text-lg font-semibold text-gray-100 mb-4">
-                  Información de la cuenta
+                  Información personal
                 </h2>
-                <div className="text-sm text-gray-400">
-                  <p>
-                    <span className="font-medium text-gray-300">Miembro desde:</span>{' '}
-                    {profile?.created_at
-                      ? new Date(profile.created_at).toLocaleDateString('es', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
-                      : '-'}
-                  </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="label">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                      <input
+                        id="email"
+                        type="email"
+                        value={profile?.email || ''}
+                        className="input pl-10 opacity-60"
+                        disabled
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      El email no se puede cambiar
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="displayName" className="label">Nombre para mostrar</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                      <input
+                        id="displayName"
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        className="input pl-10"
+                        placeholder="Tu nombre"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="language" className="label">Idioma preferido</label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                      <select
+                        id="language"
+                        value={preferredLanguage}
+                        onChange={(e) => setPreferredLanguage(e.target.value)}
+                        className="input pl-10 appearance-none cursor-pointer"
+                      >
+                        <option value="es">Español</option>
+                        <option value="en">English</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-800">
+                    <p className="text-sm text-gray-500">
+                      <span className="font-medium text-gray-400">Miembro desde:</span>{' '}
+                      {profile?.created_at
+                        ? new Date(profile.created_at).toLocaleDateString('es', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })
+                        : '-'}
+                    </p>
+                  </div>
                 </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="btn-primary"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar cambios'
+                  )}
+                </button>
+              </div>
+
+              {/* Sign out */}
+              <div className="card">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-gray-500/20">
+                    <LogOut className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-100">
+                    Sesión
+                  </h2>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Cerrá sesión en este dispositivo.
+                </p>
+                <button
+                  onClick={handleSignOut}
+                  className="btn-secondary text-gray-300 hover:text-white"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Cerrar sesión
+                </button>
               </div>
 
               {/* Danger zone */}
