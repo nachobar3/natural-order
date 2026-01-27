@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'black',
     title: 'Natural Order',
   },
   formatDetection: {
@@ -45,8 +45,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
-      <body className="min-h-screen scrollbar-custom">
+    <html lang="es" className="bg-black">
+      <body className="min-h-screen scrollbar-custom bg-[#0d0d0d]">
         {/* Global gradient background */}
         <div className="gradient-bg" />
         {children}
