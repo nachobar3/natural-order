@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Order - MVP Release Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.875rem; }
+        code { font-family: 'Fira Code', 'Consolas', monospace; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e5e7eb; padding: 0.75rem; text-align: left; }
+        th { background: #f3f4f6; font-weight: 600; }
+        tr:nth-child(even) { background: #f9fafb; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+    <div class="max-w-5xl mx-auto px-6 py-12">
+        <header class="mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Natural Order - MVP Release Documentation</h1>
+            <div class="flex gap-4 text-sm text-gray-600">
+                <span><strong>Version:</strong> 1.0.0</span>
+                <span><strong>Last Updated:</strong> January 25, 2026</span>
+                <span class="px-2 py-1 bg-green-100 text-green-800 rounded">MVP Complete - Pre-Launch</span>
+            </div>
+        </header>
+
+        <!-- Table of Contents -->
+        <nav class="mb-12 p-6 bg-white rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Table of Contents</h2>
+            <ol class="list-decimal list-inside space-y-1 text-blue-600">
+                <li><a href="#product-overview" class="hover:underline">Product Overview</a></li>
+                <li><a href="#matching-algorithm" class="hover:underline">Matching Algorithm</a></li>
+                <li><a href="#database-schema" class="hover:underline">Database Schema</a></li>
+                <li><a href="#api-endpoints" class="hover:underline">API Endpoints</a></li>
+                <li><a href="#trade-flow" class="hover:underline">Trade Flow</a></li>
+                <li><a href="#feature-status" class="hover:underline">Current Feature Status</a></li>
+                <li><a href="#pre-launch" class="hover:underline">Pre-Launch Checklist</a></li>
+                <li><a href="#running-tests" class="hover:underline">Running Tests</a></li>
+                <li><a href="#local-dev" class="hover:underline">Local Development</a></li>
+                <li><a href="#deployment" class="hover:underline">Deployment</a></li>
+            </ol>
+        </nav>
+
+        <!-- Section 1: Product Overview -->
+        <section id="product-overview" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">1. Product Overview</h2>
+
+            <p class="mb-6 text-gray-700">Natural Order is a proximity-based marketplace for Magic: The Gathering card trading. It automatically matches users based on their collections, wishlists, and geographic location.</p>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Core Value Proposition</h3>
+            <ul class="list-disc list-inside space-y-2 mb-6 text-gray-700">
+                <li><strong>For traders:</strong> Find nearby users who have cards you want and want cards you have</li>
+                <li><strong>For buyers:</strong> Discover local sellers with cards on your wishlist</li>
+                <li><strong>For sellers:</strong> Reach local buyers without shipping hassles</li>
+                <li><strong>Differentiator:</strong> Automatic matching + proximity awareness + reference pricing</li>
+            </ul>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Technology Stack</h3>
+            <div class="overflow-x-auto">
+                <table class="mb-6">
+                    <thead>
+                        <tr><th>Layer</th><th>Technology</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Frontend</td><td>Next.js 14 (App Router), TypeScript, Tailwind CSS</td></tr>
+                        <tr><td>Backend</td><td>Next.js API Routes</td></tr>
+                        <tr><td>Database</td><td>Supabase (PostgreSQL)</td></tr>
+                        <tr><td>Auth</td><td>Supabase Auth (Email + Google OAuth)</td></tr>
+                        <tr><td>Card Data</td><td>Scryfall API</td></tr>
+                        <tr><td>Location</td><td>Google Maps Geocoding API</td></tr>
+                        <tr><td>Hosting</td><td>Vercel</td></tr>
+                        <tr><td>Caching</td><td>SWR (client), HTTP Cache-Control headers</td></tr>
+                        <tr><td>Rate Limiting</td><td>Upstash Redis</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 2: Matching Algorithm -->
+        <section id="matching-algorithm" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">2. Matching Algorithm</h2>
+
+            <p class="mb-6 text-gray-700">The matching algorithm is the core of Natural Order. It runs on-demand when a user triggers computation and finds compatible trading opportunities with nearby users.</p>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">2.1 When Matches Are Computed</h3>
+            <p class="mb-4 text-gray-700">Matches are computed <strong>on-demand</strong> via <code class="bg-gray-200 px-2 py-1 rounded">POST /api/matches/compute</code> when:</p>
+            <ul class="list-disc list-inside space-y-1 mb-6 text-gray-700">
+                <li>User clicks "Buscar trades" button in the dashboard</li>
+                <li>User returns to the app after adding cards to collection/wishlist</li>
+            </ul>
+            <p class="mb-6 text-gray-700">Matches are <strong>NOT</strong> computed automatically on a schedule.</p>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">2.2 Algorithm Flow</h3>
+            <pre><code>1. AUTHENTICATION
+   └── Verify user is logged in
+
+2. LOCATION CHECK
+   └── Get user's active location (latitude, longitude, radius_km)
+   └── If no location → return error "Configure tu ubicación"
+
+3. USER DATA FETCH
+   ├── Get user's wishlist (cards they want)
+   ├── Get user's collection (cards they have)
+   └── Get user's trade_mode preference
+
+4. FIND NEARBY USERS
+   ├── Get all other users' active locations
+   ├── Calculate distance using Haversine formula
+   └── Filter: distance <= myRadius OR distance <= theirRadius
+
+5. FETCH NEARBY USER DATA
+   ├── Get their wishlists
+   └── Get their collections (excluding escrowed cards)
+
+6. FOR EACH NEARBY USER:
+   │
+   ├── CARDS I WANT (from their collection)
+   │   └── Match by oracle_id (same card, any edition)
+   │   └── Check: edition_preference (any/specific)
+   │   └── Check: condition >= min_condition
+   │   └── Check: foil_preference (any/foil_only/non_foil)
+   │   └── Calculate asking_price
+   │   └── Flag if price > max_price
+   │
+   ├── CARDS THEY WANT (from my collection)
+   │   └── Same matching logic as above
+   │
+   ├── DETERMINE MATCH TYPE
+   │   ├── two_way: both users have cards the other wants
+   │   ├── one_way_buy: I can buy from them (I want, they don't)
+   │   └── one_way_sell: I can sell to them (they want, I don't)
+   │
+   ├── FILTER BY TRADE MODE
+   │   ├── trade: only two_way matches
+   │   ├── sell: exclude one_way_buy
+   │   ├── buy: exclude one_way_sell
+   │   └── both: include all
+   │
+   ├── CALCULATE MATCH SCORE
+   │   └── See section 2.3
+   │
+   └── SAVE TO DATABASE
+       ├── Insert into `matches` table
+       └── Insert cards into `match_cards` table
+
+7. CLEANUP
+   └── Delete old non-preserved matches (active/dismissed/contacted)
+   └── Preserve: user-modified, requested, confirmed, completed, cancelled
+
+8. RETURN
+   └── List of new matches sorted by score</code></pre>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">2.3 Match Score Calculation</h3>
+            <p class="mb-4 text-gray-700">The score (0-100+ points) determines match ranking. Higher = better opportunity.</p>
+            <pre><code>Score Components:
+├── Match Type Bonus (0-30 pts)
+│   ├── two_way:      30 pts (mutual benefit)
+│   ├── one_way_buy:  15 pts (I can get cards)
+│   └── one_way_sell: 10 pts (I can sell cards)
+│
+├── Card Count Bonus (0-25 pts)
+│   └── totalCards * 2.5, capped at 25
+│
+├── Value Bonus (0-20 pts)
+│   └── totalValue / 10, capped at 20 ($200+ = max)
+│
+├── Distance Bonus (0-15 pts)
+│   └── 15 - (distance_km / 3.33)
+│   └── 0km = 15pts, 25km = ~7pts, 50km+ = 0pts
+│
+├── Price Efficiency Bonus (0-25 pts)
+│   └── (1 - priceEfficiency) * 25
+│   └── Lower prices relative to max = better
+│
+└── Price Warning Penalty
+    └── -5 pts if any card exceeds max_price</code></pre>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">2.4 Card Matching Criteria</h3>
+            <p class="mb-4 text-gray-700">For a card to match between wishlist and collection:</p>
+            <table class="mb-6">
+                <thead>
+                    <tr><th>Criterion</th><th>Logic</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>Card Identity</strong></td><td><code>oracle_id</code> must match (same card, any printing)</td></tr>
+                    <tr><td><strong>Edition</strong></td><td>If <code>edition_preference = 'specific'</code>, scryfall_id must be in specific_editions</td></tr>
+                    <tr><td><strong>Condition</strong></td><td>Collection condition must be >= wishlist min_condition (NM > LP > MP > HP > DMG)</td></tr>
+                    <tr><td><strong>Foil</strong></td><td>Must match <code>foil_preference</code> (any / foil_only / non_foil)</td></tr>
+                    <tr><td><strong>Price</strong></td><td>Flagged (not excluded) if asking_price > max_price</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">2.5 Match Preservation Rules</h3>
+            <p class="mb-4 text-gray-700">When re-computing matches, some are preserved:</p>
+            <table>
+                <thead>
+                    <tr><th>Status</th><th>Preserved?</th><th>Reason</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>active</code></td><td>No</td><td>Can be recomputed</td></tr>
+                    <tr><td><code>dismissed</code></td><td>No</td><td>Can be recomputed</td></tr>
+                    <tr><td><code>contacted</code></td><td>No</td><td>Can be recomputed</td></tr>
+                    <tr><td><code>requested</code></td><td>Yes</td><td>Trade in progress</td></tr>
+                    <tr><td><code>confirmed</code></td><td>Yes</td><td>Trade confirmed</td></tr>
+                    <tr><td><code>completed</code></td><td>Yes</td><td>Historical record</td></tr>
+                    <tr><td><code>cancelled</code></td><td>Yes</td><td>Historical record</td></tr>
+                    <tr><td><code>is_user_modified = true</code></td><td>Yes</td><td>User customized the trade</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Section 3: Database Schema -->
+        <section id="database-schema" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">3. Database Schema</h2>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">3.1 Core Tables</h3>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>users</code></h4>
+            <p class="mb-4 text-gray-600">User profiles (auto-created on signup via trigger).</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key (= auth.users.id)</td></tr>
+                    <tr><td>email</td><td>TEXT</td><td>User email</td></tr>
+                    <tr><td>display_name</td><td>TEXT</td><td>Display name</td></tr>
+                    <tr><td>avatar_url</td><td>TEXT</td><td>Profile picture URL</td></tr>
+                    <tr><td>preferred_language</td><td>TEXT</td><td>'es' or 'en'</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>locations</code></h4>
+            <p class="mb-4 text-gray-600">User locations for proximity matching.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>user_id</td><td>UUID</td><td>Foreign key to users</td></tr>
+                    <tr><td>name</td><td>TEXT</td><td>Location name</td></tr>
+                    <tr><td>latitude</td><td>DOUBLE</td><td>GPS latitude</td></tr>
+                    <tr><td>longitude</td><td>DOUBLE</td><td>GPS longitude</td></tr>
+                    <tr><td>radius_km</td><td>INTEGER</td><td>Search radius (1-100)</td></tr>
+                    <tr><td>is_active</td><td>BOOLEAN</td><td>Active location flag</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>preferences</code></h4>
+            <p class="mb-4 text-gray-600">User trading preferences.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>user_id</td><td>UUID</td><td>Foreign key to users</td></tr>
+                    <tr><td>trade_mode</td><td>ENUM</td><td>'trade', 'sell', 'buy', 'both'</td></tr>
+                    <tr><td>has_been_configured</td><td>BOOLEAN</td><td>User has saved preferences</td></tr>
+                    <tr><td>notify_new_matches</td><td>BOOLEAN</td><td>Push notification setting</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>cards</code></h4>
+            <p class="mb-4 text-gray-600">Card data synced from Scryfall.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>scryfall_id</td><td>TEXT</td><td>Scryfall unique ID</td></tr>
+                    <tr><td>oracle_id</td><td>TEXT</td><td>Oracle ID (same card, any printing)</td></tr>
+                    <tr><td>name</td><td>TEXT</td><td>Card name</td></tr>
+                    <tr><td>set_code</td><td>TEXT</td><td>Set code (e.g., 'MH2')</td></tr>
+                    <tr><td>prices_usd</td><td>DECIMAL</td><td>Market price (non-foil)</td></tr>
+                    <tr><td>prices_usd_foil</td><td>DECIMAL</td><td>Market price (foil)</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>collections</code></h4>
+            <p class="mb-4 text-gray-600">User's cards for sale/trade.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>user_id</td><td>UUID</td><td>Foreign key to users</td></tr>
+                    <tr><td>card_id</td><td>UUID</td><td>Foreign key to cards</td></tr>
+                    <tr><td>quantity</td><td>INTEGER</td><td>Number of copies</td></tr>
+                    <tr><td>condition</td><td>TEXT</td><td>NM/LP/MP/HP/DMG</td></tr>
+                    <tr><td>foil</td><td>BOOLEAN</td><td>Foil flag</td></tr>
+                    <tr><td>price_mode</td><td>TEXT</td><td>'percentage' or 'fixed'</td></tr>
+                    <tr><td>price_percentage</td><td>INTEGER</td><td>% of market price</td></tr>
+                    <tr><td>price_fixed</td><td>DECIMAL</td><td>Fixed price override</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>wishlist</code></h4>
+            <p class="mb-4 text-gray-600">Cards user wants to acquire.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>user_id</td><td>UUID</td><td>Foreign key to users</td></tr>
+                    <tr><td>card_id</td><td>UUID</td><td>Foreign key to cards</td></tr>
+                    <tr><td>oracle_id</td><td>TEXT</td><td>For any-edition matching</td></tr>
+                    <tr><td>quantity</td><td>INTEGER</td><td>Copies wanted</td></tr>
+                    <tr><td>max_price</td><td>DECIMAL</td><td>Maximum price willing to pay</td></tr>
+                    <tr><td>min_condition</td><td>TEXT</td><td>Minimum acceptable condition</td></tr>
+                    <tr><td>foil_preference</td><td>TEXT</td><td>'any', 'foil_only', 'non_foil'</td></tr>
+                    <tr><td>edition_preference</td><td>TEXT</td><td>'any' or 'specific'</td></tr>
+                    <tr><td>specific_editions</td><td>TEXT[]</td><td>Allowed scryfall_ids if specific</td></tr>
+                    <tr><td>priority</td><td>INTEGER</td><td>1-10 priority level</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">3.2 Match Tables</h3>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>matches</code></h4>
+            <p class="mb-4 text-gray-600">Computed trading opportunities.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>user_a_id</td><td>UUID</td><td>First user (lower UUID)</td></tr>
+                    <tr><td>user_b_id</td><td>UUID</td><td>Second user (higher UUID)</td></tr>
+                    <tr><td>match_type</td><td>TEXT</td><td>'two_way', 'one_way_buy', 'one_way_sell'</td></tr>
+                    <tr><td>distance_km</td><td>DECIMAL</td><td>Distance between users</td></tr>
+                    <tr><td>cards_a_wants_count</td><td>INTEGER</td><td>Cards user_a wants</td></tr>
+                    <tr><td>cards_b_wants_count</td><td>INTEGER</td><td>Cards user_b wants</td></tr>
+                    <tr><td>value_a_wants</td><td>DECIMAL</td><td>Total value user_a wants</td></tr>
+                    <tr><td>value_b_wants</td><td>DECIMAL</td><td>Total value user_b wants</td></tr>
+                    <tr><td>match_score</td><td>DECIMAL</td><td>Ranking score</td></tr>
+                    <tr><td>has_price_warnings</td><td>BOOLEAN</td><td>Any card exceeds max_price</td></tr>
+                    <tr><td>status</td><td>TEXT</td><td>active/dismissed/contacted/requested/confirmed/completed/cancelled</td></tr>
+                    <tr><td>is_user_modified</td><td>BOOLEAN</td><td>User customized the trade</td></tr>
+                    <tr><td>is_favorite_a</td><td>BOOLEAN</td><td>User A favorited</td></tr>
+                    <tr><td>is_favorite_b</td><td>BOOLEAN</td><td>User B favorited</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>match_cards</code></h4>
+            <p class="mb-4 text-gray-600">Specific cards in each match.</p>
+            <table class="mb-6">
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>match_id</td><td>UUID</td><td>Foreign key to matches</td></tr>
+                    <tr><td>direction</td><td>TEXT</td><td>'a_wants' or 'b_wants'</td></tr>
+                    <tr><td>wishlist_id</td><td>UUID</td><td>Foreign key to wishlist</td></tr>
+                    <tr><td>collection_id</td><td>UUID</td><td>Foreign key to collections</td></tr>
+                    <tr><td>card_id</td><td>UUID</td><td>Foreign key to cards</td></tr>
+                    <tr><td>card_name</td><td>TEXT</td><td>Cached card name</td></tr>
+                    <tr><td>asking_price</td><td>DECIMAL</td><td>Price from collection</td></tr>
+                    <tr><td>max_price</td><td>DECIMAL</td><td>Max price from wishlist</td></tr>
+                    <tr><td>price_exceeds_max</td><td>BOOLEAN</td><td>Price warning flag</td></tr>
+                    <tr><td>is_excluded</td><td>BOOLEAN</td><td>User excluded from trade</td></tr>
+                    <tr><td>is_custom</td><td>BOOLEAN</td><td>Manually added card</td></tr>
+                </tbody>
+            </table>
+
+            <h4 class="text-lg font-medium text-gray-800 mb-2 mt-6"><code>match_comments</code></h4>
+            <p class="mb-4 text-gray-600">Comments between users on a match.</p>
+            <table>
+                <thead><tr><th>Column</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>id</td><td>UUID</td><td>Primary key</td></tr>
+                    <tr><td>match_id</td><td>UUID</td><td>Foreign key to matches</td></tr>
+                    <tr><td>user_id</td><td>UUID</td><td>Comment author</td></tr>
+                    <tr><td>content</td><td>TEXT</td><td>Comment text</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Section 4: API Endpoints -->
+        <section id="api-endpoints" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">4. API Endpoints</h2>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Matching</h3>
+            <table class="mb-6">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="font-mono text-green-700">POST</td><td><code>/api/matches/compute</code></td><td>Compute matches for current user</td></tr>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/matches</code></td><td>List user's matches (with filters)</td></tr>
+                    <tr><td class="font-mono text-yellow-700">PATCH</td><td><code>/api/matches</code></td><td>Update match status or favorite</td></tr>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/matches/[id]</code></td><td>Get match details</td></tr>
+                    <tr><td class="font-mono text-yellow-700">PATCH</td><td><code>/api/matches/[id]</code></td><td>Update match (exclude cards, request trade)</td></tr>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/matches/[id]/comments</code></td><td>Get match comments</td></tr>
+                    <tr><td class="font-mono text-green-700">POST</td><td><code>/api/matches/[id]/comments</code></td><td>Add comment</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Collections & Wishlist</h3>
+            <table class="mb-6">
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/collection</code></td><td>Get user's collection</td></tr>
+                    <tr><td class="font-mono text-green-700">POST</td><td><code>/api/collection</code></td><td>Add card to collection</td></tr>
+                    <tr><td class="font-mono text-red-700">DELETE</td><td><code>/api/collection/[id]</code></td><td>Remove card</td></tr>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/wishlist</code></td><td>Get user's wishlist</td></tr>
+                    <tr><td class="font-mono text-green-700">POST</td><td><code>/api/wishlist</code></td><td>Add card to wishlist</td></tr>
+                    <tr><td class="font-mono text-red-700">DELETE</td><td><code>/api/wishlist/[id]</code></td><td>Remove card</td></tr>
+                    <tr><td class="font-mono text-green-700">POST</td><td><code>/api/import/csv</code></td><td>Bulk import from CSV</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Cards</h3>
+            <table>
+                <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/cards/search?q=</code></td><td>Search cards (Scryfall)</td></tr>
+                    <tr><td class="font-mono text-blue-700">GET</td><td><code>/api/cards/printings?name=</code></td><td>Get all printings of a card</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Section 5: Trade Flow -->
+        <section id="trade-flow" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">5. Trade Flow</h2>
+            <pre><code>┌──────────────────────────────────────────────────────────────┐
+│                        TRADE LIFECYCLE                        │
+└──────────────────────────────────────────────────────────────┘
+
+  ACTIVE                    User can:
+    │                       - View match details
+    │                       - Exclude/include cards
+    │                       - Save changes
+    │                       - Add custom cards
+    │                       - Comment
+    │                       - Dismiss match
+    │
+    ├──→ DISMISSED          Match hidden from active list
+    │                       Can be restored to ACTIVE
+    │
+    ├──→ CONTACTED          User marked as "contacted outside app"
+    │                       Informational status
+    │
+    └──→ REQUESTED          User A clicks "Solicitar trade"
+           │                 User B sees pending request
+           │
+           ├──→ CANCELLED   Either user cancels
+           │
+           └──→ CONFIRMED   User B confirms trade
+                  │          Cards go into "escrow" (excluded from
+                  │          other matches)
+                  │
+                  └──→ COMPLETED   Trade marked as done
+                                   Historical record preserved</code></pre>
+        </section>
+
+        <!-- Section 6: Feature Status -->
+        <section id="feature-status" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">6. Current Feature Status</h2>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Completed Features</h3>
+            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-6">
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> User registration (email + Google OAuth)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Password reset</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Profile management (name, language, avatar)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Location setup with Google Maps autocomplete</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Configurable search radius (1-100 km)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Trade mode preferences (trade/sell/buy/both)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Collection management (add, edit, delete cards)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Global discount setting for collection</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Per-card pricing (percentage or fixed)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Wishlist management with preferences</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Edition preference (any or specific)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Condition preference (min acceptable)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Foil preference (any/foil/non-foil)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Max price per card</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Priority per card</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Bulk import (CSV, Moxfield, ManaBox, Deckbox, CubeCobra)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Proximity-based matching algorithm</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Match scoring and ranking</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Match filtering (disponibles, activos, historial)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Match sorting (score, distance, cards, value, discount)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Favorites system for matches</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Card exclusion in trades</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Custom card addition to trades</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Comment system between users</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Full trade flow (request → confirm → complete)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> PWA support (installable, offline-capable)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Dark theme</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Mobile-first responsive design</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Rate limiting (Upstash Redis)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Analytics (Vercel Analytics)</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> SWR caching with auto-refresh on focus</li>
+            </ul>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Not Implemented (Post-MVP)</h3>
+            <ul class="space-y-2 text-gray-600">
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Push notifications (VAPID configured, backend pending)</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Email verification enforcement</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Landing page for non-authenticated users</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Internationalization (currently Spanish only)</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Vacation mode</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Camera-based card scanning</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Reputation/rating system</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Price drop alerts</li>
+            </ul>
+        </section>
+
+        <!-- Section 7: Pre-Launch Checklist -->
+        <section id="pre-launch" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">7. Pre-Launch Checklist</h2>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Testing Requirements</h3>
+            <table class="mb-6">
+                <thead><tr><th>Category</th><th>Status</th><th>Notes</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>E2E Tests</strong></td><td class="text-yellow-600">Partial</td><td>Auth, bulk import, trade flow specs exist</td></tr>
+                    <tr><td><strong>Load Testing</strong></td><td class="text-green-600">Ready</td><td>k6 stress test configured (up to 100 VUs)</td></tr>
+                    <tr><td><strong>Unit Tests</strong></td><td class="text-red-600">Missing</td><td>No unit tests for matching algorithm</td></tr>
+                    <tr><td><strong>Integration Tests</strong></td><td class="text-red-600">Missing</td><td>No API integration tests</td></tr>
+                    <tr><td><strong>Manual QA</strong></td><td class="text-yellow-600">In Progress</td><td>Core flows tested manually</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Recommended Pre-Launch Tests</h3>
+            <ol class="list-decimal list-inside space-y-4 text-gray-700">
+                <li><strong>Matching Algorithm Tests</strong>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li>Test all match types (two_way, one_way_buy, one_way_sell)</li>
+                        <li>Test trade_mode filtering</li>
+                        <li>Test condition/foil/edition matching</li>
+                        <li>Test score calculation edge cases</li>
+                        <li>Test match preservation logic</li>
+                    </ul>
+                </li>
+                <li><strong>Load/Stress Tests</strong>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li>Run k6 stress test: <code class="bg-gray-200 px-2 py-1 rounded">k6 run tests/load/stress-test.js</code></li>
+                        <li>Target: 100 concurrent users, &lt;500ms p95 response time</li>
+                        <li>Test match computation under load (expensive operation)</li>
+                    </ul>
+                </li>
+                <li><strong>Edge Cases</strong>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li>User with 0 cards in collection/wishlist</li>
+                        <li>User with 1000+ cards</li>
+                        <li>Two users at exactly same location</li>
+                        <li>User at edge of radius</li>
+                        <li>Match with 50+ cards</li>
+                    </ul>
+                </li>
+                <li><strong>Security Audit</strong>
+                    <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
+                        <li>RLS policies review</li>
+                        <li>API rate limiting verification</li>
+                        <li>Input validation on all endpoints</li>
+                        <li>CORS configuration</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">Infrastructure Checklist</h3>
+            <ul class="space-y-2">
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Vercel deployment configured</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Supabase production instance</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Environment variables set</li>
+                <li class="flex items-center gap-2"><span class="text-green-600">&#10003;</span> Domain configured</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Supabase email verification enabled</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Error monitoring (Sentry/LogRocket)</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Backup strategy defined</li>
+                <li class="flex items-center gap-2"><span class="text-gray-400">&#9744;</span> Uptime monitoring</li>
+            </ul>
+        </section>
+
+        <!-- Section 8: Running Tests -->
+        <section id="running-tests" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">8. Running Tests</h2>
+            <pre><code># Build (type checking)
+npm run build
+
+# E2E tests (Playwright)
+npm run test
+
+# E2E tests with UI (visual mode)
+npm run test:ui
+
+# E2E tests headed (see browser)
+npm run test:headed
+
+# Load test (k6 - install separately)
+k6 run tests/load/stress-test.js
+
+# Load test against production
+k6 run -e BASE_URL=https://natural-order.vercel.app tests/load/stress-test.js</code></pre>
+        </section>
+
+        <!-- Section 9: Local Development -->
+        <section id="local-dev" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">9. Local Development</h2>
+            <pre><code># Install dependencies
+npm install
+
+# Set up environment
+cp .env.example .env.local
+# Fill in Supabase and Google Maps credentials
+
+# Run migrations in Supabase SQL Editor
+# Execute files in /supabase/migrations/ in order
+
+# Start development server
+npm run dev</code></pre>
+        </section>
+
+        <!-- Section 10: Deployment -->
+        <section id="deployment" class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-gray-200 pb-2">10. Deployment</h2>
+            <p class="mb-6 text-gray-700">The project deploys automatically to Vercel on push to <code class="bg-gray-200 px-2 py-1 rounded">master</code> branch.</p>
+
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Required Environment Variables</h3>
+            <pre><code>NEXT_PUBLIC_SUPABASE_URL=https://[project].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=[maps-key]
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=[vapid-public]
+VAPID_PRIVATE_KEY=[vapid-private]
+UPSTASH_REDIS_REST_URL=[redis-url]
+UPSTASH_REDIS_REST_TOKEN=[redis-token]</code></pre>
+        </section>
+
+        <footer class="mt-12 pt-6 border-t text-gray-500">
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">11. License</h2>
+            <p>Private - All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>

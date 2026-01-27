@@ -108,11 +108,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error al obtener wishlist', details: wishlistError }, { status: 500 })
     }
 
-    // Get my collection
+    // Get my collection (excluding paused cards)
     const { data: myCollection, error: collectionError } = await supabase
       .from('collections')
       .select('*, cards(*)')
       .eq('user_id', user.id)
+      .eq('is_paused', false)
 
     if (collectionError) {
       console.error('Error fetching collection:', collectionError)
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Filter users within my radius
-    const nearbyUsers = otherLocations.filter(loc => {
+    const nearbyUsersByDistance = otherLocations.filter(loc => {
       const distance = calculateDistance(
         myLocation.latitude,
         myLocation.longitude,
@@ -157,18 +158,36 @@ export async function POST(request: NextRequest) {
       return distance <= myRadius || distance <= theirRadius
     })
 
-    if (nearbyUsers.length === 0) {
+    if (nearbyUsersByDistance.length === 0) {
       await supabase.from('matches').delete().or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
       return NextResponse.json({ matches: [], message: 'No hay usuarios cercanos' })
     }
 
+    // Get preferences for nearby users to check for paused collections
+    const nearbyUserIds = nearbyUsersByDistance.map(u => u.user_id)
+    const { data: nearbyPreferences } = await supabase
+      .from('preferences')
+      .select('user_id, collection_paused')
+      .in('user_id', nearbyUserIds)
+
+    // Filter out users with paused collections
+    const pausedUserIds = new Set(
+      nearbyPreferences?.filter(p => p.collection_paused).map(p => p.user_id) || []
+    )
+    const nearbyUsers = nearbyUsersByDistance.filter(u => !pausedUserIds.has(u.user_id))
+
+    if (nearbyUsers.length === 0) {
+      await supabase.from('matches').delete().or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
+      return NextResponse.json({ matches: [], message: 'No hay usuarios cercanos con colección activa' })
+    }
+
     // Get wishlist and collections for nearby users
-    const nearbyUserIds = nearbyUsers.map(u => u.user_id)
+    const activeNearbyUserIds = nearbyUsers.map(u => u.user_id)
 
     const { data: theirWishlists, error: theirWishlistError } = await supabase
       .from('wishlist')
       .select('*, cards(*)')
-      .in('user_id', nearbyUserIds)
+      .in('user_id', activeNearbyUserIds)
 
     if (theirWishlistError) {
       console.error('Error fetching their wishlists:', theirWishlistError)
@@ -177,7 +196,8 @@ export async function POST(request: NextRequest) {
     const { data: theirCollections, error: theirCollectionError } = await supabase
       .from('collections')
       .select('*, cards(*)')
-      .in('user_id', nearbyUserIds)
+      .in('user_id', activeNearbyUserIds)
+      .eq('is_paused', false)
 
     if (theirCollectionError) {
       console.error('Error fetching their collections:', theirCollectionError)

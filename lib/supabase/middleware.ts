@@ -46,6 +46,20 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Check email verification for protected routes
+  // Skip for OAuth users (Google) as they are auto-verified
+  if (isProtectedPath && user) {
+    const isOAuthUser = user.app_metadata?.provider === 'google' ||
+                        user.app_metadata?.providers?.includes('google')
+    const isEmailVerified = !!user.email_confirmed_at
+
+    if (!isOAuthUser && !isEmailVerified) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/verify-email'
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Auth pages - redirect to dashboard if already authenticated
   const authPaths = ['/login', '/register']
   const isAuthPath = authPaths.some((path) =>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Order - README</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        pre { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+        code { font-family: 'Fira Code', 'Consolas', monospace; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+    <div class="max-w-4xl mx-auto px-6 py-12">
+        <header class="mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Natural Order</h1>
+            <p class="text-xl text-gray-600">Proximity-based marketplace for Magic: The Gathering card trading.</p>
+        </header>
+
+        <section class="mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Quick Start</h2>
+            <pre><code>npm install
+cp .env.example .env.local  # Fill in credentials
+npm run dev</code></pre>
+        </section>
+
+        <section class="mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Stack</h2>
+            <ul class="space-y-2">
+                <li><strong class="text-gray-700">Frontend:</strong> Next.js 14, TypeScript, Tailwind CSS</li>
+                <li><strong class="text-gray-700">Backend:</strong> Supabase (PostgreSQL, Auth)</li>
+                <li><strong class="text-gray-700">APIs:</strong> Scryfall (cards), Google Maps (location)</li>
+                <li><strong class="text-gray-700">Hosting:</strong> Vercel</li>
+            </ul>
+        </section>
+
+        <section class="mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Documentation</h2>
+            <ul class="space-y-2">
+                <li><a href="./RELEASE.html" class="text-blue-600 hover:underline font-medium">RELEASE.html</a> - Complete MVP documentation (matching algorithm, database schema, API endpoints, deployment)</li>
+                <li><a href="./CLAUDE.md" class="text-blue-600 hover:underline font-medium">CLAUDE.md</a> - Instructions for Claude Code</li>
+                <li><a href="./BUSINESS_EVALUATION.html" class="text-blue-600 hover:underline font-medium">BUSINESS_EVALUATION.html</a> - Market research and survey data</li>
+            </ul>
+        </section>
+
+        <section class="mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Commands</h2>
+            <pre><code>npm run dev       # Development server
+npm run build     # Production build
+npm run test:e2e  # E2E tests (Playwright)</code></pre>
+        </section>
+
+        <section class="mb-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 border-b pb-2">Project Structure</h2>
+            <pre><code>app/              # Next.js pages (App Router)
+├── api/          # API routes
+└── dashboard/    # Authenticated pages
+components/       # React components
+lib/              # Utilities, hooks, services
+supabase/         # Database migrations
+tests/            # E2E and load tests</code></pre>
+        </section>
+
+        <footer class="mt-12 pt-6 border-t text-gray-500">
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">License</h2>
+            <p>Private - All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>

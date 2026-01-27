@@ -396,19 +396,8 @@ function CommentItem({ comment, onEdit }: CommentItemProps) {
 
   return (
     <div className={`flex gap-3 ${comment.isMine ? 'flex-row-reverse' : ''}`}>
-      {/* Avatar */}
-      <div className="w-8 h-8 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
-        {comment.user.avatarUrl ? (
-          <Image src={comment.user.avatarUrl} alt={comment.user.displayName} width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
-        ) : (
-          <span className="text-xs font-bold text-mtg-green-400">
-            {comment.user.displayName.charAt(0).toUpperCase()}
-          </span>
-        )}
-      </div>
-
       {/* Comment bubble */}
-      <div className={`flex-1 max-w-[80%] ${comment.isMine ? 'text-right' : ''}`}>
+      <div className={`flex-1 max-w-[85%] ${comment.isMine ? 'text-right' : ''}`}>
         <div
           className={`inline-block rounded-lg px-3 py-2 ${
             comment.isMine
@@ -847,15 +836,6 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
       {/* Header */}
       <div className="card">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          {/* Avatar */}
-          <div className="w-14 h-14 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
-            {match.otherUser.avatarUrl ? (
-              <Image src={match.otherUser.avatarUrl} alt={match.otherUser.displayName} width={56} height={56} className="w-14 h-14 rounded-full object-cover" />
-            ) : (
-              <span className="text-xl font-bold text-mtg-green-400">{match.otherUser.displayName.charAt(0).toUpperCase()}</span>
-            )}
-          </div>
-
           {/* Info */}
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -1253,30 +1233,25 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
 
         {/* New comment input */}
         {canComment ? (
-          <div className="flex gap-2 pt-4 mt-2">
-            <div className="flex-1 relative">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Escribí un mensaje..."
-                maxLength={300}
-                rows={2}
-                className="w-full bg-gray-900/80 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-mtg-green-500 resize-none"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    sendComment()
-                  }
-                }}
-              />
-              <span className={`absolute bottom-2 right-2 text-xs ${newComment.length > 280 ? 'text-yellow-400' : 'text-gray-500'}`}>
-                {newComment.length}/300
-              </span>
-            </div>
+          <div className="flex gap-2 pt-4 mt-2 items-center">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Escribí un mensaje..."
+              maxLength={300}
+              className="flex-1 h-10 bg-gray-900/80 border border-gray-700/50 rounded-lg px-3 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-mtg-green-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  sendComment()
+                }
+              }}
+            />
             <button
               onClick={sendComment}
               disabled={sendingComment || newComment.trim().length === 0}
-              className="btn-primary px-3 self-end disabled:opacity-50"
+              className="btn-primary w-10 h-10 p-0 flex items-center justify-center disabled:opacity-50"
             >
               {sendingComment ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

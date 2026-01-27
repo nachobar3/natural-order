@@ -15,7 +15,7 @@ export async function GET() {
 
     const { data: preferences, error } = await supabase
       .from('preferences')
-      .select('default_price_percentage, minimum_price')
+      .select('default_price_percentage, minimum_price, collection_paused')
       .eq('user_id', user.id)
       .single()
 
@@ -24,18 +24,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Error al obtener preferencias' }, { status: 500 })
     }
 
-    // Default to 80% if no preference set, 0 for minimum price
+    // Default to 80% if no preference set, 0 for minimum price, false for collection_paused
     const percentage = preferences?.default_price_percentage ?? 80
     const minimumPrice = preferences?.minimum_price ?? 0
+    const collectionPaused = preferences?.collection_paused ?? false
 
-    return NextResponse.json({ percentage, minimumPrice })
+    return NextResponse.json({ percentage, minimumPrice, collectionPaused })
   } catch (error) {
     console.error('Global discount GET error:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
 }
 
-// PUT - Update global discount percentage
+// PUT - Update global discount percentage and/or collection paused status
 export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -45,7 +46,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const { percentage, minimumPrice } = await request.json()
+    const { percentage, minimumPrice, collectionPaused } = await request.json()
 
     if (typeof percentage !== 'number' || percentage < 1 || percentage > 200) {
       return NextResponse.json(
@@ -61,6 +62,16 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Get current preferences to check if collection_paused changed
+    const { data: currentPrefs } = await supabase
+      .from('preferences')
+      .select('collection_paused')
+      .eq('user_id', user.id)
+      .single()
+
+    const previousCollectionPaused = currentPrefs?.collection_paused ?? false
+    const newCollectionPaused = collectionPaused ?? previousCollectionPaused
+
     // Upsert preferences
     const updateData: Record<string, unknown> = {
       user_id: user.id,
@@ -69,6 +80,10 @@ export async function PUT(request: NextRequest) {
 
     if (minimumPrice !== undefined) {
       updateData.minimum_price = minimumPrice
+    }
+
+    if (collectionPaused !== undefined) {
+      updateData.collection_paused = collectionPaused
     }
 
     const { error } = await supabase
@@ -82,7 +97,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Error al actualizar preferencias' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, percentage, minimumPrice })
+    // Trigger match recalculation if collection_paused status changed
+    if (collectionPaused !== undefined && collectionPaused !== previousCollectionPaused) {
+      fetch(new URL('/api/matches/compute', request.url).toString(), {
+        method: 'POST',
+        headers: {
+          cookie: request.headers.get('cookie') || '',
+        },
+      }).catch(err => console.error('Error triggering match recalculation:', err))
+    }
+
+    return NextResponse.json({ success: true, percentage, minimumPrice, collectionPaused: newCollectionPaused })
   } catch (error) {
     console.error('Global discount PUT error:', error)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

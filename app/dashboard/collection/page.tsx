@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { GlobalDiscount } from '@/components/collection/global-discount'
-import { Package, Loader2, Trash2, Edit2, LayoutGrid, List, Upload } from 'lucide-react'
+import { Package, Loader2, Trash2, Edit2, LayoutGrid, List, Upload, PauseCircle, PlayCircle } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { CollectionWithCard, CardCondition } from '@/types/database'
@@ -63,6 +63,8 @@ export default function CollectionPage() {
   const [itemToDelete, setItemToDelete] = useState<CollectionWithCard | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [minimumPrice, setMinimumPrice] = useState(0)
+  const [collectionPaused, setCollectionPaused] = useState(false)
+  const [togglingPause, setTogglingPause] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -72,6 +74,7 @@ export default function CollectionPage() {
       if (res.ok) {
         const data = await res.json()
         setMinimumPrice(data.minimumPrice ?? 0)
+        setCollectionPaused(data.collectionPaused ?? false)
       }
     } catch (error) {
       console.error('Error loading preferences:', error)
@@ -125,6 +128,26 @@ export default function CollectionPage() {
       await fetch('/api/matches/compute', { method: 'POST' })
     } catch (err) {
       console.error('Error recalculating matches:', err)
+    }
+  }
+
+  // Toggle pause on individual card
+  const toggleCardPause = async (item: CollectionWithCard) => {
+    setTogglingPause(item.id)
+    try {
+      const res = await fetch(`/api/collection/${item.id}/pause`, { method: 'PATCH' })
+      if (res.ok) {
+        const data = await res.json()
+        setCollection((prev) =>
+          prev.map((c) =>
+            c.id === item.id ? { ...c, is_paused: data.isPaused } : c
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Error toggling pause:', error)
+    } finally {
+      setTogglingPause(null)
     }
   }
 
@@ -211,14 +234,23 @@ export default function CollectionPage() {
             {collection.length} carta{collection.length !== 1 ? 's' : ''} • Valor total: ${totalValue.toFixed(2)}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Price settings */}
+          <GlobalDiscount
+            onApplyAll={loadCollection}
+            onSettingsChange={(settings) => {
+              setMinimumPrice(settings.minimumPrice)
+              setCollectionPaused(settings.collectionPaused)
+            }}
+          />
+
           {/* Import button */}
           <Link
             href="/dashboard/collection/import"
             className="btn-secondary flex items-center gap-2"
           >
             <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Importar CSV</span>
+            <span className="hidden sm:inline">Importar</span>
           </Link>
 
           {/* View toggle */}
@@ -249,11 +281,16 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* Global discount */}
-      <GlobalDiscount
-        onApplyAll={loadCollection}
-        onSettingsChange={(settings) => setMinimumPrice(settings.minimumPrice)}
-      />
+      {/* Collection paused banner */}
+      {collectionPaused && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+          <PauseCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-amber-400">Colección pausada</p>
+            <p className="text-xs text-amber-400/70">Tu colección no aparece en ningún trade. Desactivá el modo pausa desde la configuración de precios.</p>
+          </div>
+        </div>
+      )}
 
       {/* Search - simplified, no wrapper card */}
       <div className="relative z-20">
@@ -279,7 +316,11 @@ export default function CollectionPage() {
             return (
               <div
                 key={item.id}
-                className="group relative bg-gray-900/50 rounded-lg overflow-hidden border border-gray-800 hover:border-mtg-green-500/50 transition-all hover:shadow-lg hover:shadow-mtg-green-500/10"
+                className={`group relative bg-gray-900/50 rounded-lg overflow-hidden border transition-all hover:shadow-lg ${
+                  item.is_paused
+                    ? 'border-amber-500/30 opacity-60'
+                    : 'border-gray-800 hover:border-mtg-green-500/50 hover:shadow-mtg-green-500/10'
+                }`}
               >
                 {/* Card image */}
                 <div className="relative aspect-[5/7]">
@@ -296,6 +337,12 @@ export default function CollectionPage() {
                       ?
                     </div>
                   )}
+                  {/* Paused overlay */}
+                  {item.is_paused && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                      <PauseCircle className="w-10 h-10 text-amber-400/80" />
+                    </div>
+                  )}
                   {/* Quantity badge */}
                   {item.quantity > 1 && (
                     <div className="absolute top-2 right-2 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded">
@@ -310,6 +357,24 @@ export default function CollectionPage() {
                   )}
                   {/* Hover overlay with actions */}
                   <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => toggleCardPause(item)}
+                      disabled={togglingPause === item.id}
+                      className={`p-2 text-white rounded-lg transition-colors ${
+                        item.is_paused
+                          ? 'bg-amber-600 hover:bg-amber-500'
+                          : 'bg-gray-600 hover:bg-gray-500'
+                      }`}
+                      title={item.is_paused ? 'Reanudar' : 'Pausar'}
+                    >
+                      {togglingPause === item.id ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : item.is_paused ? (
+                        <PlayCircle className="w-5 h-5" />
+                      ) : (
+                        <PauseCircle className="w-5 h-5" />
+                      )}
+                    </button>
                     <button
                       onClick={() => handleEditItem(item)}
                       className="p-2 bg-mtg-green-600 text-white rounded-lg hover:bg-mtg-green-500 transition-colors"
@@ -363,22 +428,33 @@ export default function CollectionPage() {
             return (
               <div
                 key={item.id}
-                className="card flex items-center gap-4 hover:border-mtg-green-500/30 transition-colors"
+                className={`card flex items-center gap-4 transition-colors ${
+                  item.is_paused
+                    ? 'border-amber-500/30 opacity-60'
+                    : 'hover:border-mtg-green-500/30'
+                }`}
               >
                 {/* Card image */}
-                {item.cards.image_uri_small ? (
-                  <Image
-                    src={item.cards.image_uri_small}
-                    alt={item.cards.name}
-                    width={60}
-                    height={84}
-                    className="rounded object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-[60px] h-[84px] bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
-                    ?
-                  </div>
-                )}
+                <div className="relative flex-shrink-0">
+                  {item.cards.image_uri_small ? (
+                    <Image
+                      src={item.cards.image_uri_small}
+                      alt={item.cards.name}
+                      width={60}
+                      height={84}
+                      className="rounded object-cover"
+                    />
+                  ) : (
+                    <div className="w-[60px] h-[84px] bg-gray-800 rounded flex items-center justify-center text-xs text-gray-500">
+                      ?
+                    </div>
+                  )}
+                  {item.is_paused && (
+                    <div className="absolute inset-0 bg-black/40 rounded flex items-center justify-center">
+                      <PauseCircle className="w-6 h-6 text-amber-400/80" />
+                    </div>
+                  )}
+                </div>
 
                 {/* Card info */}
                 <div className="flex-1 min-w-0">
@@ -398,6 +474,11 @@ export default function CollectionPage() {
                     {item.foil && (
                       <span className="text-xs px-2 py-0.5 bg-purple-500/20 rounded text-purple-300">
                         Foil
+                      </span>
+                    )}
+                    {item.is_paused && (
+                      <span className="text-xs px-2 py-0.5 bg-amber-500/20 rounded text-amber-300">
+                        Pausada
                       </span>
                     )}
                   </div>
@@ -427,7 +508,25 @@ export default function CollectionPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => toggleCardPause(item)}
+                    disabled={togglingPause === item.id}
+                    className={`p-2 rounded-lg transition-colors ${
+                      item.is_paused
+                        ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10'
+                        : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
+                    }`}
+                    title={item.is_paused ? 'Reanudar' : 'Pausar'}
+                  >
+                    {togglingPause === item.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : item.is_paused ? (
+                      <PlayCircle className="w-4 h-4" />
+                    ) : (
+                      <PauseCircle className="w-4 h-4" />
+                    )}
+                  </button>
                   <button
                     onClick={() => handleEditItem(item)}
                     className="p-2 text-gray-400 hover:text-mtg-green-400 hover:bg-mtg-green-900/20 rounded-lg transition-colors"

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import {
   User,
   MapPin,
@@ -67,43 +66,43 @@ const filterCategories: Record<FilterCategory, {
     label: 'Disponibles',
     icon: Inbox,
     dbStatuses: ['active'],
-    activeColor: 'bg-blue-500 text-white border-blue-500',
-    inactiveColor: 'bg-transparent text-blue-400 border-blue-500/50 hover:border-blue-500 hover:bg-blue-500/10',
+    activeColor: 'bg-sky-500/20 text-sky-300 border-sky-400/50',
+    inactiveColor: 'bg-transparent text-sky-400/70 border-sky-500/30 hover:border-sky-400/50 hover:bg-sky-500/10',
   },
   activos: {
     label: 'Activos',
     icon: MessageCircle,
     dbStatuses: ['contacted', 'requested'],
-    activeColor: 'bg-green-500 text-white border-green-500',
-    inactiveColor: 'bg-transparent text-green-400 border-green-500/50 hover:border-green-500 hover:bg-green-500/10',
+    activeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50',
+    inactiveColor: 'bg-transparent text-cyan-400/70 border-cyan-500/30 hover:border-cyan-400/50 hover:bg-cyan-500/10',
   },
   confirmados: {
     label: 'Confirmados',
     icon: Handshake,
     dbStatuses: ['confirmed'],
-    activeColor: 'bg-yellow-500 text-black border-yellow-500',
-    inactiveColor: 'bg-transparent text-yellow-400 border-yellow-500/50 hover:border-yellow-500 hover:bg-yellow-500/10',
+    activeColor: 'bg-amber-500/20 text-amber-300 border-amber-400/50',
+    inactiveColor: 'bg-transparent text-amber-400/70 border-amber-500/30 hover:border-amber-400/50 hover:bg-amber-500/10',
   },
   realizados: {
     label: 'Realizados',
     icon: CheckCircle2,
     dbStatuses: ['completed'],
-    activeColor: 'bg-gray-500 text-white border-gray-500',
-    inactiveColor: 'bg-transparent text-gray-400 border-gray-500/50 hover:border-gray-500 hover:bg-gray-500/10',
+    activeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50',
+    inactiveColor: 'bg-transparent text-emerald-400/70 border-emerald-500/30 hover:border-emerald-400/50 hover:bg-emerald-500/10',
   },
   cancelados: {
     label: 'Cancelados',
     icon: XOctagon,
     dbStatuses: ['cancelled'],
-    activeColor: 'bg-red-500 text-white border-red-500',
-    inactiveColor: 'bg-transparent text-red-400 border-red-500/50 hover:border-red-500 hover:bg-red-500/10',
+    activeColor: 'bg-rose-500/20 text-rose-300 border-rose-400/50',
+    inactiveColor: 'bg-transparent text-rose-400/70 border-rose-500/30 hover:border-rose-400/50 hover:bg-rose-500/10',
   },
   descartados: {
     label: 'Descartados',
     icon: Archive,
     dbStatuses: ['dismissed'],
-    activeColor: 'bg-gray-600 text-white border-gray-600',
-    inactiveColor: 'bg-transparent text-gray-500 border-gray-600/50 hover:border-gray-600 hover:bg-gray-600/10',
+    activeColor: 'bg-slate-500/20 text-slate-300 border-slate-400/50',
+    inactiveColor: 'bg-transparent text-slate-400/70 border-slate-500/30 hover:border-slate-400/50 hover:bg-slate-500/10',
   },
 }
 
@@ -827,25 +826,8 @@ export default function DashboardPage() {
                   onClick={() => router.push(`/dashboard/matches/${match.id}`)}
                   className="card hover:border-mtg-green-500/30 transition-colors p-4 cursor-pointer"
                 >
-                  {/* Top row: Avatar + Name + Badges + Actions */}
+                  {/* Top row: Name + Badges + Actions */}
                   <div className="flex items-center gap-3 mb-4">
-                    {/* Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-mtg-green-600/20 flex items-center justify-center flex-shrink-0">
-                      {match.otherUser.avatarUrl ? (
-                        <Image
-                          src={match.otherUser.avatarUrl}
-                          alt={match.otherUser.displayName}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-xl font-bold text-mtg-green-400">
-                          {match.otherUser.displayName.charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-
                     {/* Name + Badges */}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-100 text-lg truncate">
@@ -937,23 +919,23 @@ export default function DashboardPage() {
                   {/* KPI Cards Row */}
                   <div className="grid grid-cols-4 gap-2 mb-4">
                     {/* Ofrece */}
-                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 text-center">
                       <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Ofrece</p>
-                      <p className="text-2xl font-bold text-green-400">{match.cardsIWant}</p>
+                      <p className="text-lg sm:text-2xl font-bold text-green-400 whitespace-nowrap">{match.cardsIWant}</p>
                       <p className="text-[10px] text-gray-600">cartas</p>
                     </div>
 
                     {/* Busca */}
-                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 text-center">
                       <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Busca</p>
-                      <p className="text-2xl font-bold text-blue-400">{match.cardsTheyWant}</p>
+                      <p className="text-lg sm:text-2xl font-bold text-blue-400 whitespace-nowrap">{match.cardsTheyWant}</p>
                       <p className="text-[10px] text-gray-600">cartas</p>
                     </div>
 
                     {/* Distancia */}
-                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 text-center">
                       <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Distancia</p>
-                      <p className="text-2xl font-bold text-gray-300">
+                      <p className="text-lg sm:text-2xl font-bold text-gray-300 whitespace-nowrap">
                         {match.distanceKm !== null
                           ? match.distanceKm < 1 ? '<1' : Math.round(match.distanceKm)
                           : '—'}
@@ -962,9 +944,9 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Balance */}
-                    <div className="bg-gray-800/50 rounded-lg p-3 text-center">
+                    <div className="bg-gray-800/50 rounded-lg p-2 sm:p-3 text-center">
                       <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Balance</p>
-                      <p className={`text-2xl font-bold ${
+                      <p className={`text-lg sm:text-2xl font-bold whitespace-nowrap ${
                         Math.abs(valueDiff) < 1
                           ? 'text-gray-300'
                           : valueDiff > 0

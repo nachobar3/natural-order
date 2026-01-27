@@ -85,6 +85,7 @@ export interface Database {
           notify_messages: boolean
           default_price_percentage: number
           minimum_price: number
+          collection_paused: boolean
           created_at: string
         }
         Insert: {
@@ -97,6 +98,7 @@ export interface Database {
           notify_messages?: boolean
           default_price_percentage?: number
           minimum_price?: number
+          collection_paused?: boolean
           created_at?: string
         }
         Update: {
@@ -109,6 +111,7 @@ export interface Database {
           notify_messages?: boolean
           default_price_percentage?: number
           minimum_price?: number
+          collection_paused?: boolean
           created_at?: string
         }
       }
@@ -192,6 +195,7 @@ export interface Database {
           price_percentage: number
           price_fixed: number | null
           price_override: boolean
+          is_paused: boolean
           notes: string | null
           created_at: string
           updated_at: string
@@ -207,6 +211,7 @@ export interface Database {
           price_percentage?: number
           price_fixed?: number | null
           price_override?: boolean
+          is_paused?: boolean
           notes?: string | null
           created_at?: string
           updated_at?: string
@@ -222,6 +227,7 @@ export interface Database {
           price_percentage?: number
           price_fixed?: number | null
           price_override?: boolean
+          is_paused?: boolean
           notes?: string | null
           created_at?: string
           updated_at?: string

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
+    "@sentry/nextjs": "^10.36.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
     "@upstash/ratelimit": "^2.0.8",
