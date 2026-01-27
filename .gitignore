@@ -52,3 +52,6 @@ prompts/
 # Test results
 test-results/
 playwright-report/
+
+# Sentry Config File
+.env.sentry-build-plugin

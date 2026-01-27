@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black',
+    statusBarStyle: 'black-translucent',
     title: 'Natural Order',
   },
   formatDetection: {
