@@ -121,7 +121,7 @@ export function GlobalDiscount({ onApplyAll, onSettingsChange }: GlobalDiscountP
     return (
       <button
         disabled
-        className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-800/50 border border-gray-700/50 rounded-lg text-gray-500"
+        className="h-9 flex items-center gap-2 px-3 text-sm bg-gray-800/50 border border-gray-700/50 rounded-lg text-gray-500"
       >
         <Loader2 className="w-4 h-4 animate-spin" />
         <span>Cargando...</span>
@@ -134,7 +134,7 @@ export function GlobalDiscount({ onApplyAll, onSettingsChange }: GlobalDiscountP
       {/* Trigger button */}
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${
+        className={`h-9 flex items-center gap-2 px-3 text-sm border rounded-lg transition-colors ${
           savedCollectionPaused
             ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
             : 'bg-gray-800/50 border-gray-700/50 text-gray-300 hover:text-white hover:border-gray-600 hover:bg-gray-800'

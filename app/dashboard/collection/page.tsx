@@ -1,11 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
 import { GlobalDiscount } from '@/components/collection/global-discount'
+import {
+  CollectionFilters,
+  applyCollectionFilters,
+  defaultFilters,
+  defaultCollectionSort,
+  type FilterState,
+  type SortState,
+} from '@/components/cards/collection-filters'
 import { Package, Loader2, Trash2, Edit2, LayoutGrid, List, Upload, PauseCircle, PlayCircle } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -65,6 +73,8 @@ export default function CollectionPage() {
   const [minimumPrice, setMinimumPrice] = useState(0)
   const [collectionPaused, setCollectionPaused] = useState(false)
   const [togglingPause, setTogglingPause] = useState<string | null>(null)
+  const [filters, setFilters] = useState<FilterState>(defaultFilters)
+  const [sort, setSort] = useState<SortState>(defaultCollectionSort)
 
   const supabase = createClient()
 
@@ -189,7 +199,7 @@ export default function CollectionPage() {
     triggerMatchRecalculation()
   }
 
-  const calculatePrice = (item: CollectionWithCard): { final: number | null; reference: number | null } => {
+  const calculatePrice = useCallback((item: CollectionWithCard): { final: number | null; reference: number | null } => {
     const basePrice = item.foil
       ? item.cards.prices_usd_foil
       : item.cards.prices_usd
@@ -209,12 +219,23 @@ export default function CollectionPage() {
     }
 
     return { final, reference }
-  }
+  }, [minimumPrice])
 
   const totalValue = collection.reduce((sum, item) => {
     const { final } = calculatePrice(item)
     return sum + (final ? final * item.quantity : 0)
   }, 0)
+
+  // Apply filters and sorting
+  const filteredCollection = useMemo(() => {
+    return applyCollectionFilters(
+      collection,
+      filters,
+      sort,
+      'collection',
+      (item) => calculatePrice(item).final
+    )
+  }, [collection, filters, sort, calculatePrice])
 
   if (loading) {
     return (
@@ -247,35 +268,35 @@ export default function CollectionPage() {
           {/* Import button */}
           <Link
             href="/dashboard/collection/import"
-            className="btn-secondary flex items-center gap-2"
+            className="h-9 px-3 flex items-center gap-2 text-sm border border-gray-700/50 rounded-lg text-gray-300 hover:text-white hover:border-gray-600 hover:bg-gray-800 transition-colors"
           >
             <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">Importar</span>
           </Link>
 
           {/* View toggle */}
-          <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-1">
+          <div className="h-9 flex items-center bg-gray-800/50 rounded-lg p-1">
             <button
               onClick={() => setViewMode('binder')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
                 viewMode === 'binder'
                   ? 'bg-mtg-green-600 text-white'
                   : 'text-gray-400 hover:text-gray-200'
               }`}
               title="Vista binder"
             >
-              <LayoutGrid className="w-5 h-5" />
+              <LayoutGrid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
                 viewMode === 'list'
                   ? 'bg-mtg-green-600 text-white'
                   : 'text-gray-400 hover:text-gray-200'
               }`}
               title="Vista lista"
             >
-              <List className="w-5 h-5" />
+              <List className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -292,10 +313,23 @@ export default function CollectionPage() {
         </div>
       )}
 
-      {/* Search - simplified, no wrapper card */}
+      {/* Search */}
       <div className="relative z-20">
         <CardSearch onSelect={handleCardSelect} placeholder="Agregar carta a colección..." />
       </div>
+
+      {/* Filters and sorting */}
+      {collection.length > 0 && (
+        <CollectionFilters
+          mode="collection"
+          filters={filters}
+          sort={sort}
+          onFiltersChange={setFilters}
+          onSortChange={setSort}
+          totalItems={collection.length}
+          filteredItems={filteredCollection.length}
+        />
+      )}
 
       {/* Collection display */}
       {collection.length === 0 ? (
@@ -308,10 +342,20 @@ export default function CollectionPage() {
             Usá el buscador de arriba para agregar cartas
           </p>
         </div>
+      ) : filteredCollection.length === 0 ? (
+        <div className="card text-center py-12">
+          <Package className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+          <h3 className="text-lg font-medium text-gray-300 mb-2">
+            No hay cartas que coincidan
+          </h3>
+          <p className="text-gray-500">
+            Probá ajustando los filtros
+          </p>
+        </div>
       ) : viewMode === 'binder' ? (
         /* Binder View - Grid of cards */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 relative z-10">
-          {collection.map((item) => {
+          {filteredCollection.map((item) => {
             const { final, reference } = calculatePrice(item)
             return (
               <div
@@ -423,7 +467,7 @@ export default function CollectionPage() {
       ) : (
         /* List View */
         <div className="grid gap-4 relative z-10">
-          {collection.map((item) => {
+          {filteredCollection.map((item) => {
             const { final, reference } = calculatePrice(item)
             return (
               <div

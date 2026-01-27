@@ -62,7 +62,7 @@ export default function ProfilePage() {
   const [address, setAddress] = useState('')
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
-  const [radiusKm, setRadiusKm] = useState(10)
+  const [radiusKm, setRadiusKm] = useState(25)
 
   // Preferences form state
   const [tradeMode, setTradeMode] = useState<'trade' | 'sell' | 'buy' | 'both'>('both')

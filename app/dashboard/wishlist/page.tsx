@@ -1,10 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { CardSearch } from '@/components/cards/card-search'
 import { ConfirmModal } from '@/components/ui/confirm-modal'
+import {
+  CollectionFilters,
+  applyCollectionFilters,
+  defaultFilters,
+  defaultWishlistSort,
+  type FilterState,
+  type SortState,
+} from '@/components/cards/collection-filters'
 import { Heart, Loader2, Trash2, Edit2, Upload, LayoutGrid, List } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -67,6 +75,8 @@ export default function WishlistPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<WishlistWithCard | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [filters, setFilters] = useState<FilterState>(defaultFilters)
+  const [sort, setSort] = useState<SortState>(defaultWishlistSort)
 
   const supabase = createClient()
 
@@ -157,6 +167,19 @@ export default function WishlistPage() {
     triggerMatchRecalculation()
   }
 
+  // Apply filters and sorting
+  const filteredWishlist = useMemo(() => {
+    // Filter out items without cards data
+    const validItems = wishlist.filter(item => item.cards !== null)
+    return applyCollectionFilters(
+      validItems as (WishlistWithCard & { cards: NonNullable<WishlistWithCard['cards']> })[],
+      filters,
+      sort,
+      'wishlist',
+      (item) => item.cards?.prices_usd || null
+    )
+  }, [wishlist, filters, sort])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -175,48 +198,61 @@ export default function WishlistPage() {
             {wishlist.length} carta{wishlist.length !== 1 ? 's' : ''} que estás buscando
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Import button */}
           <Link
             href="/dashboard/wishlist/import"
-            className="btn-secondary flex items-center gap-2"
+            className="h-9 px-3 flex items-center gap-2 text-sm border border-gray-700/50 rounded-lg text-gray-300 hover:text-white hover:border-gray-600 hover:bg-gray-800 transition-colors"
           >
             <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Importar CSV</span>
+            <span className="hidden sm:inline">Importar</span>
           </Link>
 
           {/* View toggle */}
-          <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-1">
+          <div className="h-9 flex items-center bg-gray-800/50 rounded-lg p-1">
             <button
               onClick={() => setViewMode('binder')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
                 viewMode === 'binder'
                   ? 'bg-mtg-green-600 text-white'
                   : 'text-gray-400 hover:text-gray-200'
               }`}
               title="Vista binder"
             >
-              <LayoutGrid className="w-5 h-5" />
+              <LayoutGrid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${
                 viewMode === 'list'
                   ? 'bg-mtg-green-600 text-white'
                   : 'text-gray-400 hover:text-gray-200'
               }`}
               title="Vista lista"
             >
-              <List className="w-5 h-5" />
+              <List className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Search - simplified, no wrapper card */}
+      {/* Search */}
       <div className="relative z-20">
         <CardSearch onSelect={handleCardSelect} placeholder="Agregar carta a wishlist..." />
       </div>
+
+      {/* Filters and sorting */}
+      {wishlist.length > 0 && (
+        <CollectionFilters
+          mode="wishlist"
+          filters={filters}
+          sort={sort}
+          onFiltersChange={setFilters}
+          onSortChange={setSort}
+          totalItems={wishlist.length}
+          filteredItems={filteredWishlist.length}
+        />
+      )}
 
       {/* Wishlist display */}
       {wishlist.length === 0 ? (
@@ -229,10 +265,20 @@ export default function WishlistPage() {
             Usá el buscador de arriba para agregar las cartas que buscás
           </p>
         </div>
+      ) : filteredWishlist.length === 0 ? (
+        <div className="card text-center py-12">
+          <Heart className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+          <h3 className="text-lg font-medium text-gray-300 mb-2">
+            No hay cartas que coincidan
+          </h3>
+          <p className="text-gray-500">
+            Probá ajustando los filtros
+          </p>
+        </div>
       ) : viewMode === 'binder' ? (
         /* Binder View - Grid of cards */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 relative z-10">
-          {wishlist.map((item) => (
+          {filteredWishlist.map((item) => (
             <div
               key={item.id}
               className="group relative bg-gray-900/50 rounded-lg overflow-hidden border border-gray-800 hover:border-mtg-green-500/50 transition-all hover:shadow-lg hover:shadow-mtg-green-500/10"
@@ -327,7 +373,7 @@ export default function WishlistPage() {
       ) : (
         /* List View */
         <div className="grid gap-4 relative z-10">
-          {wishlist.map((item) => (
+          {filteredWishlist.map((item) => (
             <div
               key={item.id}
               className="card flex items-center gap-4 hover:border-mtg-green-500/30 transition-colors"
