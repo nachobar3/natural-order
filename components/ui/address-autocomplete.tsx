@@ -69,7 +69,6 @@ export function AddressAutocomplete({
       inputRef.current,
       {
         types: ['address'],
-        componentRestrictions: { country: 'ar' },
         fields: ['formatted_address', 'geometry'],
       }
     )
@@ -95,7 +94,7 @@ export function AddressAutocomplete({
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputValue)}&countrycodes=ar&limit=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputValue)}&limit=5`,
         {
           headers: {
             'User-Agent': 'NaturalOrder/1.0',
