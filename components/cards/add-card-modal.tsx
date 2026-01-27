@@ -181,7 +181,7 @@ export function AddCardModal({
       setPrintings([])
       setSelectedPrinting(null)
     }
-  }, [isOpen, editItem])
+  }, [isOpen, editItem, globalDiscount])
 
   const handlePrintingChange = (scryfallId: string) => {
     const printing = printings.find((p) => p.scryfall_id === scryfallId)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Loader2, MapPin } from 'lucide-react'
 
 interface LocationMapProps {
@@ -28,39 +28,7 @@ export function LocationMap({
   const [error, setError] = useState<string | null>(null)
   const mapInstanceRef = useRef<google.maps.Map | null>(null)
 
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-
-    if (!apiKey) {
-      setError('API key de Google Maps no configurada')
-      setLoading(false)
-      return
-    }
-
-    // Check if Google Maps is already loaded
-    if (window.google?.maps) {
-      initializeMap()
-      return
-    }
-
-    // Load Google Maps script
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`
-    script.async = true
-    script.defer = true
-    script.onload = initializeMap
-    script.onerror = () => {
-      setError('Error al cargar Google Maps')
-      setLoading(false)
-    }
-    document.head.appendChild(script)
-
-    return () => {
-      // Cleanup if needed
-    }
-  }, [latitude, longitude])
-
-  function initializeMap() {
+  const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google?.maps) return
 
     try {
@@ -150,7 +118,35 @@ export function LocationMap({
       setError('Error al inicializar el mapa')
       setLoading(false)
     }
-  }
+  }, [latitude, longitude, radiusKm])
+
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+    if (!apiKey) {
+      setError('API key de Google Maps no configurada')
+      setLoading(false)
+      return
+    }
+
+    // Check if Google Maps is already loaded
+    if (window.google?.maps) {
+      initializeMap()
+      return
+    }
+
+    // Load Google Maps script
+    const script = document.createElement('script')
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry`
+    script.async = true
+    script.defer = true
+    script.onload = initializeMap
+    script.onerror = () => {
+      setError('Error al cargar Google Maps')
+      setLoading(false)
+    }
+    document.head.appendChild(script)
+  }, [initializeMap])
 
   if (error) {
     return (

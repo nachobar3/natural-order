@@ -71,10 +71,6 @@
     @apply btn border border-mtg-green-900/50 text-gray-300 hover:text-white hover:border-mtg-green-600 focus:ring-mtg-green-500;
   }
 
-  .btn-gold {
-    @apply btn bg-mtg-gold hover:bg-yellow-500 text-mtg-dark focus:ring-mtg-gold;
-  }
-
   .btn-danger {
     @apply btn bg-red-600 hover:bg-red-500 text-white focus:ring-red-500;
   }
@@ -96,20 +92,6 @@
     @apply block text-sm font-medium text-gray-300 mb-2;
   }
 
-  /* Radio/Checkbox cards */
-  .radio-card input:checked + div,
-  .checkbox-card input:checked + div {
-    border-color: #16a34a;
-    background-color: rgba(22, 163, 74, 0.1);
-    box-shadow: 0 0 0 1px #16a34a;
-  }
-
-  .radio-card input:focus + div,
-  .checkbox-card input:focus + div {
-    outline: 2px solid #22c55e;
-    outline-offset: 2px;
-  }
-
   /* Badge */
   .badge {
     @apply inline-block px-4 py-1 rounded-full text-sm font-medium;
@@ -121,12 +103,6 @@
 
   .badge-green {
     @apply badge bg-mtg-green-600/20 text-mtg-green-400;
-  }
-
-  /* Display font */
-  .font-display {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 600;
   }
 }
 

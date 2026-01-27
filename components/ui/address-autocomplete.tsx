@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, MapPin } from 'lucide-react'
+import { Loader2, MapPin, AlertCircle } from 'lucide-react'
 
 interface AddressAutocompleteProps {
   value: string
@@ -19,6 +19,8 @@ export function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
   const [inputValue, setInputValue] = useState(value)
 
   // Keep input value in sync with prop
@@ -30,13 +32,16 @@ export function AddressAutocomplete({
     // Check if Google Maps is already loaded
     if (window.google?.maps?.places) {
       setIsLoaded(true)
+      setIsLoading(false)
       return
     }
 
     // Load Google Maps script
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     if (!apiKey) {
-      console.error('Google Maps API key not found')
+      console.error('Google Maps API key not found - address autocomplete disabled')
+      setIsLoading(false)
+      setHasError(true)
       return
     }
 
@@ -46,6 +51,12 @@ export function AddressAutocomplete({
     script.defer = true
     script.onload = () => {
       setIsLoaded(true)
+      setIsLoading(false)
+    }
+    script.onerror = () => {
+      console.error('Failed to load Google Maps script')
+      setIsLoading(false)
+      setHasError(true)
     }
     document.head.appendChild(script)
   }, [])
@@ -78,27 +89,67 @@ export function AddressAutocomplete({
     })
   }, [isLoaded, onChange])
 
+  // Fallback geocoding using Nominatim (OpenStreetMap) when Google Maps is unavailable
+  const handleBlur = async () => {
+    if (isLoaded || !inputValue.trim() || isLoading) return
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(inputValue)}&countrycodes=ar&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'NaturalOrder/1.0',
+          },
+        }
+      )
+      const data = await response.json()
+
+      if (data && data.length > 0) {
+        const result = data[0]
+        const lat = parseFloat(result.lat)
+        const lng = parseFloat(result.lon)
+        onChange(inputValue, lat, lng)
+      }
+    } catch (error) {
+      console.error('Fallback geocoding failed:', error)
+    }
+  }
+
   return (
-    <div className="relative">
-      <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
-        <MapPin className="w-5 h-5 text-gray-500" />
-      </div>
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        className="input pl-10 pr-10"
-        placeholder={isLoaded ? placeholder : 'Cargando...'}
-        disabled={disabled}
-        readOnly={!isLoaded}
-        inputMode="text"
-        autoComplete="off"
-      />
-      {!isLoaded && (
-        <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-          <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+    <div className="space-y-1">
+      <div className="relative">
+        <div className="absolute left-3 inset-y-0 flex items-center pointer-events-none">
+          <MapPin className="w-5 h-5 text-gray-500" />
         </div>
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={handleBlur}
+          className="input pl-10 pr-10"
+          placeholder={isLoading ? 'Cargando...' : placeholder}
+          disabled={disabled}
+          readOnly={isLoading}
+          inputMode="text"
+          autoComplete="off"
+        />
+        {isLoading && (
+          <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+            <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
+          </div>
+        )}
+        {hasError && !isLoading && (
+          <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+            <AlertCircle className="w-5 h-5 text-yellow-500" />
+          </div>
+        )}
+      </div>
+      {hasError && (
+        <p className="text-xs text-yellow-500 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          Autocompletado no disponible. Ingresá la dirección manualmente.
+        </p>
       )}
     </div>
   )

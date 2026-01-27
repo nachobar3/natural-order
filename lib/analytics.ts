@@ -58,10 +58,3 @@ export function trackEvent(
   }
 }
 
-/**
- * Track page view (automatically handled by Vercel Analytics for Next.js pages)
- * Use this for custom "virtual" page views in SPAs
- */
-export function trackPageView(path: string): void {
-  trackEvent('page_view', { path })
-}
