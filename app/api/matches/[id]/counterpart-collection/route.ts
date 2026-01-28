@@ -24,6 +24,14 @@ export async function GET(
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50)
     const offset = (page - 1) * limit
 
+    // Filter params
+    const condition = searchParams.get('condition') || ''
+    const foil = searchParams.get('foil') || '' // 'foil', 'non-foil', or ''
+    const rarity = searchParams.get('rarity') || ''
+    const colors = searchParams.get('colors') || '' // comma-separated: 'W,U,B'
+    const cardType = searchParams.get('type') || ''
+    const sortBy = searchParams.get('sort') || 'date-desc'
+
     // Get the match to find the other user
     const { data: match, error: matchError } = await supabase
       .from('matches')
@@ -65,6 +73,7 @@ export async function GET(
         price_mode,
         price_percentage,
         price_fixed,
+        created_at,
         cards (
           id,
           name,
@@ -73,20 +82,65 @@ export async function GET(
           image_uri,
           image_uri_small,
           prices_usd,
-          prices_usd_foil
+          prices_usd_foil,
+          rarity,
+          colors,
+          type_line,
+          cmc
         )
       `, { count: 'exact' })
       .eq('user_id', otherUserId)
       .gt('quantity', 0)
 
-    // Add search filter if provided
-    if (search.trim()) {
-      // We need to filter by card name - using a subquery approach
-      const { data: matchingCardIds } = await supabase
-        .from('cards')
-        .select('id')
-        .ilike('name', `%${search.trim()}%`)
-        .limit(100)
+    // Apply condition filter
+    if (condition) {
+      query = query.eq('condition', condition)
+    }
+
+    // Apply foil filter
+    if (foil === 'foil') {
+      query = query.eq('foil', true)
+    } else if (foil === 'non-foil') {
+      query = query.eq('foil', false)
+    }
+
+    // Apply card-level filters (search, rarity, colors, type) via subquery
+    const hasCardFilters = search.trim() || rarity || colors || cardType
+    if (hasCardFilters) {
+      let cardQuery = supabase.from('cards').select('id')
+
+      // Search by name
+      if (search.trim()) {
+        cardQuery = cardQuery.ilike('name', `%${search.trim()}%`)
+      }
+
+      // Rarity filter
+      if (rarity) {
+        cardQuery = cardQuery.eq('rarity', rarity)
+      }
+
+      // Type filter (partial match)
+      if (cardType) {
+        cardQuery = cardQuery.ilike('type_line', `%${cardType}%`)
+      }
+
+      // Colors filter - cards that contain any of the selected colors
+      // 'C' means colorless (empty colors array)
+      if (colors) {
+        const colorList = colors.split(',').filter(Boolean)
+        const hasColorless = colorList.includes('C')
+        const actualColors = colorList.filter(c => c !== 'C')
+
+        if (hasColorless && actualColors.length === 0) {
+          // Only colorless selected
+          cardQuery = cardQuery.eq('colors', '{}')
+        } else if (actualColors.length > 0) {
+          // Has actual colors - use overlaps for "contains any"
+          cardQuery = cardQuery.overlaps('colors', actualColors)
+        }
+      }
+
+      const { data: matchingCardIds } = await cardQuery.limit(500)
 
       if (matchingCardIds && matchingCardIds.length > 0) {
         const cardIds = matchingCardIds.map(c => c.id)
@@ -106,9 +160,33 @@ export async function GET(
     // Get total count first, then paginate
     const { count } = await query
 
+    // Determine sort order
+    // Note: sorting by card fields (name, price) requires post-processing
+    // For now, we support sorting by collection fields
+    let orderColumn = 'created_at'
+    let ascending = false
+
+    switch (sortBy) {
+      case 'date-asc':
+        orderColumn = 'created_at'
+        ascending = true
+        break
+      case 'date-desc':
+        orderColumn = 'created_at'
+        ascending = false
+        break
+      case 'condition-asc':
+        orderColumn = 'condition'
+        ascending = true
+        break
+      default:
+        orderColumn = 'created_at'
+        ascending = false
+    }
+
     // Now get the actual data with pagination
     const { data: collection, error: collectionError } = await query
-      .order('created_at', { ascending: false })
+      .order(orderColumn, { ascending })
       .range(offset, offset + limit - 1)
 
     if (collectionError) {
@@ -120,7 +198,7 @@ export async function GET(
     }
 
     // Transform and calculate asking prices
-    const cards = (collection || []).map(item => {
+    let cards = (collection || []).map(item => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const card = item.cards as any as {
         id: string
@@ -131,6 +209,10 @@ export async function GET(
         image_uri_small: string | null
         prices_usd: number | null
         prices_usd_foil: number | null
+        rarity: string | null
+        colors: string[] | null
+        type_line: string | null
+        cmc: number | null
       }
 
       // Calculate asking price
@@ -157,8 +239,32 @@ export async function GET(
         quantity: item.quantity,
         askingPrice,
         alreadyInTrade: existingCollectionIds.has(item.id),
+        rarity: card.rarity,
+        cmc: card.cmc,
       }
     })
+
+    // Post-process sorting for card-level fields
+    switch (sortBy) {
+      case 'price-desc':
+        cards = cards.sort((a, b) => (b.askingPrice || 0) - (a.askingPrice || 0))
+        break
+      case 'price-asc':
+        cards = cards.sort((a, b) => (a.askingPrice || 0) - (b.askingPrice || 0))
+        break
+      case 'name-asc':
+        cards = cards.sort((a, b) => a.cardName.localeCompare(b.cardName))
+        break
+      case 'name-desc':
+        cards = cards.sort((a, b) => b.cardName.localeCompare(a.cardName))
+        break
+      case 'cmc-asc':
+        cards = cards.sort((a, b) => (a.cmc || 0) - (b.cmc || 0))
+        break
+      case 'cmc-desc':
+        cards = cards.sort((a, b) => (b.cmc || 0) - (a.cmc || 0))
+        break
+    }
 
     return NextResponse.json({
       cards,
