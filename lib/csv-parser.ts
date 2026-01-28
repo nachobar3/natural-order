@@ -25,6 +25,7 @@ export interface ParsedCard {
     image_uri_small: string | null
     prices_usd: number | null
     prices_usd_foil: number | null
+    finishes?: string[] // e.g., ['nonfoil'], ['foil'], ['nonfoil', 'foil'], ['etched']
     rarity: string | null
   } | null
 }

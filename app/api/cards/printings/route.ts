@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       image_uri_small: card.image_uris?.small || card.card_faces?.[0]?.image_uris?.small || null,
       prices_usd: card.prices.usd ? parseFloat(card.prices.usd) : null,
       prices_usd_foil: card.prices.usd_foil ? parseFloat(card.prices.usd_foil) : null,
+      finishes: card.finishes || ['nonfoil', 'foil'], // Default to both if not specified
       rarity: card.rarity,
       type_line: card.type_line,
       mana_cost: card.mana_cost || null,

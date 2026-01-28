@@ -532,6 +532,7 @@ export interface ScryfallCard {
     usd?: string | null
     usd_foil?: string | null
   }
+  finishes?: string[] // e.g., ['nonfoil'], ['foil'], ['nonfoil', 'foil'], ['etched']
   rarity: string
   type_line: string
   mana_cost?: string

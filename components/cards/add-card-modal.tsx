@@ -18,6 +18,7 @@ interface CardData {
   image_uri_small: string | null
   prices_usd: number | null
   prices_usd_foil: number | null
+  finishes?: string[] // e.g., ['nonfoil'], ['foil'], ['nonfoil', 'foil'], ['etched']
   rarity: string | null
   type_line: string | null
   mana_cost: string | null
@@ -123,7 +124,17 @@ export function AddCardModal({
           const current = data.printings?.find(
             (p: CardData) => p.scryfall_id === sourceCard.scryfall_id
           )
-          setSelectedPrinting(current || sourceCard)
+          const selectedCard = current || sourceCard
+          setSelectedPrinting(selectedCard)
+
+          // Auto-set foil based on finishes (only for new cards, not when editing)
+          if (!editItem && selectedCard?.finishes) {
+            const finishes = selectedCard.finishes
+            const printingIsFoilOnly = !finishes.includes('nonfoil') && (finishes.includes('foil') || finishes.includes('etched'))
+            if (printingIsFoilOnly) {
+              setFoil(true)
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to fetch printings:', err)
@@ -187,6 +198,15 @@ export function AddCardModal({
     const printing = printings.find((p) => p.scryfall_id === scryfallId)
     if (printing) {
       setSelectedPrinting(printing)
+      // Auto-set foil based on finishes
+      const finishes = printing.finishes || []
+      const printingIsFoilOnly = !finishes.includes('nonfoil') && (finishes.includes('foil') || finishes.includes('etched'))
+      const printingIsNonfoilOnly = finishes.includes('nonfoil') && !finishes.includes('foil') && !finishes.includes('etched')
+      if (printingIsFoilOnly) {
+        setFoil(true)
+      } else if (printingIsNonfoilOnly) {
+        setFoil(false)
+      }
     }
   }
 
@@ -226,12 +246,19 @@ export function AddCardModal({
           ? (editItem as CollectionWithCard).price_override || false
           : priceMode === 'fixed' || pricePercentage !== globalDiscount
 
+        // Determine effective foil value based on card finishes
+        // Use finishes from CardData if available, otherwise use current foil value
+        const finishes = (cardToSave as CardData).finishes || []
+        const isFoilOnlyCard = finishes.length > 0 && !finishes.includes('nonfoil') && (finishes.includes('foil') || finishes.includes('etched'))
+        const isNonfoilOnlyCard = finishes.length > 0 && finishes.includes('nonfoil') && !finishes.includes('foil') && !finishes.includes('etched')
+        const finalFoil = isFoilOnlyCard ? true : (isNonfoilOnlyCard ? false : foil)
+
         const collectionData = {
           user_id: user.id,
           card_id: cardId,
           quantity,
           condition,
-          foil,
+          foil: finalFoil,
           price_mode: priceMode,
           price_percentage: pricePercentage,
           price_fixed: priceMode === 'fixed' && priceFixed ? parseFloat(priceFixed) : null,
@@ -305,10 +332,32 @@ export function AddCardModal({
     }
   }
 
+  // Helper functions to detect finish restrictions
+  const isFoilOnly = (finishes?: string[]) => {
+    if (!finishes || finishes.length === 0) return false
+    // Foil-only if has foil/etched but no nonfoil
+    return !finishes.includes('nonfoil') && (finishes.includes('foil') || finishes.includes('etched'))
+  }
+
+  const isNonfoilOnly = (finishes?: string[]) => {
+    if (!finishes || finishes.length === 0) return false
+    // Nonfoil-only if only has nonfoil (no foil or etched)
+    return finishes.includes('nonfoil') && !finishes.includes('foil') && !finishes.includes('etched')
+  }
+
   if (!isOpen) return null
 
   const displayCard = selectedPrinting || card || (editItem && 'cards' in editItem ? editItem.cards : null)
-  const currentPrice = foil ? displayCard?.prices_usd_foil : displayCard?.prices_usd
+
+  // Determine foil restrictions based on finishes
+  const cardIsFoilOnly = isFoilOnly((displayCard as CardData | null)?.finishes)
+  const cardIsNonfoilOnly = isNonfoilOnly((displayCard as CardData | null)?.finishes)
+  const foilLocked = cardIsFoilOnly || cardIsNonfoilOnly
+
+  // Effective foil value (forced if foil-only)
+  const effectiveFoil = cardIsFoilOnly ? true : (cardIsNonfoilOnly ? false : foil)
+
+  const currentPrice = effectiveFoil ? displayCard?.prices_usd_foil : displayCard?.prices_usd
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 pb-20 md:pb-4">
@@ -555,12 +604,21 @@ export function AddCardModal({
                     <input
                       type="checkbox"
                       id="foil"
-                      checked={foil}
+                      checked={effectiveFoil}
                       onChange={(e) => setFoil(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-mtg-green-500 focus:ring-mtg-green-500"
+                      disabled={foilLocked}
+                      className={`w-4 h-4 rounded border-gray-600 bg-gray-800 text-mtg-green-500 focus:ring-mtg-green-500 ${
+                        foilLocked ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     />
-                    <label htmlFor="foil" className="text-sm text-gray-300">
+                    <label htmlFor="foil" className={`text-sm ${foilLocked ? 'text-gray-500' : 'text-gray-300'}`}>
                       Foil ✨
+                      {cardIsFoilOnly && (
+                        <span className="ml-2 text-xs text-amber-400">(esta edición solo existe en foil)</span>
+                      )}
+                      {cardIsNonfoilOnly && (
+                        <span className="ml-2 text-xs text-gray-500">(esta edición no existe en foil)</span>
+                      )}
                     </label>
                   </div>
 

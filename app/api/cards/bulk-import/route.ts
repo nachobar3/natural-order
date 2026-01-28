@@ -15,6 +15,7 @@ interface CardToImport {
     image_uri_small: string | null
     prices_usd: number | null
     prices_usd_foil: number | null
+    finishes?: string[] // e.g., ['nonfoil'], ['foil'], ['nonfoil', 'foil'], ['etched']
     rarity: string | null
     type_line: string | null
     mana_cost: string | null
@@ -28,6 +29,22 @@ interface CardToImport {
   condition: 'NM' | 'LP' | 'MP' | 'HP' | 'DMG'
   foil: boolean
   notes: string | null
+}
+
+// Helper to determine effective foil value based on card finishes
+function getEffectiveFoil(foilFromCSV: boolean, finishes?: string[]): boolean {
+  if (!finishes || finishes.length === 0) return foilFromCSV
+
+  // Foil-only: has foil/etched but no nonfoil
+  const isFoilOnly = !finishes.includes('nonfoil') && (finishes.includes('foil') || finishes.includes('etched'))
+  if (isFoilOnly) return true
+
+  // Nonfoil-only: only has nonfoil
+  const isNonfoilOnly = finishes.includes('nonfoil') && !finishes.includes('foil') && !finishes.includes('etched')
+  if (isNonfoilOnly) return false
+
+  // Mixed: use CSV value
+  return foilFromCSV
 }
 
 interface ImportResult {
@@ -174,7 +191,10 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      const key = `${cardId}-${item.condition}-${item.foil}`
+      // Determine effective foil value based on card finishes
+      const effectiveFoil = getEffectiveFoil(item.foil, item.card.finishes)
+
+      const key = `${cardId}-${item.condition}-${effectiveFoil}`
       const existing = existingMap.get(key)
 
       if (existing) {
@@ -216,7 +236,7 @@ export async function POST(request: NextRequest) {
             card_id: cardId,
             quantity: item.quantity,
             condition: item.condition,
-            foil: item.foil,
+            foil: effectiveFoil,
             price_mode: 'percentage',
             price_percentage: 100,
             notes: item.notes,
