@@ -450,6 +450,9 @@ export interface MatchCard {
   isExcluded: boolean
   isCustom: boolean
   addedByUserId: string | null
+  // Source IDs for collection/wishlist management
+  collectionId: string | null
+  wishlistId: string | null
 }
 
 export interface MatchDetail extends Omit<Match, 'cardsIWant' | 'cardsTheyWant' | 'valueIWant' | 'valueTheyWant' | 'updatedAt' | 'otherUser'> {

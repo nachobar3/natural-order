@@ -34,6 +34,7 @@ import {
   Package,
 } from 'lucide-react'
 import { trackEvent, AnalyticsEvents } from '@/lib/analytics'
+import { createClient } from '@/lib/supabase/client'
 import type { MatchDetail, MatchCard, MatchType, MatchStatus } from '@/types/database'
 
 // Lazy load CounterpartCollectionDrawer - only loaded when user opens the drawer
@@ -94,20 +95,130 @@ interface Comment {
 interface CardItemProps {
   card: MatchCard
   isExcluded: boolean
-  onToggleExclude: (cardId: string) => void
+  isDeleted?: boolean
+  onToggleExclude: (card: MatchCard) => void
   onDeleteCustom?: (cardId: string) => void
   disabled?: boolean
   canDelete?: boolean
   currentUserId?: string
 }
 
-function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
+// Exclusion options types
+type ExclusionOption = 'exclude' | 'pause' | 'delete'
+
+interface ExclusionModalState {
+  isOpen: boolean
+  card: MatchCard | null
+  isCollection: boolean // true = my collection, false = my wishlist
+  affectedMatchesCount: number
+  loading: boolean
+}
+
+interface ExclusionOptionsModalProps {
+  state: ExclusionModalState
+  onClose: () => void
+  onConfirm: (option: ExclusionOption) => void
+  actionLoading: boolean
+}
+
+function ExclusionOptionsModal({ state, onClose, onConfirm, actionLoading }: ExclusionOptionsModalProps) {
+  const [selectedOption, setSelectedOption] = useState<ExclusionOption>('exclude')
+
+  if (!state.isOpen || !state.card) return null
+
+  const options: { value: ExclusionOption; label: string; description: string }[] = state.isCollection
+    ? [
+        { value: 'exclude', label: 'Solo excluir de este trade', description: 'La carta seguirá disponible en otros trades' },
+        { value: 'pause', label: 'Pausar de todos los trades', description: 'La podés reactivar después desde tu colección' },
+        { value: 'delete', label: 'Eliminar de mi colección', description: 'Se eliminará permanentemente' },
+      ]
+    : [
+        { value: 'exclude', label: 'Solo excluir de este trade', description: 'Seguirá en tu wishlist para otros trades' },
+        { value: 'delete', label: 'Eliminar de mi wishlist', description: 'Se eliminará permanentemente' },
+      ]
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/70 z-[70]" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[75] w-[90vw] max-w-md bg-gray-900 rounded-xl border border-gray-700 p-6 shadow-2xl">
+        <h3 className="text-lg font-semibold text-gray-100 mb-1">
+          ¿Qué querés hacer con esta carta?
+        </h3>
+        <p className="text-sm text-gray-400 mb-4">{state.card.cardName}</p>
+
+        {state.loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-4">
+              {options.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedOption === option.value
+                      ? 'bg-mtg-green-600/20 border border-mtg-green-500/50'
+                      : 'bg-gray-800/50 border border-gray-700 hover:border-gray-600'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="exclusion-option"
+                    value={option.value}
+                    checked={selectedOption === option.value}
+                    onChange={() => setSelectedOption(option.value)}
+                    className="mt-1 accent-mtg-green-500"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-200">{option.label}</p>
+                    <p className="text-xs text-gray-500">{option.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {/* Warning about affected matches */}
+            {(selectedOption === 'pause' || selectedOption === 'delete') && state.affectedMatchesCount > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 mb-4">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-yellow-400">
+                  Esta carta aparece en {state.affectedMatchesCount} trade{state.affectedMatchesCount !== 1 ? 's' : ''} activo{state.affectedMatchesCount !== 1 ? 's' : ''} que también se ver{state.affectedMatchesCount !== 1 ? 'án' : 'á'} afectado{state.affectedMatchesCount !== 1 ? 's' : ''}.
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={onClose}
+                disabled={actionLoading}
+                className="btn-secondary text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => onConfirm(selectedOption)}
+                disabled={actionLoading}
+                className="btn-primary text-sm flex items-center gap-2"
+              >
+                {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                Confirmar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  )
+}
+
+function CardItem({ card, isExcluded, isDeleted, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
   const isMyCustomCard = card.isCustom && card.addedByUserId === currentUserId
 
   return (
     <div
       className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
-        isExcluded
+        isExcluded || isDeleted
           ? 'bg-gray-900/20 opacity-50'
           : card.priceExceedsMax
             ? 'bg-gray-900/30 border border-yellow-500/30'
@@ -118,26 +229,32 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
     >
       {/* Action buttons */}
       <div className="flex flex-col gap-1 flex-shrink-0">
-        {/* Exclude/Include button */}
-        <button
-          onClick={() => onToggleExclude(card.id)}
-          disabled={disabled}
-          className={`p-1.5 rounded-full transition-colors ${
-            isExcluded
-              ? 'bg-gray-700 hover:bg-gray-600 text-gray-400'
-              : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
-        >
-          {isExcluded ? (
-            <Check className="w-3.5 h-3.5" />
-          ) : (
-            <X className="w-3.5 h-3.5" />
-          )}
-        </button>
+        {/* Exclude/Include button - hidden if card source was deleted */}
+        {isDeleted ? (
+          <div className="p-1.5 text-gray-600" title="Eliminada">
+            <Trash2 className="w-3.5 h-3.5" />
+          </div>
+        ) : (
+          <button
+            onClick={() => onToggleExclude(card)}
+            disabled={disabled}
+            className={`p-1.5 rounded-full transition-colors ${
+              isExcluded
+                ? 'bg-gray-700 hover:bg-gray-600 text-gray-400'
+                : 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
+          >
+            {isExcluded ? (
+              <Check className="w-3.5 h-3.5" />
+            ) : (
+              <X className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
 
         {/* Delete button for custom cards */}
-        {canDelete && isMyCustomCard && onDeleteCustom && (
+        {canDelete && isMyCustomCard && onDeleteCustom && !isDeleted && (
           <button
             onClick={() => onDeleteCustom(card.id)}
             disabled={disabled}
@@ -167,13 +284,18 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
       {/* Card info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <h4 className={`text-sm font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+          <h4 className={`text-sm font-medium truncate ${isExcluded || isDeleted ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
             {card.cardName}
           </h4>
           {card.isCustom && (
             <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 flex-shrink-0" title="Agregado manualmente">
               <Sparkles className="w-2.5 h-2.5" />
               Manual
+            </span>
+          )}
+          {isDeleted && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 flex-shrink-0">
+              Eliminada
             </span>
           )}
         </div>
@@ -204,13 +326,13 @@ function CardItem({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled,
 }
 
 // Desktop card view - larger cards with image, details below, and action button overlay on hover
-function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
+function CardItemDesktop({ card, isExcluded, isDeleted, onToggleExclude, onDeleteCustom, disabled, canDelete, currentUserId }: CardItemProps) {
   const isMyCustomCard = card.isCustom && card.addedByUserId === currentUserId
 
   return (
     <div
       className={`relative group rounded-lg overflow-hidden transition-all ${
-        isExcluded
+        isExcluded || isDeleted
           ? 'opacity-50'
           : card.priceExceedsMax
             ? 'ring-2 ring-yellow-500/50'
@@ -226,7 +348,7 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
             src={card.cardImageUri}
             alt={card.cardName}
             fill
-            className={`object-cover ${isExcluded ? 'grayscale' : ''}`}
+            className={`object-cover ${isExcluded || isDeleted ? 'grayscale' : ''}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
@@ -234,48 +356,50 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
           </div>
         )}
 
-        {/* Hover overlay with actions */}
-        <div className={`absolute inset-0 bg-black/60 flex items-center justify-center gap-2 transition-opacity ${
-          disabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
-        }`}>
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (!disabled) {
-                onToggleExclude(card.id)
-              }
-            }}
-            className={`p-3 rounded-full transition-colors ${
-              isExcluded
-                ? 'bg-green-500 hover:bg-green-400 text-white'
-                : 'bg-red-500 hover:bg-red-400 text-white'
-            }`}
-            title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
-          >
-            {isExcluded ? (
-              <Check className="w-6 h-6" />
-            ) : (
-              <X className="w-6 h-6" />
-            )}
-          </button>
-
-          {canDelete && isMyCustomCard && onDeleteCustom && (
+        {/* Hover overlay with actions - hidden if deleted */}
+        {!isDeleted && (
+          <div className={`absolute inset-0 bg-black/60 flex items-center justify-center gap-2 transition-opacity ${
+            disabled ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+          }`}>
             <button
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
                 if (!disabled) {
-                  onDeleteCustom(card.id)
+                  onToggleExclude(card)
                 }
               }}
-              className="p-3 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"
-              title="Eliminar carta"
+              className={`p-3 rounded-full transition-colors ${
+                isExcluded
+                  ? 'bg-green-500 hover:bg-green-400 text-white'
+                  : 'bg-red-500 hover:bg-red-400 text-white'
+              }`}
+              title={isExcluded ? 'Incluir en trade' : 'Excluir de trade'}
             >
-              <Trash2 className="w-6 h-6" />
+              {isExcluded ? (
+                <Check className="w-6 h-6" />
+              ) : (
+                <X className="w-6 h-6" />
+              )}
             </button>
-          )}
-        </div>
+
+            {canDelete && isMyCustomCard && onDeleteCustom && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (!disabled) {
+                    onDeleteCustom(card.id)
+                  }
+                }}
+                className="p-3 rounded-full bg-red-600 hover:bg-red-500 text-white transition-colors"
+                title="Eliminar carta"
+              >
+                <Trash2 className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Custom badge */}
         {card.isCustom && (
@@ -285,14 +409,21 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
         )}
 
         {/* Price warning badge */}
-        {card.priceExceedsMax && (
+        {card.priceExceedsMax && !isDeleted && (
           <div className="absolute top-1 left-1 bg-yellow-500/90 text-black text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5">
             <AlertTriangle className="w-2.5 h-2.5" />
           </div>
         )}
 
-        {/* Excluded indicator - shown when not hovering */}
-        {isExcluded && (
+        {/* Deleted indicator */}
+        {isDeleted && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+            <Trash2 className="w-10 h-10 text-red-400/80" />
+          </div>
+        )}
+
+        {/* Excluded indicator - shown when not hovering and not deleted */}
+        {isExcluded && !isDeleted && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none group-hover:opacity-0 transition-opacity">
             <X className="w-10 h-10 text-red-400/80" />
           </div>
@@ -301,16 +432,23 @@ function CardItemDesktop({ card, isExcluded, onToggleExclude, onDeleteCustom, di
 
       {/* Card details */}
       <div className="p-2 bg-gray-900/80">
-        <h4 className={`text-xs font-medium truncate ${isExcluded ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
-          {card.cardName}
-        </h4>
+        <div className="flex items-center gap-1">
+          <h4 className={`text-xs font-medium truncate ${isExcluded || isDeleted ? 'text-gray-500 line-through' : 'text-gray-100'}`}>
+            {card.cardName}
+          </h4>
+          {isDeleted && (
+            <span className="text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400 flex-shrink-0">
+              Eliminada
+            </span>
+          )}
+        </div>
         <p className="text-[10px] text-gray-500 truncate">
           {card.cardSetCode.toUpperCase()} • {card.condition}
           {card.isFoil && <span className="text-purple-400 ml-1">✨</span>}
         </p>
         {card.askingPrice !== null && (
           <p className={`text-xs font-medium mt-0.5 ${
-            isExcluded ? 'text-gray-500' : card.priceExceedsMax ? 'text-yellow-400' : 'text-green-400'
+            isExcluded || isDeleted ? 'text-gray-500' : card.priceExceedsMax ? 'text-yellow-400' : 'text-green-400'
           }`}>
             ${card.askingPrice.toFixed(2)}
           </p>
@@ -482,6 +620,22 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     pendingAction: (() => void) | null
   }>({ isOpen: false, pendingAction: null })
 
+  // Exclusion options modal state
+  const [exclusionModal, setExclusionModal] = useState<ExclusionModalState>({
+    isOpen: false,
+    card: null,
+    isCollection: false,
+    affectedMatchesCount: 0,
+    loading: false,
+  })
+  const [exclusionActionLoading, setExclusionActionLoading] = useState(false)
+
+  // Track deleted source items (cards whose collection/wishlist was deleted)
+  const [deletedSourceItems, setDeletedSourceItems] = useState<Set<string>>(new Set())
+
+  // Supabase client for direct queries
+  const supabase = useMemo(() => createClient(), [])
+
   // Get current user ID
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -580,21 +734,187 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
     setHasLocalChanges(true)
   }
 
-  // Handle edit attempt - may require confirmation
-  const toggleCardExclusion = (cardId: string) => {
+  // Check if a card is from my collection or wishlist
+  // cardsIWant = cards I want from other user's collection (my wishlist entries)
+  // cardsTheyWant = cards they want from my collection (my collection entries)
+  const isMyCollectionCard = useCallback((card: MatchCard) => {
+    return match?.cardsTheyWant.some(c => c.id === card.id) ?? false
+  }, [match])
+
+  const isMyWishlistCard = useCallback((card: MatchCard) => {
+    return match?.cardsIWant.some(c => c.id === card.id) ?? false
+  }, [match])
+
+  // Count affected matches for a collection or wishlist item
+  const countAffectedMatches = useCallback(async (collectionId: string | null, wishlistId: string | null): Promise<number> => {
+    if (!collectionId && !wishlistId) return 0
+    if (!currentUserId) return 0
+
+    try {
+      // Query match_cards to find other active matches containing this item
+      const { count, error } = await supabase
+        .from('match_cards')
+        .select('id, matches!inner(id, status)', { count: 'exact', head: true })
+        .eq(collectionId ? 'collection_id' : 'wishlist_id', collectionId || wishlistId)
+        .neq('match_id', id) // Exclude current match
+        .in('matches.status', ['active', 'contacted', 'requested', 'confirmed'])
+
+      if (error) {
+        console.error('Error counting affected matches:', error)
+        return 0
+      }
+
+      return count || 0
+    } catch (err) {
+      console.error('Error in countAffectedMatches:', err)
+      return 0
+    }
+  }, [supabase, id, currentUserId])
+
+  // Open exclusion modal with affected matches count
+  const openExclusionModal = useCallback(async (card: MatchCard, isCollection: boolean) => {
+    setExclusionModal({
+      isOpen: true,
+      card,
+      isCollection,
+      affectedMatchesCount: 0,
+      loading: true,
+    })
+
+    // Count affected matches
+    const sourceId = isCollection ? card.collectionId : card.wishlistId
+    const count = await countAffectedMatches(
+      isCollection ? sourceId : null,
+      isCollection ? null : sourceId
+    )
+
+    setExclusionModal(prev => ({
+      ...prev,
+      affectedMatchesCount: count,
+      loading: false,
+    }))
+  }, [countAffectedMatches])
+
+  // Handle exclusion option confirmation
+  const handleExclusionConfirm = async (option: ExclusionOption) => {
+    const card = exclusionModal.card
+    if (!card) return
+
+    setExclusionActionLoading(true)
+
+    try {
+      if (option === 'exclude') {
+        // Just exclude from this trade
+        executeToggleExclusion(card.id)
+      } else if (option === 'pause' && exclusionModal.isCollection && card.collectionId) {
+        // Pause collection item
+        const res = await fetch(`/api/collection/${card.collectionId}/pause`, { method: 'PATCH' })
+        if (res.ok) {
+          executeToggleExclusion(card.id)
+        } else {
+          console.error('Error pausing collection item')
+        }
+      } else if (option === 'delete') {
+        // Delete from collection or wishlist
+        if (exclusionModal.isCollection && card.collectionId) {
+          const { error } = await supabase
+            .from('collections')
+            .delete()
+            .eq('id', card.collectionId)
+
+          if (!error) {
+            executeToggleExclusion(card.id)
+            setDeletedSourceItems(prev => new Set(prev).add(card.id))
+            // Trigger match recalculation in background
+            fetch('/api/matches/compute', { method: 'POST' }).catch(console.error)
+          } else {
+            console.error('Error deleting collection item:', error)
+          }
+        } else if (!exclusionModal.isCollection && card.wishlistId) {
+          const { error } = await supabase
+            .from('wishlist')
+            .delete()
+            .eq('id', card.wishlistId)
+
+          if (!error) {
+            executeToggleExclusion(card.id)
+            setDeletedSourceItems(prev => new Set(prev).add(card.id))
+            // Trigger match recalculation in background
+            fetch('/api/matches/compute', { method: 'POST' }).catch(console.error)
+          } else {
+            console.error('Error deleting wishlist item:', error)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error handling exclusion option:', err)
+    } finally {
+      setExclusionActionLoading(false)
+      setExclusionModal({ isOpen: false, card: null, isCollection: false, affectedMatchesCount: 0, loading: false })
+    }
+  }
+
+  // Handle edit attempt - may require confirmation or show exclusion options
+  const toggleCardExclusion = (card: MatchCard) => {
+    const isCurrentlyExcluded = localExclusions.has(card.id)
+
+    // If re-including (was excluded), don't show modal - just toggle
+    if (isCurrentlyExcluded) {
+      if (needsEditConfirmation) {
+        setEditConfirmModal({
+          isOpen: true,
+          pendingAction: async () => {
+            const success = await revertMatchStatus()
+            if (success) {
+              executeToggleExclusion(card.id)
+            }
+            setEditConfirmModal({ isOpen: false, pendingAction: null })
+          },
+        })
+      } else {
+        executeToggleExclusion(card.id)
+      }
+      return
+    }
+
+    // Check if this is my card (from my collection or wishlist)
+    const isMyCollection = isMyCollectionCard(card)
+    const isMyWishlist = isMyWishlistCard(card)
+
+    // If it's the other user's card, just exclude without modal
+    if (!isMyCollection && !isMyWishlist) {
+      if (needsEditConfirmation) {
+        setEditConfirmModal({
+          isOpen: true,
+          pendingAction: async () => {
+            const success = await revertMatchStatus()
+            if (success) {
+              executeToggleExclusion(card.id)
+            }
+            setEditConfirmModal({ isOpen: false, pendingAction: null })
+          },
+        })
+      } else {
+        executeToggleExclusion(card.id)
+      }
+      return
+    }
+
+    // It's my card - show exclusion options modal
+    // If match is in protected state, revert first
     if (needsEditConfirmation) {
       setEditConfirmModal({
         isOpen: true,
         pendingAction: async () => {
           const success = await revertMatchStatus()
           if (success) {
-            executeToggleExclusion(cardId)
+            openExclusionModal(card, isMyCollection)
           }
           setEditConfirmModal({ isOpen: false, pendingAction: null })
         },
       })
     } else {
-      executeToggleExclusion(cardId)
+      openExclusionModal(card, isMyCollection)
     }
   }
 
@@ -1124,6 +1444,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   key={card.id}
                   card={card}
                   isExcluded={localExclusions.has(card.id)}
+                  isDeleted={deletedSourceItems.has(card.id)}
                   onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
                   disabled={!canEdit}
@@ -1139,6 +1460,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   key={card.id}
                   card={card}
                   isExcluded={localExclusions.has(card.id)}
+                  isDeleted={deletedSourceItems.has(card.id)}
                   onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
                   disabled={!canEdit}
@@ -1174,6 +1496,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   key={card.id}
                   card={card}
                   isExcluded={localExclusions.has(card.id)}
+                  isDeleted={deletedSourceItems.has(card.id)}
                   onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
                   disabled={!canEdit}
@@ -1189,6 +1512,7 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
                   key={card.id}
                   card={card}
                   isExcluded={localExclusions.has(card.id)}
+                  isDeleted={deletedSourceItems.has(card.id)}
                   onToggleExclude={toggleCardExclusion}
                   onDeleteCustom={deleteCustomCard}
                   disabled={!canEdit}
@@ -1330,6 +1654,14 @@ export default function MatchDetailPage({ params }: { params: { id: string } }) 
           </div>
         </>
       )}
+
+      {/* Exclusion Options Modal */}
+      <ExclusionOptionsModal
+        state={exclusionModal}
+        onClose={() => setExclusionModal({ isOpen: false, card: null, isCollection: false, affectedMatchesCount: 0, loading: false })}
+        onConfirm={handleExclusionConfirm}
+        actionLoading={exclusionActionLoading}
+      />
     </div>
   )
 }

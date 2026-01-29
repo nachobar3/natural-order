@@ -130,6 +130,8 @@ export async function GET(
         isExcluded: c.is_excluded || false,
         isCustom: c.is_custom || false,
         addedByUserId: c.added_by_user_id || null,
+        collectionId: c.collection_id || null,
+        wishlistId: c.wishlist_id || null,
       })),
 
       cardsTheyWant: cardsTheyWant.map(c => ({
@@ -149,6 +151,8 @@ export async function GET(
         isExcluded: c.is_excluded || false,
         isCustom: c.is_custom || false,
         addedByUserId: c.added_by_user_id || null,
+        collectionId: c.collection_id || null,
+        wishlistId: c.wishlist_id || null,
       })),
 
       // Totals based on active (non-excluded) cards
@@ -210,7 +214,7 @@ export async function PATCH(
         updated_at: new Date().toISOString(),
         // Clear request tracking when reverting to active
         ...(status === 'active' ? {
-          requested_by_user_id: null,
+          requested_by: null,
           requested_at: null,
           confirmed_at: null,
         } : {}),
